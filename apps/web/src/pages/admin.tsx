@@ -27,7 +27,8 @@ import {
   ArrowRight,
   Plus,
   Trash2,
-  Layers
+  Layers,
+  Pencil
 } from 'lucide-react';
 
 
@@ -50,8 +51,8 @@ export const AdminPage = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
-    cardNumber: '8600 0000 0000 0000',
-    cardHolder: 'ADMINISTRATOR',
+    cardNumber: '9860 3501 4074 7741',
+    cardHolder: 'Tojiboyev Jahongir',
     basePrice: 60000,
     adminPin: '7777',
     tgBotToken: '',
@@ -74,6 +75,14 @@ export const AdminPage = () => {
   const [newCardHolder, setNewCardHolder] = useState('');
   const [newCardLimit, setNewCardLimit] = useState(40);
   const [isAddingCard, setIsAddingCard] = useState(false);
+
+  // Card edit state
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editCardNumber, setEditCardNumber] = useState('');
+  const [editCardHolder, setEditCardHolder] = useState('');
+  const [editCardLimit, setEditCardLimit] = useState(40);
+  const [editBankName, setEditBankName] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
 
   const [channelModalOpen, setChannelModalOpen] = useState(false);
@@ -416,6 +425,44 @@ export const AdminPage = () => {
       showNotification('Karta qo\'shishda xatolik');
     } finally {
       setIsAddingCard(false);
+    }
+  };
+
+  const startEditingCard = (card: any) => {
+    setEditingCardId(card.id);
+    setEditCardNumber(card.cardNumber);
+    setEditCardHolder(card.cardHolder);
+    setEditCardLimit(card.dailyLimit || 40);
+    setEditBankName(card.bankName || '');
+  };
+
+  const handleSaveCardEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCardId) return;
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/cards/${editingCardId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          cardNumber: editCardNumber,
+          cardHolder: editCardHolder,
+          dailyLimit: Number(editCardLimit) || 40,
+          bankName: editBankName,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification("✅ Karta ma'lumotlari muvaffaqiyatli yangilandi!");
+        setEditingCardId(null);
+        loadAdminData();
+      } else {
+        showNotification(`❌ Xatolik: ${data.error}`);
+      }
+    } catch (err) {
+      showNotification('Karta ma\'lumotlarini yangilashda xatolik');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -990,46 +1037,121 @@ export const AdminPage = () => {
                           : 'border-white/10 hover:border-white/20'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/10 text-gray-300">
-                            #{idx + 1} - Karta
+                    {editingCardId === card.id ? (
+                      <form onSubmit={handleSaveCardEdit} className="p-4 rounded-xl bg-black/70 border border-blue-500/50 space-y-3 mb-3 animate-fade-in">
+                        <div className="flex items-center justify-between pb-1 border-b border-white/10">
+                          <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+                            <Pencil size={13} /> Kartani tahrirlash (#{idx + 1})
                           </span>
-                          <span className="font-mono font-bold text-white text-lg tracking-wider">
-                            {card.cardNumber}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-300 font-semibold flex items-center gap-2">
-                          <span>{card.cardHolder}</span>
-                          {card.bankName && <span className="text-gray-400">({card.bankName})</span>}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCardActive(card)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                            card.isActive !== false
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                              : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
-                          }`}
-                        >
-                          {card.isActive !== false ? 'Faol' : 'Nofaol'}
-                        </button>
-                        {cards.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteCard(card.id)}
-                            className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 transition-all"
-                            title="Kartani o'chirish"
+                            onClick={() => setEditingCardId(null)}
+                            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
                           >
-                            <Trash2 size={14} />
+                            <X size={14} />
                           </button>
-                        )}
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div>
+                            <label className="text-[11px] text-gray-300 block mb-1 font-semibold">Karta Raqami:</label>
+                            <input
+                              type="text"
+                              value={editCardNumber}
+                              onChange={(e) => setEditCardNumber(e.target.value)}
+                              placeholder="9860 3501 4074 7741"
+                              className="w-full px-3 py-1.5 rounded-lg bg-black/50 border border-white/20 text-white font-mono text-xs focus:outline-none focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-gray-300 block mb-1 font-semibold">Karta Egasi (F.I.O):</label>
+                            <input
+                              type="text"
+                              value={editCardHolder}
+                              onChange={(e) => setEditCardHolder(e.target.value)}
+                              placeholder="Tojiboyev Jahongir"
+                              className="w-full px-3 py-1.5 rounded-lg bg-black/50 border border-white/20 text-white text-xs focus:outline-none focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-gray-300 block mb-1 font-semibold">Kunlik Limit (standart: 40):</label>
+                            <input
+                              type="number"
+                              value={editCardLimit}
+                              onChange={(e) => setEditCardLimit(Number(e.target.value))}
+                              className="w-full px-3 py-1.5 rounded-lg bg-black/50 border border-white/20 text-white font-mono text-xs focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingCardId(null)}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-gray-300 transition-all"
+                          >
+                            Bekor qilish
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSavingEdit}
+                            className="px-4 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)]"
+                          >
+                            <Check size={13} /> {isSavingEdit ? 'Saqlanmoqda...' : 'Saqlash'}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/10 text-gray-300">
+                              #{idx + 1} - Karta
+                            </span>
+                            <span className="font-mono font-bold text-white text-lg tracking-wider">
+                              {card.cardNumber}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-300 font-semibold flex items-center gap-2">
+                            <span>{card.cardHolder}</span>
+                            {card.bankName && <span className="text-gray-400">({card.bankName})</span>}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditingCard(card)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-300 hover:bg-blue-500 hover:text-white border border-blue-500/30 transition-all flex items-center gap-1"
+                            title="Karta raqami va egasini tahrirlash"
+                          >
+                            <Pencil size={12} />
+                            <span>Tahrirlash</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCardActive(card)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                              card.isActive !== false
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
+                            }`}
+                          >
+                            {card.isActive !== false ? 'Faol' : 'Nofaol'}
+                          </button>
+                          {cards.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCard(card.id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 transition-all"
+                              title="Kartani o'chirish"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Progress Bar & Status */}
                     <div className="space-y-1.5 pt-2 border-t border-white/10">

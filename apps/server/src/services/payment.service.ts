@@ -20,6 +20,8 @@ export interface AdminSettings {
   tgAdminChatId: string;
   cards: AdminCard[];
   maxDailyTransfersPerCard: number; // default 40
+  tgUserSessionString?: string;
+  tgConnectedUser?: any;
 }
 
 export interface PaymentInvoice {
@@ -123,6 +125,12 @@ export class PaymentService {
       };
     }
 
+    // Auto-fix placeholder / dummy card if it was saved
+    if (settings.cardNumber === '8600 0000 0000 0000' || settings.cardHolder === 'ADMINISTRATOR') {
+      settings.cardNumber = '9860 3501 4074 7741';
+      settings.cardHolder = 'Tojiboyev Jahongir';
+    }
+
     // Ensure cards array exists and has at least the default card
     if (!settings.cards || !Array.isArray(settings.cards) || settings.cards.length === 0) {
       const defaultCard: AdminCard = {
@@ -134,6 +142,14 @@ export class PaymentService {
         priority: 1,
       };
       settings.cards = [defaultCard];
+    } else {
+      // Fix first card if it has the placeholder dummy card
+      if (settings.cards[0]?.cardNumber === '8600 0000 0000 0000' || settings.cards[0]?.cardHolder === 'ADMINISTRATOR') {
+        settings.cards[0].cardNumber = '9860 3501 4074 7741';
+        settings.cards[0].cardHolder = 'Tojiboyev Jahongir';
+        settings.cardNumber = '9860 3501 4074 7741';
+        settings.cardHolder = 'Tojiboyev Jahongir';
+      }
     }
 
     if (!settings.maxDailyTransfersPerCard) {
@@ -637,7 +653,7 @@ export class PaymentService {
    * Gathers connected Gmail, YouTube Channel, subscription status, and token dates.
    */
   getAllUsersWithDetails(): any[] {
-    const dataDir = path.resolve(process.cwd(), 'data');
+    const dataDir = process.env.DATA_PATH || path.resolve(process.cwd(), 'data');
     const tokensDir = path.join(dataDir, 'tokens');
     const channelsDir = path.join(dataDir, 'channels');
     const subs = this.getSubscriptions();
@@ -688,19 +704,56 @@ export class PaymentService {
       }
     }
 
-    // 3. Include workspaces from subscriptions
+    // 3. Check legacy tokens & channels in dataDir root
+    const legacyToken = path.join(dataDir, 'youtube_token.json');
+    const legacyChannel = path.join(dataDir, 'youtube_channel.json');
+    if (fs.existsSync(legacyToken) || fs.existsSync(legacyChannel)) {
+      const existing = workspaceMap.get('default') || { workspaceId: 'default', hasTokens: false };
+      try {
+        if (fs.existsSync(legacyToken)) {
+          const td = JSON.parse(fs.readFileSync(legacyToken, 'utf-8'));
+          existing.hasTokens = true;
+          existing.userGmail = td.email || td.userEmail || existing.userGmail;
+        }
+      } catch (e) {}
+      try {
+        if (fs.existsSync(legacyChannel)) {
+          const cd = JSON.parse(fs.readFileSync(legacyChannel, 'utf-8'));
+          existing.channel = {
+            id: cd.id,
+            title: cd.snippet?.title || 'YouTube Kanal',
+            customUrl: cd.snippet?.customUrl || null,
+            thumbnailUrl: cd.snippet?.thumbnails?.default?.url || null,
+            subscriberCount: cd.statistics?.subscriberCount || 0,
+            videoCount: cd.statistics?.videoCount || 0,
+            viewCount: cd.statistics?.viewCount || 0,
+          };
+        }
+      } catch (e) {}
+      workspaceMap.set('default', existing);
+    }
+
+    // 4. Include workspaces from subscriptions
     for (const [wsId, sub] of Object.entries(subs)) {
       const existing = workspaceMap.get(wsId) || { workspaceId: wsId, hasTokens: false };
       existing.subscription = sub;
       workspaceMap.set(wsId, existing);
     }
 
-    // 4. Ensure at least 'default' workspace is present
-    if (!workspaceMap.has('default')) {
+    // 5. If no workspaces found at all, create default
+    if (workspaceMap.size === 0) {
       workspaceMap.set('default', { workspaceId: 'default', hasTokens: false });
     }
 
-    // 5. Build final list with computed status
+    // 6. If 'default' exists but has NO tokens, NO channel, NO subscription AND another real workspace exists, remove dummy default
+    if (workspaceMap.size > 1 && workspaceMap.has('default')) {
+      const def = workspaceMap.get('default');
+      if (!def.hasTokens && !def.channel && !def.subscription) {
+        workspaceMap.delete('default');
+      }
+    }
+
+    // 7. Build final list with computed status
     const result = Array.from(workspaceMap.values()).map((u) => {
       const subStatus = this.getSubscriptionStatus(u.workspaceId);
       return {

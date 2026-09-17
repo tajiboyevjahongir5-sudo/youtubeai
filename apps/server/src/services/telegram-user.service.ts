@@ -18,6 +18,7 @@ export interface TelegramUserLog {
 export class TelegramUserService {
   private client: TelegramClient | null = null;
   private sessionFilePath: string;
+  private backupSessionPath: string;
   private logsFilePath: string;
   private configFilePath: string;
   
@@ -43,11 +44,50 @@ export class TelegramUserService {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     this.sessionFilePath = path.join(dir, 'tg_user_session.txt');
+    this.backupSessionPath = path.join(rootDir, 'tg_user_session.txt');
     this.logsFilePath = path.join(dir, 'tg_user_logs.json');
     this.configFilePath = path.join(dir, 'tg_user_config.json');
 
     this.loadLogs();
     this.autoConnect();
+  }
+
+  loadSessionString(): string | null {
+    if (fs.existsSync(this.sessionFilePath)) {
+      const s = fs.readFileSync(this.sessionFilePath, 'utf-8').trim();
+      if (s) return s;
+    }
+    if (fs.existsSync(this.backupSessionPath)) {
+      const s = fs.readFileSync(this.backupSessionPath, 'utf-8').trim();
+      if (s) return s;
+    }
+    try {
+      const settings = paymentService.getSettings();
+      if (settings.tgUserSessionString?.trim()) {
+        return settings.tgUserSessionString.trim();
+      }
+    } catch (e) {}
+    if (process.env.TELEGRAM_SESSION_STRING?.trim()) {
+      return process.env.TELEGRAM_SESSION_STRING.trim();
+    }
+    return null;
+  }
+
+  saveSessionString(sessionString: string) {
+    const trimmed = sessionString.trim();
+    if (!trimmed) return;
+    try {
+      fs.writeFileSync(this.sessionFilePath, trimmed, 'utf-8');
+    } catch (e) {}
+    try {
+      fs.writeFileSync(this.backupSessionPath, trimmed, 'utf-8');
+    } catch (e) {}
+    try {
+      paymentService.saveSettings({
+        tgUserSessionString: trimmed,
+        tgConnectedUser: this.connectedUser,
+      });
+    } catch (e) {}
   }
 
   private loadLogs() {
@@ -106,9 +146,13 @@ export class TelegramUserService {
    */
   async autoConnect() {
     try {
-      if (!fs.existsSync(this.sessionFilePath)) return;
-      const sessionString = fs.readFileSync(this.sessionFilePath, 'utf-8').trim();
-      if (!sessionString) return;
+      const sessionString = this.loadSessionString();
+      if (!sessionString) {
+        console.log('ℹ️ Saqlangan Telegram sessiyasi topilmadi.');
+        return;
+      }
+
+      this.saveSessionString(sessionString);
 
       const config = this.getConfig();
       console.log('🔄 Telegram shaxsiy akkauntiga avtomatik ulanilmoqda...');
@@ -128,12 +172,12 @@ export class TelegramUserService {
           username: (me as any).username || '',
           phone: (me as any).phone || '',
         };
+        paymentService.saveSettings({ tgConnectedUser: this.connectedUser });
         console.log(`✅ Telegram shaxsiy akkaunti ulandi: @${this.connectedUser.username || this.connectedUser.firstName}`);
         this.startMessageListener();
       }
     } catch (err: any) {
       console.error('❌ Telegram akkauntiga ulanishda xatolik:', err?.message || err);
-      this.client = null;
     }
   }
 
@@ -196,7 +240,7 @@ export class TelegramUserService {
     );
 
     const sessionString = (this.client.session as any).save();
-    fs.writeFileSync(this.sessionFilePath, sessionString, 'utf-8');
+    this.saveSessionString(sessionString);
 
     const me = await this.client.getMe();
     this.connectedUser = {
@@ -206,6 +250,7 @@ export class TelegramUserService {
       username: (me as any).username || '',
       phone: (me as any).phone || '',
     };
+    paymentService.saveSettings({ tgConnectedUser: this.connectedUser });
 
     this.pendingAuth = null;
     this.startMessageListener();
@@ -238,7 +283,8 @@ export class TelegramUserService {
       throw new Error('Sessiya yaroqsiz yoki eskirgan.');
     }
 
-    fs.writeFileSync(this.sessionFilePath, sessionString.trim(), 'utf-8');
+    const sessionStringValue = (this.client.session as any).save() || sessionString.trim();
+    this.saveSessionString(sessionStringValue);
     this.connectedUser = {
       id: String(me.id),
       firstName: (me as any).firstName || '',
@@ -246,6 +292,7 @@ export class TelegramUserService {
       username: (me as any).username || '',
       phone: (me as any).phone || '',
     };
+    paymentService.saveSettings({ tgConnectedUser: this.connectedUser });
 
     this.startMessageListener();
     return {
@@ -322,10 +369,15 @@ export class TelegramUserService {
    */
   getStatus() {
     const isConnected = !!(this.client && this.connectedUser);
+    const settings = paymentService.getSettings();
+    const fallbackUser = this.connectedUser || settings.tgConnectedUser || null;
+    const hasSavedSession = !!this.loadSessionString();
+
     return {
-      connected: isConnected,
-      user: this.connectedUser,
+      connected: isConnected || (hasSavedSession && !!fallbackUser),
+      user: this.connectedUser || fallbackUser,
       isListening: this.isListening,
+      hasSavedSession,
       pendingStep: this.pendingAuth ? 'enter_code' : 'idle',
       pendingPhone: this.pendingAuth?.phoneNumber || null,
       monitoredChannels: [
@@ -350,6 +402,10 @@ export class TelegramUserService {
       if (fs.existsSync(this.sessionFilePath)) {
         fs.unlinkSync(this.sessionFilePath);
       }
+      if (fs.existsSync(this.backupSessionPath)) {
+        fs.unlinkSync(this.backupSessionPath);
+      }
+      paymentService.saveSettings({ tgUserSessionString: '', tgConnectedUser: null });
       this.client = null;
       this.connectedUser = null;
       this.isListening = false;
