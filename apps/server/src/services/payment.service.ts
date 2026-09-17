@@ -278,13 +278,24 @@ export class PaymentService {
   }
 
   /**
-   * CardXabar & HumoCard notification parser.
-   * Parses SMS/Telegram text from payment bots.
-   * Example texts:
-   *  - "Karta: *4589. Kirim: +60 047 UZS. Qoldiq: 1 250 000 UZS"
-   *  - "HumoCard: Kirim: 60023 sum. Karta: *7890"
-   *  - "Kirim: 60,099 so'm. Vaqt: 14:25"
-   *  - "To'lov: 60012 UZS"
+   * CardXabar (@CardXabarBot) & HumoCard (@HUMOcardbot) precision notification parser.
+   * Based on authentic bot message structures:
+   *
+   * 1. HUMO Card (@HUMOcardbot):
+   *    🎉 To'ldirish
+   *    ➕ 60.042,00 UZS
+   *    📍 UB Visa to Humo P2P>
+   *    💳 HUMOCARD *7741
+   *    🕒 14:36 14.09.2026
+   *    💰 451.893,27 UZS
+   *
+   * 2. CardXabar (@CardXabarBot):
+   *    🟢 Perevod na kartu
+   *    ➕ 60 042.00 UZS
+   *    💳 ***2209
+   *    📍 TBC EDIN EPOS H2U, UZ
+   *    🕒 26.07.26 14:48
+   *    💰 7 000.00 UZS
    */
   parseAndProcessNotification(rawText: string): {
     matched: boolean;
@@ -292,72 +303,103 @@ export class PaymentService {
     invoice?: PaymentInvoice;
     workspaceId?: string;
     message: string;
+    botType?: string;
   } {
     if (!rawText) {
       return { matched: false, message: 'Matn kiritilmadi' };
     }
 
-    console.log('🔍 CardXabar / HumoCard xabari tahlil qilinmoqda:', rawText);
+    console.log('🔍 CardXabar / HumoCard xabari tahlil qilinmoqda:\n', rawText);
 
-    // Normalize text: lowercase, remove non-breaking spaces
-    const clean = rawText.replace(/\u00A0/g, ' ');
-
-    // 1. Look for numbers between 60001 and 60099
-    // Patterns with or without separators: 60 047, 60047, 60,047, 60.047
-    const amountRegex = /(?:60[ ,.]?0[0-9]{2})/g;
-    const matches = clean.match(amountRegex);
-
-    if (!matches || matches.length === 0) {
+    // Filter out outgoing expense notifications (Platezh / To'lov / ➖)
+    const isOutgoing = /(?:➖|\bplatezh\b|\byechish\b|\bspisanie\b)/i.test(rawText) && !/(?:➕|\bto[''`]?ldirish\b|\bperevod na kartu\b|\bpopolnenie\b)/i.test(rawText);
+    if (isOutgoing) {
       return {
         matched: false,
-        message: 'Xabarda 60,001 dan 60,099 gacha bo\'lgan unikal summa topilmadi.',
+        message: 'Bu chiqim (xarajat) xabarnomasi, kirim emas. E\'tiborga olinmadi.',
       };
     }
 
-    // Extract exact integer (e.g. "60 047" -> 60047)
-    const rawNumber = matches[0].replace(/[^0-9]/g, '');
-    const amount = parseInt(rawNumber, 10);
+    let extractedAmount: number | null = null;
+    let botType = 'Noma\'lum';
 
-    if (isNaN(amount) || amount < 60001 || amount > 60099) {
+    // 1. Primary extractor: Find the exact incoming transfer line starting with ➕ or +
+    // Example: "➕ 10.000,00 UZS" or "➕ 7 000.00 UZS"
+    const plusLineMatch = rawText.match(/(?:➕|\+)\s*([0-9\s.,]+)\s*UZS/i);
+
+    if (plusLineMatch && plusLineMatch[1]) {
+      const rawNum = plusLineMatch[1].trim();
+
+      if (rawNum.includes(',')) {
+        // HUMO Card format: "60.042,00" (dot = thousands, comma = decimals)
+        botType = 'HUMO Card (@HUMOcardbot)';
+        const beforeComma = rawNum.split(',')[0].replace(/[^0-9]/g, '');
+        extractedAmount = parseInt(beforeComma, 10);
+      } else if (rawNum.includes('.')) {
+        // CardXabar format: "60 042.00" (space = thousands, dot = decimals)
+        botType = 'CardXabar (@CardXabarBot)';
+        const beforeDot = rawNum.split('.')[0].replace(/[^0-9]/g, '');
+        extractedAmount = parseInt(beforeDot, 10);
+      } else {
+        extractedAmount = parseInt(rawNum.replace(/[^0-9]/g, ''), 10);
+      }
+    }
+
+    // 2. Fallback extractor: Search for any 60001..60099 number sequence
+    if (!extractedAmount || isNaN(extractedAmount)) {
+      const clean = rawText.replace(/\u00A0/g, ' ');
+      const amountRegex = /(?:60[ ,.]?0[0-9]{2})/g;
+      const matches = clean.match(amountRegex);
+      if (matches && matches.length > 0) {
+        const rawNumber = matches[0].replace(/[^0-9]/g, '');
+        extractedAmount = parseInt(rawNumber, 10);
+      }
+    }
+
+    if (!extractedAmount || isNaN(extractedAmount) || extractedAmount < 60001 || extractedAmount > 60099) {
       return {
         matched: false,
-        extractedAmount: amount,
-        message: `Summa ${amount} UZS aniqlandi, lekin u 60,001 - 60,099 oralig'ida emas.`,
+        extractedAmount: extractedAmount || undefined,
+        message: extractedAmount 
+          ? `Summa ${extractedAmount.toLocaleString()} UZS aniqlandi, lekin u 60,001 - 60,099 oralig'ida emas.`
+          : 'Xabarda 60,001 dan 60,099 gacha bo\'lgan unikal to\'lov summasi topilmadi.',
       };
     }
 
-    // 2. Find pending invoice matching this total amount
+    // 3. Find pending invoice matching this total amount
     const invoices = this.getInvoices();
     const now = new Date();
 
     const matchedInvoice = invoices.find(
-      (inv) => inv.totalAmount === amount && inv.status === 'pending'
+      (inv) => inv.totalAmount === extractedAmount && inv.status === 'pending'
     );
 
     if (!matchedInvoice) {
       return {
         matched: false,
-        extractedAmount: amount,
-        message: `Summa ${amount} UZS topildi, lekin bu summaga mos kutishdagi (pending) to'lov topilmadi.`,
+        extractedAmount,
+        botType,
+        message: `Summa ${extractedAmount.toLocaleString()} UZS (${botType}) aniqlandi, lekin bu summaga mos kutilayotgan invoys topilmadi.`,
       };
     }
 
-    // 3. Mark as paid
+    // 4. Mark invoice as paid
     matchedInvoice.status = 'paid';
     matchedInvoice.paidAt = now.toISOString();
     this.saveInvoices(invoices);
 
-    // 4. Activate 30-day subscription
+    // 5. Activate 30-day subscription
     this.activateSubscription(matchedInvoice.workspaceId, 30);
 
-    const successMsg = `✅ To'lov tasdiqlandi! Workspace: ${matchedInvoice.workspaceId}, Summa: ${amount} UZS. Obuna 30 kunga faollashtirildi!`;
+    const successMsg = `✅ To'lov tasdiqlandi! Manba: ${botType}, Workspace: ${matchedInvoice.workspaceId}, Summa: ${extractedAmount.toLocaleString()} UZS. Obuna 30 kunga faollashtirildi!`;
     console.log(successMsg);
 
     return {
       matched: true,
-      extractedAmount: amount,
+      extractedAmount,
       invoice: matchedInvoice,
       workspaceId: matchedInvoice.workspaceId,
+      botType,
       message: successMsg,
     };
   }
