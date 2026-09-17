@@ -4,118 +4,142 @@ import fs from 'fs';
 import path from 'path';
 
 export interface IYouTubeService {
-  getAuthUrl(): string;
+  getAuthUrl(state?: string): string;
   getToken(code: string): Promise<any>;
-  getChannelInfo(accessToken?: string, refreshToken?: string): Promise<any>;
-  uploadVideo(videoPath: string, metadata: any, accessToken?: string, refreshToken?: string): Promise<any>;
-  getAnalytics(accessToken?: string, refreshToken?: string, channelId?: string): Promise<any>;
-  saveTokens(tokens: any): void;
-  loadTokens(): any;
-  saveChannelInfo(info: any): void;
-  loadChannelInfo(): any;
-  isAuthenticated(): boolean;
-  clearTokens(): void;
+  getChannelInfo(workspaceId: string, accessToken?: string, refreshToken?: string): Promise<any>;
+  uploadVideo(workspaceId: string, videoPath: string, metadata: any, accessToken?: string, refreshToken?: string): Promise<any>;
+  getAnalytics(workspaceId: string, accessToken?: string, refreshToken?: string, channelId?: string): Promise<any>;
+  saveTokens(workspaceId: string, tokens: any): void;
+  loadTokens(workspaceId: string): any;
+  saveChannelInfo(workspaceId: string, info: any): void;
+  loadChannelInfo(workspaceId: string): any;
+  isAuthenticated(workspaceId: string): boolean;
+  clearTokens(workspaceId: string): void;
 }
 
 export class YouTubeService implements IYouTubeService {
-  private tokenPath: string;
-  private backupTokenPath: string;
-  private channelPath: string;
+  private tokensDir: string;
+  private channelsDir: string;
+  private legacyTokenPath: string;
+  private legacyChannelPath: string;
 
   constructor() {
     const dataDir = path.resolve(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      try {
-        fs.mkdirSync(dataDir, { recursive: true });
-      } catch (e) {
-        // ignore
-      }
-    }
-    this.tokenPath = path.join(dataDir, 'youtube_token.json');
-    this.backupTokenPath = 'C:\\Users\\user\\Downloads\\youtube_tokens.json';
-    this.channelPath = path.join(dataDir, 'youtube_channel.json');
+    this.tokensDir = path.join(dataDir, 'tokens');
+    this.channelsDir = path.join(dataDir, 'channels');
+    this.legacyTokenPath = path.join(dataDir, 'youtube_token.json');
+    this.legacyChannelPath = path.join(dataDir, 'youtube_channel.json');
+
+    try {
+      if (!fs.existsSync(this.tokensDir)) fs.mkdirSync(this.tokensDir, { recursive: true });
+      if (!fs.existsSync(this.channelsDir)) fs.mkdirSync(this.channelsDir, { recursive: true });
+    } catch (e) {}
   }
 
-  saveTokens(tokens: any) {
+  private sanitizeId(workspaceId: string): string {
+    return (workspaceId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  private getTokenFilePath(workspaceId: string): string {
+    const id = this.sanitizeId(workspaceId);
+    return path.join(this.tokensDir, `${id}.json`);
+  }
+
+  private getChannelFilePath(workspaceId: string): string {
+    const id = this.sanitizeId(workspaceId);
+    return path.join(this.channelsDir, `${id}.json`);
+  }
+
+  saveTokens(workspaceId: string, tokens: any) {
     try {
-      const existing = this.loadTokens() || {};
-      const merged = { ...existing, ...tokens, savedAt: new Date().toISOString() };
+      const existing = this.loadTokens(workspaceId) || {};
+      const merged = { ...existing, ...tokens, workspaceId, savedAt: new Date().toISOString() };
       
-      const dir = path.dirname(this.tokenPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      const filePath = this.getTokenFilePath(workspaceId);
+      fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), 'utf-8');
+      
+      if (workspaceId === 'default') {
+        try {
+          fs.writeFileSync(this.legacyTokenPath, JSON.stringify(merged, null, 2), 'utf-8');
+        } catch (e) {}
       }
-      
-      fs.writeFileSync(this.tokenPath, JSON.stringify(merged, null, 2), 'utf-8');
-      try {
-        fs.writeFileSync(this.backupTokenPath, JSON.stringify(merged, null, 2), 'utf-8');
-      } catch (be) {}
-      console.log('✅ YouTube OAuth tokenlari muvaffaqiyatli saqlandi:', this.tokenPath);
+      console.log(`✅ [${workspaceId}] YouTube OAuth tokenlari saqlandi:`, filePath);
     } catch (e) {
-      console.error('❌ Tokenni faylga saqlashda xatolik:', e);
+      console.error(`❌ [${workspaceId}] Token saqlashda xatolik:`, e);
     }
   }
 
-  loadTokens(): any {
+  loadTokens(workspaceId: string): any {
     try {
-      if (fs.existsSync(this.tokenPath)) {
-        const data = fs.readFileSync(this.tokenPath, 'utf-8');
-        return JSON.parse(data);
+      const filePath = this.getTokenFilePath(workspaceId);
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       }
-    } catch (e) {}
-
-    try {
-      if (fs.existsSync(this.backupTokenPath)) {
-        const data = fs.readFileSync(this.backupTokenPath, 'utf-8');
-        return JSON.parse(data);
+      
+      if (workspaceId === 'default' && fs.existsSync(this.legacyTokenPath)) {
+        return JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
       }
-    } catch (e) {}
-
+    } catch (e) {
+      console.error(`❌ [${workspaceId}] Token o'qishda xatolik:`, e);
+    }
     return null;
   }
 
-  saveChannelInfo(info: any) {
+  saveChannelInfo(workspaceId: string, info: any) {
     try {
-      const dir = path.dirname(this.channelPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      const filePath = this.getChannelFilePath(workspaceId);
+      fs.writeFileSync(filePath, JSON.stringify(info, null, 2), 'utf-8');
+      if (workspaceId === 'default') {
+        try {
+          fs.writeFileSync(this.legacyChannelPath, JSON.stringify(info, null, 2), 'utf-8');
+        } catch (e) {}
       }
-      fs.writeFileSync(this.channelPath, JSON.stringify(info, null, 2), 'utf-8');
+      console.log(`✅ [${workspaceId}] Kanal ma'lumotlari saqlandi:`, filePath);
     } catch (e) {
-      console.error('❌ Kanal ma\'lumotlarini saqlashda xatolik:', e);
+      console.error(`❌ [${workspaceId}] Kanal ma'lumotlarini saqlashda xatolik:`, e);
     }
   }
 
-  loadChannelInfo(): any {
+  loadChannelInfo(workspaceId: string): any {
     try {
-      if (fs.existsSync(this.channelPath)) {
-        return JSON.parse(fs.readFileSync(this.channelPath, 'utf-8'));
+      const filePath = this.getChannelFilePath(workspaceId);
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      }
+      if (workspaceId === 'default' && fs.existsSync(this.legacyChannelPath)) {
+        return JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
       }
     } catch (e) {}
     return null;
   }
 
-  isAuthenticated(): boolean {
-    const tokens = this.loadTokens();
+  isAuthenticated(workspaceId: string): boolean {
+    const tokens = this.loadTokens(workspaceId);
     return !!(tokens && (tokens.access_token || tokens.refresh_token));
   }
 
-  clearTokens(): void {
+  clearTokens(workspaceId: string): void {
     try {
-      if (fs.existsSync(this.tokenPath)) fs.unlinkSync(this.tokenPath);
-      if (fs.existsSync(this.backupTokenPath)) fs.unlinkSync(this.backupTokenPath);
-      if (fs.existsSync(this.channelPath)) fs.unlinkSync(this.channelPath);
+      const tokenPath = this.getTokenFilePath(workspaceId);
+      const channelPath = this.getChannelFilePath(workspaceId);
+      if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath);
+      if (fs.existsSync(channelPath)) fs.unlinkSync(channelPath);
+      if (workspaceId === 'default') {
+        if (fs.existsSync(this.legacyTokenPath)) fs.unlinkSync(this.legacyTokenPath);
+        if (fs.existsSync(this.legacyChannelPath)) fs.unlinkSync(this.legacyChannelPath);
+      }
+      console.log(`🗑️ [${workspaceId}] YouTube tokenlari o'chirildi.`);
     } catch (e) {}
   }
 
-  getClient(accessToken?: string, refreshToken?: string) {
+  getClient(workspaceId: string, accessToken?: string, refreshToken?: string) {
     const oauth2Client = new google.auth.OAuth2(
       env.YOUTUBE_CLIENT_ID,
       env.YOUTUBE_CLIENT_SECRET,
       env.YOUTUBE_REDIRECT_URI
     );
 
-    const storedTokens = this.loadTokens();
+    const storedTokens = this.loadTokens(workspaceId);
     const creds: any = {};
     if (storedTokens) {
       Object.assign(creds, storedTokens);
@@ -128,14 +152,14 @@ export class YouTubeService implements IYouTubeService {
     }
 
     oauth2Client.on('tokens', (newTokens) => {
-      console.log('🔄 YouTube tokenlari yangilandi, faylga yozilmoqda...');
-      this.saveTokens(newTokens);
+      console.log(`🔄 [${workspaceId}] YouTube tokenlari yangilandi, saqlanmoqda...`);
+      this.saveTokens(workspaceId, newTokens);
     });
 
     return oauth2Client;
   }
 
-  getAuthUrl() {
+  getAuthUrl(state?: string) {
     const client = new google.auth.OAuth2(
       env.YOUTUBE_CLIENT_ID,
       env.YOUTUBE_CLIENT_SECRET,
@@ -144,6 +168,7 @@ export class YouTubeService implements IYouTubeService {
     return client.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
+      state: state || '',
       scope: [
         'https://www.googleapis.com/auth/youtube.upload',
         'https://www.googleapis.com/auth/youtube.readonly',
@@ -162,15 +187,19 @@ export class YouTubeService implements IYouTubeService {
     return tokens;
   }
 
-  async getChannelInfo(accessToken?: string, refreshToken?: string) {
-    const auth = this.getClient(accessToken, refreshToken);
+  async getChannelInfo(workspaceId: string, accessToken?: string, refreshToken?: string) {
+    const auth = this.getClient(workspaceId, accessToken, refreshToken);
     const youtube = google.youtube({ version: 'v3', auth });
     const response = await youtube.channels.list({ part: ['snippet', 'statistics'], mine: true });
     return response.data.items?.[0];
   }
 
-  async uploadVideo(videoPath: string, metadata: any, accessToken?: string, refreshToken?: string) {
-    const auth = this.getClient(accessToken, refreshToken);
+  async uploadVideo(workspaceId: string, videoPath: string, metadata: any, accessToken?: string, refreshToken?: string) {
+    if (!this.isAuthenticated(workspaceId)) {
+      throw new Error(`Ushbu foydalanuvchi (${workspaceId}) YouTube hisobiga ulanmagan!`);
+    }
+
+    const auth = this.getClient(workspaceId, accessToken, refreshToken);
     const youtube = google.youtube({ version: 'v3', auth });
     
     if (!fs.existsSync(videoPath)) {
@@ -178,8 +207,8 @@ export class YouTubeService implements IYouTubeService {
     }
 
     const fileSize = fs.statSync(videoPath).size;
-    console.log(`📤 [YouTube API] Yuklash boshlanmoqda: ${videoPath} (${(fileSize / (1024 * 1024)).toFixed(2)} MB)`);
-    console.log(`🎬 [YouTube API] Sarlavha: "${metadata.title}"`);
+    console.log(`📤 [YouTube API - ${workspaceId}] Yuklash boshlanmoqda: ${videoPath} (${(fileSize / (1024 * 1024)).toFixed(2)} MB)`);
+    console.log(`🎬 [YouTube API - ${workspaceId}] Sarlavha: "${metadata.title}"`);
 
     const res = await youtube.videos.insert({
       part: ['snippet', 'status'],
@@ -203,16 +232,16 @@ export class YouTubeService implements IYouTubeService {
     }, {
       onUploadProgress: (evt: any) => {
         const progress = Math.round((evt.bytesRead / fileSize) * 100);
-        console.log(`⏳ [YouTube Upload]: ${progress}% (${evt.bytesRead} / ${fileSize} bayt)`);
+        console.log(`⏳ [YouTube Upload - ${workspaceId}]: ${progress}% (${evt.bytesRead} / ${fileSize} bayt)`);
       }
     });
 
-    console.log(`🎉 [YouTube API] Muvaffaqiyatli yuklandi! Video ID: ${res.data.id}`);
+    console.log(`🎉 [YouTube API - ${workspaceId}] Muvaffaqiyatli yuklandi! Video ID: ${res.data.id}`);
     return res.data;
   }
 
-  async getAnalytics(accessToken?: string, refreshToken?: string, channelId?: string) {
-    const auth = this.getClient(accessToken, refreshToken);
+  async getAnalytics(workspaceId: string, accessToken?: string, refreshToken?: string, channelId?: string) {
+    const auth = this.getClient(workspaceId, accessToken, refreshToken);
     const analytics = google.youtubeAnalytics({ version: 'v2', auth });
     const res = await analytics.reports.query({
       ids: `channel==MINE`,
@@ -226,17 +255,17 @@ export class YouTubeService implements IYouTubeService {
 }
 
 export class MockYouTubeService implements IYouTubeService {
-  getAuthUrl() { return 'https://mock.auth.url'; }
+  getAuthUrl(state?: string) { return 'https://mock.auth.url?state=' + (state || ''); }
   async getToken(code: string) { return { access_token: 'mock_access', refresh_token: 'mock_refresh', expiry_date: 1234567890 }; }
-  async getChannelInfo() { return { id: 'mock_channel_id', snippet: { title: 'Mock Channel' }, statistics: { subscriberCount: 100 } }; }
-  async uploadVideo(videoPath: string, metadata: any) { return { id: 'mock_video_id', snippet: { title: metadata?.title } }; }
-  async getAnalytics() { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
-  saveTokens() {}
-  loadTokens() { return { access_token: 'mock_access' }; }
-  saveChannelInfo() {}
-  loadChannelInfo() { return null; }
-  isAuthenticated() { return true; }
-  clearTokens() {}
+  async getChannelInfo(workspaceId: string) { return { id: 'mock_channel_' + workspaceId, snippet: { title: 'Mock Channel ' + workspaceId }, statistics: { subscriberCount: 100 } }; }
+  async uploadVideo(workspaceId: string, videoPath: string, metadata: any) { return { id: 'mock_video_id', snippet: { title: metadata?.title } }; }
+  async getAnalytics(workspaceId: string) { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
+  saveTokens(workspaceId: string, tokens: any) {}
+  loadTokens(workspaceId: string) { return { access_token: 'mock_access' }; }
+  saveChannelInfo(workspaceId: string, info: any) {}
+  loadChannelInfo(workspaceId: string) { return null; }
+  isAuthenticated(workspaceId: string) { return true; }
+  clearTokens(workspaceId: string) {}
 }
 
 export function createYouTubeService(): IYouTubeService {

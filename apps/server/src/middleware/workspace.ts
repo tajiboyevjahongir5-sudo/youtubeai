@@ -4,12 +4,8 @@ import { workspaces, workspaceMembers } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const requireWorkspace = async (req: Request, res: Response, next: NextFunction) => {
-  const workspaceId = req.params.id;
+  const workspaceId = req.params.id || (req.headers['x-workspace-id'] as string) || (req.query.workspaceId as string) || 'default';
   const userId = req.userId || 'user_dev_workspace';
-
-  if (!workspaceId) {
-    return res.status(400).json({ error: 'Missing workspace ID' });
-  }
 
   try {
     const member = await db.query.workspaceMembers.findFirst({

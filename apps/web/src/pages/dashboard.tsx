@@ -16,13 +16,15 @@ import {
   TrendingUp,
   Eye,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Link2
 } from 'lucide-react';
 import { useDashboard } from '../lib/query';
 import { Link } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
 
 const DashboardPage = () => {
-  const workspaceId = 'default';
+  const workspaceId = getWorkspaceId();
   const { data, isLoading, isError, refetch } = useDashboard(workspaceId);
 
   if (isLoading) {
@@ -40,8 +42,9 @@ const DashboardPage = () => {
     return <ErrorState message="Ma'lumotlarni yuklashda xatolik yuz berdi." onRetry={() => refetch()} />;
   }
 
+  const isChannelConnected = data?.channelConnected !== false;
   const channel = data?.channel || {
-    title: 'Neural Pulse AI',
+    title: 'YouTube Kanal Ulanmagan',
     subscriberCount: 0,
     totalViews: 0,
     watchTimeHours: 0,
@@ -61,21 +64,37 @@ const DashboardPage = () => {
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {channel.title}
             </h1>
-            <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
-              Kunlik 2 ta ingliz tilidagi video avtomatlashgan rejimda rejalashtirilgan. Barcha materiallar inson tasdig'idan so'ng rasmiy YouTube API orqali chiqariladi.
-            </p>
+            {isChannelConnected ? (
+              <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
+                Kunlik 2 ta ingliz tilidagi video avtomatlashgan rejimda rejalashtirilgan. Barcha materiallar inson tasdig'idan so'ng rasmiy YouTube API orqali chiqariladi.
+              </p>
+            ) : (
+              <p className="text-sm text-amber-300 max-w-2xl leading-relaxed">
+                YouTube kanalingiz hali ulanmagan. O'z kanalingizni ulang va videolarni avtomatik nashr qilishni boshlang.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link to="/content/new">
-              <Button variant="primary" className="flex items-center gap-2 shadow-lg">
-                <Sparkles size={16} /> AI bilan g'oya yaratish
-              </Button>
-            </Link>
-            <Link to="/analytics">
-              <Button variant="secondary" className="flex items-center gap-2">
-                <TrendingUp size={16} /> Analitika
-              </Button>
-            </Link>
+            {isChannelConnected ? (
+              <>
+                <Link to="/content/new">
+                  <Button variant="primary" className="flex items-center gap-2 shadow-lg">
+                    <Sparkles size={16} /> AI bilan g'oya yaratish
+                  </Button>
+                </Link>
+                <Link to="/analytics">
+                  <Button variant="secondary" className="flex items-center gap-2">
+                    <TrendingUp size={16} /> Analitika
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Link to="/integrations">
+                <Button variant="primary" className="flex items-center gap-2 shadow-lg">
+                  <Link2 size={16} /> O'z kanalingizni ulang
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

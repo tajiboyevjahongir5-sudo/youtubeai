@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router';
 import { SignedIn, UserButton } from '@clerk/clerk-react';
 import { 
@@ -13,13 +13,38 @@ import {
   Menu, 
   X,
   Play,
-  Radio
+  Radio,
+  RotateCcw
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { getWorkspaceId, resetWorkspace } from '../lib/workspace';
 
 const AppLayout = () => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [channelName, setChannelName] = useState('');
+  const [channelStatus, setChannelStatus] = useState('');
+  const wsId = getWorkspaceId();
+
+  useEffect(() => {
+    fetch(`/api/workspaces/${wsId}/youtube/channel`, {
+      headers: { 'x-workspace-id': wsId }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.connectionStatus === 'connected') {
+          setChannelName(data.channelTitle || 'YouTube Kanal');
+          setChannelStatus('Ulangan');
+        } else {
+          setChannelName('Kanal ulanmagan');
+          setChannelStatus('Ulanmagan');
+        }
+      })
+      .catch(() => {
+        setChannelName('Kanal ulanmagan');
+        setChannelStatus('Ulanmagan');
+      });
+  }, [wsId]);
 
   const navItems = [
     { path: '/dashboard', label: 'Boshqaruv paneli', icon: LayoutDashboard },
@@ -131,13 +156,24 @@ const AppLayout = () => {
                 <Radio size={16} />
               </div>
               <div>
-                <div className="font-bold text-white text-sm">Neural Pulse AI</div>
-                <div className="text-[11px] text-gray-400">Yangi Kanal • Global (US/EN)</div>
+                <div className="font-bold text-white text-sm">{channelName || 'Yuklanmoqda...'}</div>
+                <div className="text-[11px] text-gray-400">{channelStatus === 'Ulangan' ? 'Ulangan' : 'Ulanmagan'} • Global (US/EN)</div>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Workspace Badge */}
+            <div className="hidden sm:flex items-center gap-2 bg-white/[0.04] border border-white/10 px-2.5 py-1.5 rounded-lg">
+              <span className="text-[10px] text-gray-400 font-mono">{wsId.substring(0, 10)}</span>
+              <button
+                onClick={() => { resetWorkspace(); window.location.reload(); }}
+                className="text-gray-500 hover:text-red-400 transition-colors"
+                title="Yangi maydon (workspace)"
+              >
+                <RotateCcw size={12} />
+              </button>
+            </div>
             {typeof window !== 'undefined' && (window as any).__CLERK_CONFIGURED__ ? (
               <SignedIn>
                 <UserButton appearance={{ elements: { avatarBox: "w-9 h-9" } }} />

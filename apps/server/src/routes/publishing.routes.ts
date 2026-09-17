@@ -51,12 +51,15 @@ router.post('/:contentId/render', async (req: Request, res: Response, next: Next
 
 router.post('/:contentId/publish', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!youtubeService.isAuthenticated()) {
+    const workspaceId = req.workspaceId || req.params.id || (req.body?.workspaceId as string) || 'default';
+
+    if (!youtubeService.isAuthenticated(workspaceId)) {
+      const state = Buffer.from(JSON.stringify({ workspaceId })).toString('base64url');
       return res.status(401).json({
         success: false,
         error: 'youtube_not_authenticated',
-        authUrl: youtubeService.getAuthUrl(),
-        message: "YouTube hisobingiz ulanmagan! Iltimos, avval YouTube hisobini ulang."
+        authUrl: youtubeService.getAuthUrl(state),
+        message: "YouTube hisobingiz ulanmagan! Iltimos, o'zingizning YouTube hisobingizni ulang."
       });
     }
 
@@ -82,16 +85,16 @@ router.post('/:contentId/publish', async (req: Request, res: Response, next: Nex
 3. DevEngine - Autonomous debugging & cloud deployment
 4. Synthetix - Repurposes 1 video into 10 viral clips
 
-Which AI tool will you try first? Comment below and subscribe to @NeuralPulseAI-m3e!
+Which AI tool will you try first? Comment below and subscribe for daily blueprints!
 
 #ai #automation #artificialintelligence #productivity #techtok #shorts`,
-      tags: req.body.tags || ['AI tools', 'artificial intelligence', 'automation', 'productivity', 'Neural Pulse AI', 'ChatGPT', 'AI productivity', 'tech trends 2026', 'shorts'],
+      tags: req.body.tags || ['AI tools', 'artificial intelligence', 'automation', 'productivity', 'ChatGPT', 'AI productivity', 'tech trends 2026', 'shorts'],
       privacyStatus: req.body.privacyStatus || 'public',
       categoryId: '28'
     };
 
-    console.log(`🎬 YouTube API orqali haqiqiy video yuklanmoqda...`);
-    const uploadResult = await youtubeService.uploadVideo(videoPath, metadata);
+    console.log(`🎬 YouTube API orqali haqiqiy video yuklanmoqda (${workspaceId})...`);
+    const uploadResult = await youtubeService.uploadVideo(workspaceId, videoPath, metadata);
     const videoId = uploadResult.id;
     const youtubeUrl = `https://youtube.com/shorts/${videoId}`;
 

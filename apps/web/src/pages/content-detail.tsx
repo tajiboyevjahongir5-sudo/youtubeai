@@ -26,6 +26,7 @@ import {
   Wand2 
 } from 'lucide-react';
 import { Link } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
 
 type FlowStatus = 'awaiting_generation' | 'generating' | 'ready_for_review' | 'uploading' | 'published';
 
@@ -114,15 +115,20 @@ export const ContentDetailPage = () => {
 
   // 2-bosqich: YouTube'ga yuklash
   const handlePublishToYouTube = async () => {
+    const wsId = getWorkspaceId();
     setStatus('uploading');
-    setToast('⏳ Video YouTube Data API orqali Neural Pulse AI kanaliga yuklanmoqda... Kuting...');
+    setToast('⏳ Video YouTube Data API orqali kanalingizga yuklanmoqda... Kuting...');
     try {
-      const res = await fetch('/api/workspaces/default/content/item_1/publish', {
+      const res = await fetch(`/api/workspaces/${wsId}/content/item_1/publish`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-workspace-id': wsId
+        },
         body: JSON.stringify({
           title: "Top 5 AI Tools That Work While You Sleep in 2026 #shorts",
-          privacyStatus: "public"
+          privacyStatus: "public",
+          workspaceId: wsId
         })
       });
       const data = await res.json();
@@ -675,7 +681,7 @@ export const ContentDetailPage = () => {
               <div className="space-y-2 max-w-md mx-auto">
                 <h3 className="text-xl font-bold text-white">YouTube Studio'ga Yuklanmoqda...</h3>
                 <p className="text-xs text-gray-300">
-                  YouTube Data API v3 orqali <strong>Neural Pulse AI</strong> kanaliga yuklanmoqda (Resumable Upload)...
+                  YouTube Data API v3 orqali <strong>ulangan YouTube kanalingizga</strong> yuklanmoqda (Resumable Upload)...
                 </p>
                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                   <div className="bg-red-600 h-full w-4/5 animate-pulse rounded-full" />
@@ -694,7 +700,7 @@ export const ContentDetailPage = () => {
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
                   Muvaffaqiyatli Nashr Etildi!
                 </span>
-                <h3 className="text-2xl font-black text-white">Video Neural Pulse AI kanalida jonli!</h3>
+                <h3 className="text-2xl font-black text-white">Video YouTube kanalingizda jonli!</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
                   Video YouTube hamjamiyat qoidalariga to'liq mos holda rasmiy API orqali kanalingizga yuklandi. Endi u tavsiyalar va Shorts tasmasida ko'rina boshlaydi.
                 </p>

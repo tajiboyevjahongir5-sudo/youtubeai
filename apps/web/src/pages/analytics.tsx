@@ -31,6 +31,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Link } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
 
 const mockZeroData = [
   { name: 'Dush', views: 0, ctr: 0 },
@@ -89,15 +90,19 @@ const AnalyticsPage = () => {
   const [period, setPeriod] = useState('7');
   const [mode, setMode] = useState<'real' | 'benchmark'>('real');
   const [channelInfo, setChannelInfo] = useState<any>(null);
+  const wsId = getWorkspaceId();
 
   useEffect(() => {
-    fetch('/api/workspaces/default/analytics/summary')
+    fetch(`/api/workspaces/${wsId}/analytics/summary`, {
+      headers: { 'x-workspace-id': wsId }
+    })
       .then(res => res.json())
       .then(data => setChannelInfo(data))
       .catch(() => {});
-  }, []);
+  }, [wsId]);
 
   const isReal = mode === 'real';
+  const isConnected = channelInfo?.channelConnected !== false && channelInfo?.channelTitle !== 'YouTube Kanal Ulanmagan';
   const views = isReal ? (channelInfo?.views || 0) : '124,592';
   const impressions = isReal ? (channelInfo?.impressions || 0) : '1,203,441';
   const ctr = isReal ? `${channelInfo?.ctr || 0.0}%` : '5.4%';
@@ -142,10 +147,12 @@ const AnalyticsPage = () => {
         <Info size={20} className="text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="text-xs text-gray-300 space-y-1">
           <p className="font-bold text-white">
-            Ulangan kanal: <span className="text-red-400">Neural Pulse AI</span> (Google OAuth 2.0 bilan ulangan)
+            Ulangan kanal: <span className="text-red-400">{channelInfo?.channelTitle || 'YouTube Kanal Ulanmagan'}</span> {isConnected ? "(Google OAuth 2.0 bilan ulangan)" : "(Ulanmagan)"}
           </p>
           <p className="text-gray-400 leading-relaxed">
-            Bu yangi ochilayotgan kanal bo'lgani uchun barcha ko'rsatkichlar 0 dan boshlanadi. Tizim tayyorlagan birinchi 2 ta video YouTube'ga yuklangach, real tomoshalar va CTR grafiklarga avtomatik chiziladi.
+            {isConnected 
+              ? "Kanal parametrlari YouTube API orqali sinxronlashtiriladi. Videolar joylangach, real ko'rishlar va CTR avtomatik tarzda ko'rinadi."
+              : "Shaxsiy kanalingiz hali ulanmagan. O'z kanalingiz statistikasini ko'rish uchun Integratsiyalar sahifasida YouTube kanalingizni ulang."}
           </p>
         </div>
       </div>

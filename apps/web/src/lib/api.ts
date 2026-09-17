@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/clerk-react';
+import { getWorkspaceId } from './workspace';
 
 export const API_BASE_URL = '/api';
 
@@ -8,13 +8,16 @@ export class ApiError extends Error {
   }
 }
 
-export const fetchApi = async (url: string, options: RequestInit = {}, getToken: () => Promise<string | null>) => {
-  const token = await getToken();
+export const fetchApi = async (url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>) => {
+  const token = getToken ? await getToken() : null;
   const headers = new Headers(options.headers);
   
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+
+  const workspaceId = getWorkspaceId();
+  headers.set('x-workspace-id', workspaceId);
   
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');

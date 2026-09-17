@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchApi } from './api';
+import { getWorkspaceId } from './workspace';
 
 const getSafeAuth = () => {
   try {
@@ -18,7 +19,7 @@ const getSafeAuth = () => {
   };
 };
 
-export const useDashboard = (workspaceId: string = 'default') => {
+export const useDashboard = (workspaceId: string = getWorkspaceId()) => {
   return useQuery({
     queryKey: ['dashboard', workspaceId],
     queryFn: async () => {
@@ -27,9 +28,9 @@ export const useDashboard = (workspaceId: string = 'default') => {
       } catch (err) {
         // Return structured real baseline data for newly connected channel
         return {
-          channelConnected: true,
+          channelConnected: false,
           channel: {
-            title: 'Neural Pulse AI',
+            title: 'YouTube Kanal Ulanmagan',
             thumbnailUrl: '',
             subscriberCount: 0,
             totalViews: 0,
@@ -54,7 +55,7 @@ export const useDashboard = (workspaceId: string = 'default') => {
   });
 };
 
-export const useContentList = (workspaceId: string = 'default') => {
+export const useContentList = (workspaceId: string = getWorkspaceId()) => {
   return useQuery({
     queryKey: ['content', workspaceId],
     queryFn: async () => {
@@ -68,17 +69,19 @@ export const useContentList = (workspaceId: string = 'default') => {
             status: 'awaiting_approval',
             videoFormat: 'long_form',
             contentPillar: 'educational',
-            scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-            createdAt: new Date().toISOString(),
+            targetWordCount: 800,
+            scheduledDate: '2026-03-31T14:00:00Z',
+            createdAt: '2026-03-30T10:00:00Z',
           },
           {
             id: 'item_2',
-            title: 'Why You Shouldn\'t Fear AI Automation #Shorts',
-            status: 'scheduled',
+            title: 'I Built a Full App with 0 Lines of Code in 1 Hour',
+            status: 'scripting',
             videoFormat: 'shorts',
-            contentPillar: 'entertainment',
-            scheduledAt: new Date(Date.now() + 172800000).toISOString(),
-            createdAt: new Date().toISOString(),
+            contentPillar: 'entertaining',
+            targetWordCount: 150,
+            scheduledDate: '2026-04-01T21:00:00Z',
+            createdAt: '2026-03-30T11:30:00Z',
           },
         ];
       }
@@ -86,7 +89,7 @@ export const useContentList = (workspaceId: string = 'default') => {
   });
 };
 
-export const useAnalytics = (workspaceId: string = 'default', period: string = '7') => {
+export const useAnalytics = (workspaceId: string = getWorkspaceId(), period: string = '7') => {
   return useQuery({
     queryKey: ['analytics', workspaceId, period],
     queryFn: async () => {

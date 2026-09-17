@@ -16,32 +16,34 @@ import {
   Check
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
 
 export const IntegrationsPage = () => {
   const [searchParams] = useSearchParams();
-  const [linkCode, setLinkCode] = useState('849201');
   const [copied, setCopied] = useState(false);
-  const [testSent, setTestSent] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [channelData, setChannelData] = useState<any>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [testSent, setTestSent] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  const linkCode = 'JP-77492';
+  const wsId = getWorkspaceId();
 
   useEffect(() => {
     if (searchParams.get('connected') === 'true') {
-      setNotification('YouTube kanalingiz OAuth 2.0 orqali muvaffaqiyatli ulandi!');
-      setTimeout(() => setNotification(null), 5000);
-    } else if (searchParams.get('error')) {
-      setNotification('YouTube ulanishida xatolik yuz berdi. Qayta urinib ko\'ring.');
+      setNotification('✅ YouTube hisobingiz muvaffaqiyatli ulandi!');
       setTimeout(() => setNotification(null), 5000);
     }
   }, [searchParams]);
 
   useEffect(() => {
-    fetch('/api/workspaces/default/youtube/channel')
+    fetch(`/api/workspaces/${wsId}/youtube/channel`, {
+      headers: { 'x-workspace-id': wsId }
+    })
       .then(res => res.json())
       .then(data => setChannelData(data))
       .catch(() => {});
-  }, []);
+  }, [wsId]);
 
   const copyCode = () => {
     navigator.clipboard.writeText(`/link ${linkCode}`);
@@ -57,7 +59,9 @@ export const IntegrationsPage = () => {
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      const res = await fetch('/api/workspaces/default/youtube/connect');
+      const res = await fetch(`/api/workspaces/${wsId}/youtube/connect?workspaceId=${wsId}`, {
+        headers: { 'x-workspace-id': wsId }
+      });
       const data = await res.json();
       if (data.url && data.url !== 'https://mock.auth.url') {
         window.location.href = data.url;
@@ -73,7 +77,11 @@ export const IntegrationsPage = () => {
 
   const handleDisconnect = async () => {
     try {
-      await fetch('/api/workspaces/default/youtube/disconnect', { method: 'POST' });
+      await fetch(`/api/workspaces/${wsId}/youtube/disconnect`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': wsId },
+        body: JSON.stringify({ workspaceId: wsId })
+      });
       setChannelData(null);
       setNotification('Kanal uzildi.');
       setTimeout(() => setNotification(null), 3000);
@@ -82,9 +90,11 @@ export const IntegrationsPage = () => {
     }
   };
 
-  const channelTitle = channelData?.channelTitle || 'Neural Pulse AI';
-  const subCount = channelData?.subscriberCount ? `${(channelData.subscriberCount / 1000).toFixed(1)}K` : 'Yangi kanal';
   const isConnected = channelData?.connectionStatus === 'connected';
+  const channelTitle = isConnected ? (channelData?.channelTitle || 'Mening YouTube Kanalim') : 'YouTube Kanal Ulanmagan';
+  const subCount = isConnected 
+    ? (channelData?.subscriberCount ? `${channelData.subscriberCount} obunachi` : '0 obunachi') 
+    : 'Ulanmagan';
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
