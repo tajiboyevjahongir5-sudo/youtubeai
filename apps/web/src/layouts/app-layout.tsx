@@ -59,7 +59,6 @@ const AppLayout = () => {
     { path: '/integrations', label: 'Integratsiyalar', icon: Link2 },
     { path: '/settings', label: 'Sozlamalar', icon: Settings },
     { path: '/activity', label: 'Faollik jurnali', icon: Activity },
-    { path: '/admin', label: 'Admin Panel', icon: ShieldCheck },
   ];
 
   const toggleSidebar = () => setIsMobileOpen(!isMobileOpen);

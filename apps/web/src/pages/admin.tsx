@@ -18,17 +18,24 @@ import {
   Check,
   Zap,
   TrendingUp,
-  X
+  X,
+  Lock,
+  Smartphone
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 
 export const AdminPage = () => {
-  const [pin, setPin] = useState(() => sessionStorage.getItem('jpilot_admin_pin') || '');
+  const [sessionToken, setSessionToken] = useState(() => sessionStorage.getItem('jpilot_admin_session') || '');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [inputPin, setInputPin] = useState('');
-  const [pinError, setPinError] = useState('');
+  
+  // Login flow state
+  const [loginStep, setLoginStep] = useState<'password' | '2fa'>('password');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
   
   const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'invoices'>('users');
   const [users, setUsers] = useState<any[]>([]);
@@ -56,43 +63,94 @@ export const AdminPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Login handler
-  const handleLogin = async (e: React.FormEvent) => {
+  // Step 1: Submit Password (with Brute-Force Rate Limiting)
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPinError('');
+    setAuthError('');
+    setAuthMessage('');
+    setIsLoading(true);
+
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: inputPin }),
+        body: JSON.stringify({ password: passwordInput, pin: passwordInput }),
       });
       const data = await res.json();
+
+      if (res.status === 429) {
+        setAuthError(data.error || 'Kirish vaqtincha bloklandi');
+        return;
+      }
+
       if (data.success) {
-        setPin(inputPin);
-        sessionStorage.setItem('jpilot_admin_pin', inputPin);
-        setIsAuthenticated(true);
+        if (data.requires2FA) {
+          setLoginStep('2fa');
+          setAuthMessage(data.message || 'Telegram hisobingizga 6 xonali tasdiqlash kodi yuborildi.');
+        } else if (data.sessionToken) {
+          setSessionToken(data.sessionToken);
+          sessionStorage.setItem('jpilot_admin_session', data.sessionToken);
+          setIsAuthenticated(true);
+        }
       } else {
-        setPinError(data.error || 'Noto\'g\'ri PIN kod');
+        setAuthError(data.error || 'Parol noto\'g\'ri kiritildi');
       }
     } catch (e) {
-      setPinError('Server bilan bog\'lanishda xatolik');
+      setAuthError('Server bilan bog\'lanishda xatolik yuz berdi');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Step 2: Verify Telegram 2FA Code
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: otpInput }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.sessionToken) {
+        setSessionToken(data.sessionToken);
+        sessionStorage.setItem('jpilot_admin_session', data.sessionToken);
+        setIsAuthenticated(true);
+      } else {
+        setAuthError(data.error || 'Tasdiqlash kodi noto\'g\'ri');
+      }
+    } catch (e) {
+      setAuthError('Kodni tekshirishda xatolik');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper: Auth headers
+  const getAuthHeaders = () => ({
+    'Authorization': `Bearer ${sessionToken}`,
+    'Content-Type': 'application/json',
+  });
+
   // Load data
   const loadAdminData = async () => {
-    if (!pin) return;
+    if (!sessionToken) return;
     setIsLoading(true);
     try {
       const [usersRes, settingsRes, invoicesRes] = await Promise.all([
-        fetch('/api/admin/users', { headers: { 'x-admin-pin': pin } }),
-        fetch('/api/admin/settings', { headers: { 'x-admin-pin': pin } }),
-        fetch('/api/admin/invoices', { headers: { 'x-admin-pin': pin } }),
+        fetch('/api/admin/users', { headers: getAuthHeaders() }),
+        fetch('/api/admin/settings', { headers: getAuthHeaders() }),
+        fetch('/api/admin/invoices', { headers: getAuthHeaders() }),
       ]);
 
       if (usersRes.status === 401) {
         setIsAuthenticated(false);
-        sessionStorage.removeItem('jpilot_admin_pin');
+        sessionStorage.removeItem('jpilot_admin_session');
+        setSessionToken('');
         return;
       }
 
@@ -112,17 +170,17 @@ export const AdminPage = () => {
   };
 
   useEffect(() => {
-    if (pin) {
+    if (sessionToken) {
       loadAdminData();
     }
-  }, [pin]);
+  }, [sessionToken]);
 
   // Activate user subscription
   const handleActivateUser = async (workspaceId: string, days: number = 30) => {
     try {
       const res = await fetch(`/api/admin/users/${workspaceId}/activate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ days }),
       });
       const data = await res.json();
@@ -139,7 +197,7 @@ export const AdminPage = () => {
   const handleViewChannel = async (workspaceId: string) => {
     try {
       const res = await fetch(`/api/admin/users/${workspaceId}/channel`, {
-        headers: { 'x-admin-pin': pin },
+        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (data.success && data.channel) {
@@ -159,12 +217,12 @@ export const AdminPage = () => {
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: getAuthHeaders(),
         body: JSON.stringify(settings),
       });
       const data = await res.json();
       if (data.success) {
-        showNotification('✅ Karta va Telegram sozlamalari muvaffaqiyatli saqlandi!');
+        showNotification('✅ Karta, Telegram va Parol sozlamalari muvaffaqiyatli saqlandi!');
       }
     } catch (e) {
       showNotification('Sozlamalarni saqlashda xatolik');
@@ -176,7 +234,7 @@ export const AdminPage = () => {
     try {
       const res = await fetch('/api/admin/simulate-notification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ text: testSmsText }),
       });
       const data = await res.json();
@@ -190,36 +248,79 @@ export const AdminPage = () => {
     }
   };
 
-  // 1. If not authenticated, show PIN entry screen
+  // 1. If not authenticated, show Secure Login Screen (with Brute-Force & 2FA)
   if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4">
         <div className="w-full max-w-md liquid-glass-red border border-red-500/30 rounded-3xl p-8 shadow-2xl text-center space-y-6 animate-scale-in">
           <div className="w-16 h-16 rounded-2xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto shadow-[0_0_30px_rgba(255,0,0,0.3)]">
-            <KeyRound size={32} />
+            {loginStep === 'password' ? <Lock size={32} /> : <Smartphone size={32} />}
           </div>
+
           <div>
-            <h2 className="text-2xl font-black text-white">Administrator Paneli</h2>
+            <h2 className="text-2xl font-black text-white">
+              {loginStep === 'password' ? 'Super Admin Kirish' : 'Telegram 2FA Tasdiqi'}
+            </h2>
             <p className="text-xs text-gray-400 mt-1">
-              Foydalanuvchilar, to'lovlar va YouTube kanallarini boshqarish uchun xavfsizlik PIN kodini kiriting.
+              {loginStep === 'password'
+                ? 'Brute-force himoyasi faol (5 ta xato urinishdan so\'ng 15 daqiqaga bloklanadi).'
+                : 'Sizning shaxsiy Telegramingizga 6 xonali bir martalik kod yuborildi.'}
             </p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="password"
-              value={inputPin}
-              onChange={(e) => setInputPin(e.target.value)}
-              placeholder="Admin PIN kod (standart: 7777)"
-              className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:border-red-500 transition-colors"
-              autoFocus
-            />
-            {pinError && <p className="text-xs text-red-400 font-semibold">{pinError}</p>}
-            <Button type="submit" variant="primary" className="w-full">
-              Panelga kirish
-            </Button>
-          </form>
-          <div className="text-[11px] text-gray-500">
-            Standart PIN kod: <span className="font-mono text-gray-300">7777</span> (Sozlamalarda o'zgartirish mumkin)
+
+          {authError && (
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-xs text-red-300 font-semibold">
+              {authError}
+            </div>
+          )}
+
+          {authMessage && (
+            <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/40 text-xs text-blue-300 font-semibold">
+              {authMessage}
+            </div>
+          )}
+
+          {loginStep === 'password' ? (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Murakkab admin parol / PIN"
+                className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white text-center text-base focus:outline-none focus:border-red-500 transition-colors"
+                autoFocus
+              />
+              <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Tekshirilmoqda...' : 'Davom etish'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleOtpSubmit} className="space-y-4">
+              <input
+                type="text"
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value)}
+                placeholder="6 xonali Telegram kodi"
+                className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white text-center text-xl font-mono tracking-widest focus:outline-none focus:border-red-500 transition-colors"
+                autoFocus
+                maxLength={6}
+              />
+              <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Tasdiqlanmoqda...' : 'Kodni tasdiqlash'}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setLoginStep('password')}
+                className="text-xs text-gray-400 hover:text-gray-200 mt-2 block mx-auto"
+              >
+                ← Orqaga qaytish
+              </button>
+            </form>
+          )}
+
+          <div className="text-[11px] text-gray-500 pt-2 border-t border-white/5 flex items-center justify-center gap-1.5">
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>256-bit Shifrlangan sessiya & IP Lockout himoyasi</span>
           </div>
         </div>
       </div>
@@ -243,7 +344,8 @@ export const AdminPage = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                sessionStorage.removeItem('jpilot_admin_pin');
+                sessionStorage.removeItem('jpilot_admin_session');
+                setSessionToken('');
                 setIsAuthenticated(false);
               }}
               className="text-xs text-gray-400 hover:text-red-400"
@@ -319,7 +421,7 @@ export const AdminPage = () => {
               : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
-          <CreditCard size={16} /> Karta va Telegram Sozlamalari
+          <CreditCard size={16} /> Karta, Parol va Telegram Sozlamalari
         </button>
 
         <button
@@ -470,8 +572,11 @@ export const AdminPage = () => {
 
               <div className="pt-4 border-t border-white/10">
                 <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                  <Send size={16} className="text-blue-400" /> Telegram Hamroh Bot Sozlamalari (Ixtiyoriy)
+                  <ShieldCheck size={16} className="text-emerald-400" /> Telegram 2FA (Ikki Bosqichli Xavfsizlik)
                 </h4>
+                <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+                  Agar bu maydonlarni to'ldirsangiz, har safar admin panelga kirishda Telegramingizga 6 xonali tasdiqlash kodi yuboriladi. Hech kim parolni bilsa ham Telegramingizsiz kira olmaydi!
+                </p>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-300 block mb-1">
@@ -503,15 +608,18 @@ export const AdminPage = () => {
 
               <div className="pt-4 border-t border-white/10">
                 <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Admin Panel PIN Kodi:
+                  Yangi Murakkab Admin Paroli (harf, belgi va raqamlar aralashmasi):
                 </label>
                 <input
                   type="text"
                   value={settings.adminPin}
                   onChange={(e) => setSettings({ ...settings, adminPin: e.target.value })}
-                  placeholder="7777"
-                  className="w-40 px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-center tracking-widest focus:outline-none focus:border-red-500"
+                  placeholder="KuchliParol#2026!"
+                  className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono focus:outline-none focus:border-red-500"
                 />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Masalan: <code className="text-emerald-400">JpilotAdmin#9988!</code>
+                </span>
               </div>
 
               <Button type="submit" variant="primary" className="flex items-center gap-2 shadow-lg">
@@ -667,4 +775,5 @@ export const AdminPage = () => {
     </div>
   );
 };
+
 export default AdminPage;
