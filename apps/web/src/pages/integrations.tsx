@@ -236,7 +236,7 @@ export const IntegrationsPage = () => {
                   FLAGSHIP 2026
                 </span>
               </div>
-              <p className="text-xs text-gray-400">Google Gemini 2.0 Flash eng so'nggi flagman modeli orqali ishlamoqda</p>
+              <p className="text-xs text-gray-400">Google Gemini 3.6 Flash eng so'nggi flagman modeli orqali ishlamoqda</p>
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const IntegrationsPage = () => {
           <div className="p-4 rounded-xl bg-white/[0.03] border border-purple-500/20">
             <span className="text-xs text-gray-400 block mb-1">Model</span>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white">Gemini 2.0 Flash</span>
+              <span className="text-sm font-bold text-white">Gemini 3.6 Flash</span>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ENG YAXSHISI</span>
             </div>
           </div>

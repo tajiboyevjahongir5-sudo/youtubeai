@@ -11,8 +11,8 @@ export interface IAiService {
 
 export class GeminiAiService implements IAiService {
   private genAI: GoogleGenerativeAI;
-  private primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  private fallbackModel = 'gemini-1.5-flash';
+  private primaryModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+  private fallbackModel = 'gemini-2.0-flash';
 
   constructor(apiKey: string) {
     this.genAI = new GoogleGenerativeAI(apiKey);
