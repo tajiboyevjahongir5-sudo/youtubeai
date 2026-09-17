@@ -80,6 +80,21 @@ export class YouTubeService implements IYouTubeService {
       if (fs.existsSync(this.legacyTokenPath)) {
         return JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
       }
+
+      // Railway environment variable fallback
+      if (process.env.YOUTUBE_TOKEN_JSON) {
+        try {
+          return JSON.parse(process.env.YOUTUBE_TOKEN_JSON);
+        } catch (e) {}
+      }
+
+      if (process.env.YOUTUBE_REFRESH_TOKEN) {
+        return {
+          refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
+          scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/yt-analytics.readonly',
+          token_type: 'Bearer',
+        };
+      }
     } catch (e) {
       console.error(`❌ [${workspaceId}] Token o'qishda xatolik:`, e);
     }
@@ -110,9 +125,17 @@ export class YouTubeService implements IYouTubeService {
       if (fs.existsSync(this.legacyChannelPath)) {
         return JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
       }
+
+      // Railway environment variable fallback
+      if (process.env.YOUTUBE_CHANNEL_JSON) {
+        try {
+          return JSON.parse(process.env.YOUTUBE_CHANNEL_JSON);
+        } catch (e) {}
+      }
     } catch (e) {}
     return null;
   }
+
 
 
   isAuthenticated(workspaceId: string): boolean {
