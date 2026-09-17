@@ -77,7 +77,7 @@ export class YouTubeService implements IYouTubeService {
         return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       }
       
-      if (workspaceId === 'default' && fs.existsSync(this.legacyTokenPath)) {
+      if (fs.existsSync(this.legacyTokenPath)) {
         return JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
       }
     } catch (e) {
@@ -107,12 +107,13 @@ export class YouTubeService implements IYouTubeService {
       if (fs.existsSync(filePath)) {
         return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       }
-      if (workspaceId === 'default' && fs.existsSync(this.legacyChannelPath)) {
+      if (fs.existsSync(this.legacyChannelPath)) {
         return JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
       }
     } catch (e) {}
     return null;
   }
+
 
   isAuthenticated(workspaceId: string): boolean {
     const tokens = this.loadTokens(workspaceId);
