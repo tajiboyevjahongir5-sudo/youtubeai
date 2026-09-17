@@ -33,9 +33,9 @@ export class TelegramUserService {
   private isListening: boolean = false;
   private connectedUser: any = null;
 
-  // Default Telegram API credentials (Official Web/Desktop client credentials)
-  private defaultApiId = 2496;
-  private defaultApiHash = '8da85b0d5b16223b1549fed19eff62a4';
+  // Default Telegram API credentials (Official Telegram Desktop client credentials)
+  private defaultApiId = 2040;
+  private defaultApiHash = 'b18441a1ff607e10a989891a5462e627';
 
   constructor() {
     const dir = path.resolve(process.cwd(), 'data', 'payment');
@@ -70,7 +70,10 @@ export class TelegramUserService {
   private getConfig(): { apiId: number; apiHash: string } {
     try {
       if (fs.existsSync(this.configFilePath)) {
-        return JSON.parse(fs.readFileSync(this.configFilePath, 'utf-8'));
+        const saved = JSON.parse(fs.readFileSync(this.configFilePath, 'utf-8'));
+        if (saved && saved.apiId && saved.apiId !== 2496 && saved.apiHash) {
+          return saved;
+        }
       }
     } catch (e) {}
     return {
@@ -78,6 +81,7 @@ export class TelegramUserService {
       apiHash: process.env.TELEGRAM_API_HASH || this.defaultApiHash,
     };
   }
+
 
   private saveConfig(config: { apiId: number; apiHash: string }) {
     try {
