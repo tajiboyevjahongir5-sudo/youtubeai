@@ -14,14 +14,18 @@ import {
   X,
   Play,
   Radio,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getWorkspaceId, resetWorkspace } from '../lib/workspace';
+import { SubscriptionModal } from '../components/subscription-modal';
 
 const AppLayout = () => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [channelName, setChannelName] = useState('');
   const [channelStatus, setChannelStatus] = useState('');
   const wsId = getWorkspaceId();
@@ -55,6 +59,7 @@ const AppLayout = () => {
     { path: '/integrations', label: 'Integratsiyalar', icon: Link2 },
     { path: '/settings', label: 'Sozlamalar', icon: Settings },
     { path: '/activity', label: 'Faollik jurnali', icon: Activity },
+    { path: '/admin', label: 'Admin Panel', icon: ShieldCheck },
   ];
 
   const toggleSidebar = () => setIsMobileOpen(!isMobileOpen);
@@ -137,8 +142,29 @@ const AppLayout = () => {
           })}
         </nav>
 
+        {/* PRO Subscription Banner in Sidebar */}
+        <div className="mx-1 p-3.5 rounded-2xl bg-gradient-to-br from-red-950/60 to-black/80 border border-red-500/30 space-y-2.5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Zap size={14} className="text-red-400 fill-red-400" /> PRO Obuna
+            </span>
+            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">
+              60 000 UZS/oy
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-400 leading-tight">
+            Cheksiz AI video generatsiya va YouTube avtopilot.
+          </p>
+          <button
+            onClick={() => setIsSubModalOpen(true)}
+            className="w-full py-1.5 px-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
+          >
+            Obunani yoqish
+          </button>
+        </div>
+
         {/* Studio Disclaimer Footer */}
-        <div className="pt-3 border-t border-white/5 px-2 text-[11px] text-gray-400 leading-tight">
+        <div className="pt-2 border-t border-white/5 px-2 text-[11px] text-gray-500 leading-tight">
           YouTube rasmiy API integratsiyasi
         </div>
       </aside>
@@ -163,6 +189,16 @@ const AppLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* PRO Obuna Header Button */}
+            <button
+              onClick={() => setIsSubModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold hover:bg-red-600/30 transition-all shadow-sm"
+            >
+              <Zap size={14} className="text-red-400 fill-red-400" />
+              <span className="hidden sm:inline">PRO Obuna (60 000 UZS)</span>
+              <span className="sm:hidden">Obuna</span>
+            </button>
+
             {/* Workspace Badge */}
             <div className="hidden sm:flex items-center gap-2 bg-white/[0.04] border border-white/10 px-2.5 py-1.5 rounded-lg">
               <span className="text-[10px] text-gray-400 font-mono">{wsId.substring(0, 10)}</span>
@@ -174,6 +210,7 @@ const AppLayout = () => {
                 <RotateCcw size={12} />
               </button>
             </div>
+
             {typeof window !== 'undefined' && (window as any).__CLERK_CONFIGURED__ ? (
               <SignedIn>
                 <UserButton appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
@@ -197,6 +234,9 @@ const AppLayout = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* Subscription Paywall Modal */}
+      <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
     </div>
   );
 };

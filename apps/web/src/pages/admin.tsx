@@ -1,0 +1,670 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ShieldCheck, 
+  Users, 
+  CreditCard, 
+  Send, 
+  Youtube, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Clock, 
+  KeyRound, 
+  Save, 
+  Eye, 
+  RefreshCw, 
+  ExternalLink,
+  Sparkles,
+  Search,
+  Check,
+  Zap,
+  TrendingUp,
+  X
+} from 'lucide-react';
+import { PageHeader } from '../components/ui/page-header';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+
+export const AdminPage = () => {
+  const [pin, setPin] = useState(() => sessionStorage.getItem('jpilot_admin_pin') || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [inputPin, setInputPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  
+  const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'invoices'>('users');
+  const [users, setUsers] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>({
+    cardNumber: '8600 0000 0000 0000',
+    cardHolder: 'ADMINISTRATOR',
+    basePrice: 60000,
+    adminPin: '7777',
+    tgBotToken: '',
+    tgAdminChatId: '',
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<any>(null);
+  const [channelModalOpen, setChannelModalOpen] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  // SMS / CardXabar tester state
+  const [testSmsText, setTestSmsText] = useState('Karta: *4589. Kirim: +60 042 UZS. Qoldiq: 1 250 000 UZS');
+  const [testResult, setTestResult] = useState<any>(null);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Login handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError('');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: inputPin }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPin(inputPin);
+        sessionStorage.setItem('jpilot_admin_pin', inputPin);
+        setIsAuthenticated(true);
+      } else {
+        setPinError(data.error || 'Noto\'g\'ri PIN kod');
+      }
+    } catch (e) {
+      setPinError('Server bilan bog\'lanishda xatolik');
+    }
+  };
+
+  // Load data
+  const loadAdminData = async () => {
+    if (!pin) return;
+    setIsLoading(true);
+    try {
+      const [usersRes, settingsRes, invoicesRes] = await Promise.all([
+        fetch('/api/admin/users', { headers: { 'x-admin-pin': pin } }),
+        fetch('/api/admin/settings', { headers: { 'x-admin-pin': pin } }),
+        fetch('/api/admin/invoices', { headers: { 'x-admin-pin': pin } }),
+      ]);
+
+      if (usersRes.status === 401) {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('jpilot_admin_pin');
+        return;
+      }
+
+      const usersData = await usersRes.json();
+      const settingsData = await settingsRes.json();
+      const invoicesData = await invoicesRes.json();
+
+      if (usersData.success) setUsers(usersData.users);
+      if (settingsData.success) setSettings(settingsData.settings);
+      if (invoicesData.success) setInvoices(invoicesData.invoices);
+      setIsAuthenticated(true);
+    } catch (e) {
+      console.error('Failed to load admin data:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (pin) {
+      loadAdminData();
+    }
+  }, [pin]);
+
+  // Activate user subscription
+  const handleActivateUser = async (workspaceId: string, days: number = 30) => {
+    try {
+      const res = await fetch(`/api/admin/users/${workspaceId}/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification(data.message);
+        loadAdminData();
+      }
+    } catch (e) {
+      showNotification('Xatolik yuz berdi');
+    }
+  };
+
+  // View channel details
+  const handleViewChannel = async (workspaceId: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${workspaceId}/channel`, {
+        headers: { 'x-admin-pin': pin },
+      });
+      const data = await res.json();
+      if (data.success && data.channel) {
+        setSelectedChannel(data.channel);
+        setChannelModalOpen(true);
+      } else {
+        showNotification(data.message || 'Kanal ma\'lumotlari topilmadi');
+      }
+    } catch (e) {
+      showNotification('Kanal ma\'lumotlarini olishda xatolik');
+    }
+  };
+
+  // Save settings
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('✅ Karta va Telegram sozlamalari muvaffaqiyatli saqlandi!');
+      }
+    } catch (e) {
+      showNotification('Sozlamalarni saqlashda xatolik');
+    }
+  };
+
+  // Test SMS / CardXabar parsing
+  const handleTestSms = async () => {
+    try {
+      const res = await fetch('/api/admin/simulate-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify({ text: testSmsText }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+      if (data.matched) {
+        showNotification('✅ Matn mos keldi va to\'lov tasdiqlandi!');
+        loadAdminData();
+      }
+    } catch (e) {
+      setTestResult({ matched: false, message: 'Xatolik yuz berdi' });
+    }
+  };
+
+  // 1. If not authenticated, show PIN entry screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="w-full max-w-md liquid-glass-red border border-red-500/30 rounded-3xl p-8 shadow-2xl text-center space-y-6 animate-scale-in">
+          <div className="w-16 h-16 rounded-2xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto shadow-[0_0_30px_rgba(255,0,0,0.3)]">
+            <KeyRound size={32} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white">Administrator Paneli</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Foydalanuvchilar, to'lovlar va YouTube kanallarini boshqarish uchun xavfsizlik PIN kodini kiriting.
+            </p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="password"
+              value={inputPin}
+              onChange={(e) => setInputPin(e.target.value)}
+              placeholder="Admin PIN kod (standart: 7777)"
+              className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:border-red-500 transition-colors"
+              autoFocus
+            />
+            {pinError && <p className="text-xs text-red-400 font-semibold">{pinError}</p>}
+            <Button type="submit" variant="primary" className="w-full">
+              Panelga kirish
+            </Button>
+          </form>
+          <div className="text-[11px] text-gray-500">
+            Standart PIN kod: <span className="font-mono text-gray-300">7777</span> (Sozlamalarda o'zgartirish mumkin)
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const activeSubscriptionsCount = users.filter((u) => u.subscription?.isActive && u.subscription?.status === 'active').length;
+  const trialCount = users.filter((u) => u.subscription?.status === 'trial').length;
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      <PageHeader
+        title="Jpilot Boshqaruv Paneli (Super Admin)"
+        description="Foydalanuvchilar bazasi, oylik 60 000 so'm obunalar, to'lov kartasi va CardXabar integratsiyasi."
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="secondary" size="sm" onClick={loadAdminData} className="flex items-center gap-1.5">
+              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} /> Yangilash
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                sessionStorage.removeItem('jpilot_admin_pin');
+                setIsAuthenticated(false);
+              }}
+              className="text-xs text-gray-400 hover:text-red-400"
+            >
+              Chiqish
+            </Button>
+          </div>
+        }
+      />
+
+      {notification && (
+        <div className="liquid-glass rounded-2xl p-4 border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 flex items-center gap-3 text-sm font-semibold shadow-xl">
+          <CheckCircle2 size={20} className="text-emerald-400 flex-shrink-0" />
+          <span>{notification}</span>
+        </div>
+      )}
+
+      {/* Metrics Row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="liquid-glass p-5 rounded-2xl border border-white/10 space-y-1">
+          <span className="text-xs text-gray-400 flex items-center gap-1.5 font-medium">
+            <Users size={16} className="text-blue-400" /> Jami Foydalanuvchilar
+          </span>
+          <div className="text-2xl font-black text-white">{users.length} ta</div>
+          <span className="text-[11px] text-gray-500">Alohida ish maydonlari</span>
+        </div>
+
+        <div className="liquid-glass p-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 space-y-1">
+          <span className="text-xs text-emerald-300 flex items-center gap-1.5 font-medium">
+            <Zap size={16} className="text-emerald-400" /> Faol Pullik Obunalar
+          </span>
+          <div className="text-2xl font-black text-white">{activeSubscriptionsCount} ta</div>
+          <span className="text-[11px] text-emerald-400">Oylik 60 000 so'm to'langan</span>
+        </div>
+
+        <div className="liquid-glass p-5 rounded-2xl border border-amber-500/20 bg-amber-950/10 space-y-1">
+          <span className="text-xs text-amber-300 flex items-center gap-1.5 font-medium">
+            <Clock size={16} className="text-amber-400" /> Sinov (Trial) Rejimida
+          </span>
+          <div className="text-2xl font-black text-white">{trialCount} ta</div>
+          <span className="text-[11px] text-amber-400">3 kunlik bepul sinov</span>
+        </div>
+
+        <div className="liquid-glass-red p-5 rounded-2xl border border-red-500/20 space-y-1">
+          <span className="text-xs text-red-300 flex items-center gap-1.5 font-medium">
+            <CreditCard size={16} className="text-red-400" /> Kutilayotgan Invoyslar
+          </span>
+          <div className="text-2xl font-black text-white">
+            {invoices.filter((i) => i.status === 'pending').length} ta
+          </div>
+          <span className="text-[11px] text-red-400">1..99 unikal summada</span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-white/10 gap-2">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+            activeTab === 'users'
+              ? 'border-red-500 text-white'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Users size={16} /> Foydalanuvchilar ({users.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+            activeTab === 'settings'
+              ? 'border-red-500 text-white'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <CreditCard size={16} /> Karta va Telegram Sozlamalari
+        </button>
+
+        <button
+          onClick={() => setActiveTab('invoices')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+            activeTab === 'invoices'
+              ? 'border-red-500 text-white'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Send size={16} /> To'lovlar va CardXabar Sinovi ({invoices.length})
+        </button>
+      </div>
+
+      {/* TAB 1: USERS */}
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          <div className="liquid-glass rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.04] text-xs text-gray-400 uppercase tracking-wider border-b border-white/10">
+                  <tr>
+                    <th className="px-5 py-4">Workspace ID</th>
+                    <th className="px-5 py-4">Ulangan Gmail</th>
+                    <th className="px-5 py-4">YouTube Kanal</th>
+                    <th className="px-5 py-4">Obuna Holati</th>
+                    <th className="px-5 py-4">Muddati</th>
+                    <th className="px-5 py-4 text-right">Boshqaruv</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {users.map((user) => {
+                    const isSubActive = user.subscription?.isActive && user.subscription?.status === 'active';
+                    const isTrial = user.subscription?.status === 'trial';
+                    return (
+                      <tr key={user.workspaceId} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-5 py-4 font-mono font-bold text-white text-xs">
+                          {user.workspaceId}
+                        </td>
+                        <td className="px-5 py-4 text-xs">
+                          <span className="font-semibold text-gray-200">{user.userGmail}</span>
+                        </td>
+                        <td className="px-5 py-4">
+                          {user.hasYouTube ? (
+                            <button
+                              onClick={() => handleViewChannel(user.workspaceId)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-600/30 transition-colors shadow-sm"
+                            >
+                              <Youtube size={14} className="fill-red-500 text-red-500" />
+                              {user.channel?.title || 'Kanalni ko\'rish'}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-500 italic">Ulanmagan</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          {isSubActive ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              <Check size={12} /> Faol (Pullik)
+                            </span>
+                          ) : isTrial ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                              <Clock size={12} /> Sinov (Trial)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                              Muddati tugagan
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-gray-300 font-mono">
+                          {user.subscription?.daysLeft !== undefined
+                            ? `${user.subscription.daysLeft} kun qoldi`
+                            : 'Noma\'lum'}
+                        </td>
+                        <td className="px-5 py-4 text-right space-x-2">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => handleActivateUser(user.workspaceId, 30)}
+                            className="text-xs shadow-md"
+                          >
+                            +30 kun Obuna
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: SETTINGS */}
+      {activeTab === 'settings' && (
+        <div className="max-w-2xl">
+          <form onSubmit={handleSaveSettings} className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <CreditCard size={20} className="text-red-500" /> To'lov Qabul Qilish Karta Ma'lumotlari
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  Karta Raqami (Uzcard / Humo):
+                </label>
+                <input
+                  type="text"
+                  value={settings.cardNumber}
+                  onChange={(e) => setSettings({ ...settings, cardNumber: e.target.value })}
+                  placeholder="8600 0000 0000 0000"
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-base focus:outline-none focus:border-red-500"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Foydalanuvchilarga to'lov oynasida aynan shu karta raqam ko'rsatiladi.
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  Karta Egasi (F.I.O):
+                </label>
+                <input
+                  type="text"
+                  value={settings.cardHolder}
+                  onChange={(e) => setSettings({ ...settings, cardHolder: e.target.value })}
+                  placeholder="JAHONGIR T."
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  Oylik Obuna Asosiy Narxi (UZS):
+                </label>
+                <input
+                  type="number"
+                  value={settings.basePrice}
+                  onChange={(e) => setSettings({ ...settings, basePrice: Number(e.target.value) })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white font-mono focus:outline-none focus:border-red-500"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Standart: 60 000 so'm. Unga 1..99 so'm unikal qo'shimcha qo'shiladi.
+                </span>
+              </div>
+
+              <div className="pt-4 border-t border-white/10">
+                <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                  <Send size={16} className="text-blue-400" /> Telegram Hamroh Bot Sozlamalari (Ixtiyoriy)
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Telegram Bot Token (@BotFather'dan olingan):
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.tgBotToken || ''}
+                      onChange={(e) => setSettings({ ...settings, tgBotToken: e.target.value })}
+                      placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                      className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Sizning Telegram Chat ID:
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.tgAdminChatId || ''}
+                      onChange={(e) => setSettings({ ...settings, tgAdminChatId: e.target.value })}
+                      placeholder="987654321"
+                      className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10">
+                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  Admin Panel PIN Kodi:
+                </label>
+                <input
+                  type="text"
+                  value={settings.adminPin}
+                  onChange={(e) => setSettings({ ...settings, adminPin: e.target.value })}
+                  placeholder="7777"
+                  className="w-40 px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-center tracking-widest focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <Button type="submit" variant="primary" className="flex items-center gap-2 shadow-lg">
+                <Save size={16} /> Sozlamalarni saqlash
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* TAB 3: INVOICES & SMS PARSER TEST */}
+      {activeTab === 'invoices' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* CardXabar / HumoCard Parser Tester */}
+          <div className="liquid-glass rounded-3xl p-6 border border-white/10 space-y-4 shadow-xl">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-amber-400" /> CardXabar & HumoCard Sinov Maydoni
+            </h3>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Bu yerda bankdan yoki CardXabar botidan keladigan SMS/xabar matnini kiritib sinab ko'rishingiz mumkin.
+              Tizim 1..99 unikal summani avtomatik aniqlab, tegishli foydalanuvchi obunasini 30 kunga yoqadi.
+            </p>
+
+            <textarea
+              rows={3}
+              value={testSmsText}
+              onChange={(e) => setTestSmsText(e.target.value)}
+              className="w-full p-3 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-red-500"
+              placeholder="SMS matnini kiriting..."
+            />
+
+            <Button variant="primary" size="sm" onClick={handleTestSms} className="flex items-center gap-2">
+              <Zap size={14} /> Xabarni tekshirish va Obunani yoqish
+            </Button>
+
+            {testResult && (
+              <div className={`p-4 rounded-xl text-xs space-y-1 ${
+                testResult.matched ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300' : 'bg-red-950/40 border border-red-500/40 text-red-300'
+              }`}>
+                <div className="font-bold">{testResult.matched ? '✅ Natija: Qabul qilindi' : '❌ Natija: Mos kelmadi'}</div>
+                <div>{testResult.message}</div>
+                {testResult.extractedAmount && <div>Aniqlangan summa: <strong>{testResult.extractedAmount} UZS</strong></div>}
+                {testResult.workspaceId && <div>Faollashtirilgan Workspace: <strong>{testResult.workspaceId}</strong></div>}
+              </div>
+            )}
+          </div>
+
+          {/* Invoices List */}
+          <div className="liquid-glass rounded-3xl p-6 border border-white/10 space-y-4 shadow-xl">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <CreditCard size={18} className="text-red-500" /> So'nggi To'lov Invoyslari
+            </h3>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {invoices.length === 0 ? (
+                <div className="text-xs text-gray-500 py-8 text-center">Hozircha invoyslar mavjud emas</div>
+              ) : (
+                invoices.map((inv) => (
+                  <div key={inv.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-2">
+                        <span>{inv.totalAmount.toLocaleString()} UZS</span>
+                        <span className="text-[10px] text-gray-400 font-mono">(+{inv.uniqueOffset} so'm)</span>
+                      </div>
+                      <span className="text-[11px] text-gray-400 font-mono">{inv.workspaceId}</span>
+                    </div>
+                    <div className="text-right">
+                      {inv.status === 'paid' ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          To'landi
+                        </span>
+                      ) : inv.status === 'pending' ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          Kutilmoqda
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400">
+                          Muddati o'tdi
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* YOUTUBE CHANNEL DETAILS MODAL */}
+      {channelModalOpen && selectedChannel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg liquid-glass-red border border-red-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-white animate-scale-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {selectedChannel.thumbnailUrl ? (
+                  <img src={selectedChannel.thumbnailUrl} alt="Channel" className="w-12 h-12 rounded-full border border-red-500/40" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500">
+                    <Youtube size={24} />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-black">{selectedChannel.title}</h3>
+                  <p className="text-xs text-gray-400 font-mono">{selectedChannel.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setChannelModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 text-center">
+                <span className="text-[11px] text-gray-400 block">Obunachilar</span>
+                <span className="text-base font-bold text-white">{Number(selectedChannel.subscriberCount).toLocaleString()}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 text-center">
+                <span className="text-[11px] text-gray-400 block">Ko'rishlar</span>
+                <span className="text-base font-bold text-white">{Number(selectedChannel.viewCount).toLocaleString()}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 text-center">
+                <span className="text-[11px] text-gray-400 block">Videolar</span>
+                <span className="text-base font-bold text-white">{selectedChannel.videoCount} ta</span>
+              </div>
+            </div>
+
+            {selectedChannel.description && (
+              <div className="text-xs text-gray-300 bg-black/30 p-3 rounded-xl border border-white/5 max-h-28 overflow-y-auto">
+                <strong className="block text-gray-400 mb-1">Tavsif:</strong>
+                {selectedChannel.description}
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2">
+              <a
+                href={selectedChannel.youtubeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-semibold"
+              >
+                YouTube'da ochish <ExternalLink size={14} />
+              </a>
+              <Button variant="secondary" size="sm" onClick={() => setChannelModalOpen(false)}>
+                Yopish
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+export default AdminPage;
