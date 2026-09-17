@@ -40,7 +40,8 @@ export class PaymentService {
   private subsFile: string;
 
   constructor() {
-    this.baseDir = path.resolve(process.cwd(), 'data', 'payment');
+    const rootDir = process.env.DATA_PATH || path.resolve(process.cwd(), 'data');
+    this.baseDir = path.join(rootDir, 'payment');
     if (!fs.existsSync(this.baseDir)) {
       fs.mkdirSync(this.baseDir, { recursive: true });
     }

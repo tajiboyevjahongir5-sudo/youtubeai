@@ -25,7 +25,7 @@ export class YouTubeService implements IYouTubeService {
   private legacyChannelPath: string;
 
   constructor() {
-    const dataDir = path.resolve(process.cwd(), 'data');
+    const dataDir = process.env.DATA_PATH || path.resolve(process.cwd(), 'data');
     this.tokensDir = path.join(dataDir, 'tokens');
     this.channelsDir = path.join(dataDir, 'channels');
     this.legacyTokenPath = path.join(dataDir, 'youtube_token.json');

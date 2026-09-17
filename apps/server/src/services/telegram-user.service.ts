@@ -38,7 +38,8 @@ export class TelegramUserService {
   private defaultApiHash = 'b18441a1ff607e10a989891a5462e627';
 
   constructor() {
-    const dir = path.resolve(process.cwd(), 'data', 'payment');
+    const rootDir = process.env.DATA_PATH || path.resolve(process.cwd(), 'data');
+    const dir = path.join(rootDir, 'payment');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     this.sessionFilePath = path.join(dir, 'tg_user_session.txt');
