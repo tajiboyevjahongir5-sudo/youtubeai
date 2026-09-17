@@ -1,0 +1,45 @@
+import { Router } from 'express';
+import authRoutes from './auth.routes';
+import workspaceRoutes from './workspace.routes';
+import dashboardRoutes from './dashboard.routes';
+import youtubeRoutes from './youtube.routes';
+import contentRoutes from './content.routes';
+import generationRoutes from './generation.routes';
+import approvalRoutes from './approval.routes';
+import publishingRoutes from './publishing.routes';
+import analyticsRoutes from './analytics.routes';
+import telegramRoutes from './telegram.routes';
+import auditRoutes from './audit.routes';
+import { requireAuth, requireUser } from '../middleware/auth';
+import { requireWorkspace } from '../middleware/workspace';
+
+const router = Router();
+
+// Public routes
+router.use('/youtube', youtubeRoutes);
+
+// Protected routes
+router.use(requireAuth);
+router.use(requireUser);
+
+router.use('/me', authRoutes);
+router.use('/workspaces', workspaceRoutes);
+
+// Workspace specific routes
+const workspaceRouter = Router({ mergeParams: true });
+workspaceRouter.use(requireWorkspace);
+
+workspaceRouter.use('/dashboard', dashboardRoutes);
+workspaceRouter.use('/youtube', youtubeRoutes); // Some youtube routes might not need workspace ID in params directly, adjust as needed. We assume /api/workspaces/:id/youtube for channel info
+workspaceRouter.use('/content', contentRoutes);
+workspaceRouter.use('/content', generationRoutes);
+workspaceRouter.use('/content', publishingRoutes);
+workspaceRouter.use('/publishing-jobs', publishingRoutes);
+workspaceRouter.use('/approvals', approvalRoutes);
+workspaceRouter.use('/analytics', analyticsRoutes);
+workspaceRouter.use('/telegram', telegramRoutes);
+workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity
+
+router.use('/workspaces/:id', workspaceRouter);
+
+export default router;

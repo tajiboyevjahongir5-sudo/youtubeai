@@ -1,0 +1,293 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ff0000;
+  --color-primary-hover: #cc0000;
+  --color-sidebar: #0f0f14;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #09090d;
+  color: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+/* ============================================
+   LIQUID GLASS DESIGN SYSTEM
+   ============================================ */
+
+/* Primary Liquid Glass */
+.liquid-glass {
+  background: rgba(18, 18, 26, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* YouTube Red Glass Variant */
+.liquid-glass-red {
+  background: linear-gradient(135deg, rgba(255, 0, 50, 0.12) 0%, rgba(20, 15, 24, 0.75) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 0, 50, 0.25);
+  border-top: 1px solid rgba(255, 100, 100, 0.35);
+  box-shadow: 0 10px 35px -5px rgba(255, 0, 50, 0.18), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Card Hover Effect */
+.liquid-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-card-hover:hover {
+  transform: translateY(-4px) scale(1.005);
+  border-color: rgba(255, 50, 50, 0.4);
+  box-shadow: 0 20px 50px -5px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 0, 0, 0.18), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* YouTube Button Styling */
+.yt-btn-red {
+  background: linear-gradient(135deg, #ff0000 0%, #d90429 100%);
+  box-shadow: 0 4px 20px rgba(255, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s ease;
+}
+
+.yt-btn-red:hover {
+  background: linear-gradient(135deg, #ff1a1a 0%, #ef233c 100%);
+  box-shadow: 0 6px 28px rgba(255, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   PREMIUM ANIMATIONS & KEYFRAMES
+   ============================================ */
+
+/* Fade In — simple opacity entrance */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Fade In Up — the primary entrance animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Slide In Left — for sidebar items */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide In Right — for content entering from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale In — zoom-in pop effect */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Shimmer — glass reflection sweep across surface */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Float — gentle hovering effect for ambient elements */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Pulse Glow — red glow pulse for important elements */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.2), 0 0 60px rgba(255, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.35), 0 0 80px rgba(255, 0, 0, 0.2);
+  }
+}
+
+/* Border Glow — animated border highlight */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(255, 50, 50, 0.2);
+  }
+  50% {
+    border-color: rgba(255, 50, 50, 0.5);
+  }
+}
+
+/* Slide Down — dropdown and modal entrance */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Rotate glow */
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   ANIMATION UTILITY CLASSES
+   ============================================ */
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.04) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: borderGlow 2.5s ease-in-out infinite;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered animation delays for lists/grids */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ============================================
+   CUSTOM GLASS SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 10, 15, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 0, 50, 0.4);
+}
+
+/* ============================================
+   PAGE TRANSITION WRAPPER
+   ============================================ */
+
+.page-enter {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Glass shimmer surface effect */
+.glass-surface {
+  position: relative;
+  overflow: hidden;
+}
+.glass-surface::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+  animation: shimmer 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Ambient glow orb animation */
+.glow-orb {
+  animation: float 6s ease-in-out infinite;
+  will-change: transform;
+}
+.glow-orb-slow {
+  animation: float 9s ease-in-out infinite;
+  animation-delay: 2s;
+  will-change: transform;
+}

@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.output/
+.turbo/
+*.tsbuildinfo
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.local
+youtube_token.json
+youtube_tokens.json
+youtube_channel.json
+data/
+storage/
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary
+*.log
+logs/
+tsc_errors.txt
+
+# Test coverage
+coverage/
+
+# Generated
+packages/api-client/src/generated/
+
+# Large media files
+*.mp4
+*.m4v
+*.mov
+*.webm
+*.avi
+*.mp3
+*.wav
+!apps/web/public/favicon.ico
