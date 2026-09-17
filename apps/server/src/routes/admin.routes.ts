@@ -267,6 +267,53 @@ router.post('/users/:workspaceId/activate', (req: Request, res: Response) => {
 });
 
 /**
+ * Multi-Card Pool Management
+ */
+router.get('/cards', (req: Request, res: Response) => {
+  const data = paymentService.getCardsWithStats();
+  res.json({ success: true, ...data });
+});
+
+router.post('/cards', (req: Request, res: Response) => {
+  try {
+    const { cardNumber, cardHolder, dailyLimit, bankName } = req.body;
+    if (!cardNumber || !cardHolder) {
+      return res.status(400).json({ success: false, error: 'Karta raqami va egasining ismi kiritilishi shart.' });
+    }
+    const card = paymentService.addCard({
+      cardNumber,
+      cardHolder,
+      dailyLimit: Number(dailyLimit) || 40,
+      bankName,
+    });
+    res.json({ success: true, card, message: 'Yangi karta qo\'shildi!' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.put('/cards/:id', (req: Request, res: Response) => {
+  try {
+    const updated = paymentService.updateCard(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Karta topilmadi' });
+    }
+    res.json({ success: true, card: updated, message: 'Karta ma\'lumotlari yangilandi!' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/cards/:id', (req: Request, res: Response) => {
+  try {
+    const success = paymentService.deleteCard(req.params.id);
+    res.json({ success, message: 'Karta o\'chirildi!' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * Get admin card and Telegram settings
  */
 router.get('/settings', (req: Request, res: Response) => {
@@ -285,6 +332,8 @@ router.post('/settings', (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+
 
 /**
  * Get all payment invoices (pending & paid)

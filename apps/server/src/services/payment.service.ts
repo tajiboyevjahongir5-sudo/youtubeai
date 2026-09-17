@@ -1,13 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 
-export interface AdminSettings {
+export interface AdminCard {
+  id: string;
   cardNumber: string;
+  cardHolder: string;
+  bankName?: string;
+  dailyLimit: number; // default 40
+  isActive: boolean;
+  priority: number;
+}
+
+export interface AdminSettings {
+  cardNumber: string; // primary fallback
   cardHolder: string;
   basePrice: number; // default 60000
   adminPin: string; // default 7777
   tgBotToken: string;
   tgAdminChatId: string;
+  cards: AdminCard[];
+  maxDailyTransfersPerCard: number; // default 40
 }
 
 export interface PaymentInvoice {
@@ -20,7 +32,11 @@ export interface PaymentInvoice {
   createdAt: string;
   expiresAt: string; // 20 minutes from creation
   paidAt: string | null;
+  cardId?: string;
+  cardNumber?: string;
+  cardHolder?: string;
 }
+
 
 export interface UserSubscription {
   workspaceId: string;
@@ -55,13 +71,25 @@ export class PaymentService {
   private ensureDefaults() {
     if (!fs.existsSync(this.settingsFile)) {
       const defaultSettings: AdminSettings = {
-        cardNumber: '8600 0000 0000 0000',
-        cardHolder: 'ADMINISTRATOR',
+        cardNumber: '9860 3501 4074 7741',
+        cardHolder: 'Tojiboyev Jahongir',
         basePrice: 60000,
         adminPin: '7777',
         tgBotToken: '',
         tgAdminChatId: '',
+        maxDailyTransfersPerCard: 40,
+        cards: [
+          {
+            id: 'card_1',
+            cardNumber: '9860 3501 4074 7741',
+            cardHolder: 'Tojiboyev Jahongir',
+            dailyLimit: 40,
+            isActive: true,
+            priority: 1,
+          },
+        ],
       };
+
       fs.writeFileSync(this.settingsFile, JSON.stringify(defaultSettings, null, 2));
     }
 
@@ -75,27 +103,188 @@ export class PaymentService {
   }
 
   getSettings(): AdminSettings {
+    let settings: any = null;
     try {
       if (fs.existsSync(this.settingsFile)) {
-        return JSON.parse(fs.readFileSync(this.settingsFile, 'utf-8'));
+        settings = JSON.parse(fs.readFileSync(this.settingsFile, 'utf-8'));
       }
     } catch (e) {}
-    return {
-      cardNumber: '8600 0000 0000 0000',
-      cardHolder: 'ADMINISTRATOR',
-      basePrice: 60000,
-      adminPin: '7777',
-      tgBotToken: '',
-      tgAdminChatId: '',
-    };
+
+    if (!settings) {
+      settings = {
+        cardNumber: '9860 3501 4074 7741',
+        cardHolder: 'Tojiboyev Jahongir',
+        basePrice: 60000,
+        adminPin: '7777',
+        tgBotToken: '',
+        tgAdminChatId: '',
+        maxDailyTransfersPerCard: 40,
+        cards: [],
+      };
+    }
+
+    // Ensure cards array exists and has at least the default card
+    if (!settings.cards || !Array.isArray(settings.cards) || settings.cards.length === 0) {
+      const defaultCard: AdminCard = {
+        id: 'card_1',
+        cardNumber: settings.cardNumber || '9860 3501 4074 7741',
+        cardHolder: settings.cardHolder || 'Tojiboyev Jahongir',
+        dailyLimit: settings.maxDailyTransfersPerCard || 40,
+        isActive: true,
+        priority: 1,
+      };
+      settings.cards = [defaultCard];
+    }
+
+    if (!settings.maxDailyTransfersPerCard) {
+      settings.maxDailyTransfersPerCard = 40;
+    }
+
+    return settings as AdminSettings;
   }
 
   saveSettings(settings: Partial<AdminSettings>): AdminSettings {
     const current = this.getSettings();
     const updated = { ...current, ...settings };
+    if (updated.cards && updated.cards.length > 0) {
+      updated.cardNumber = updated.cards[0].cardNumber;
+      updated.cardHolder = updated.cards[0].cardHolder;
+    }
     fs.writeFileSync(this.settingsFile, JSON.stringify(updated, null, 2));
     return updated;
   }
+
+  /**
+   * Get the active card based on daily transaction limit (default 40).
+   * When Card #1 reaches 40 transfers today, auto-switches to Card #2, etc.
+   */
+  getActiveCard(): { card: AdminCard; todayCount: number; remainingToday: number } {
+    const settings = this.getSettings();
+    const invoices = this.getInvoices();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    // Count today's paid transfers per card
+    const cardUsage: Record<string, number> = {};
+    for (const inv of invoices) {
+      if (inv.status === 'paid' && inv.paidAt && inv.paidAt.slice(0, 10) === todayStr) {
+        const cleanCard = (inv.cardNumber || settings.cardNumber).replace(/\s/g, '');
+        cardUsage[cleanCard] = (cardUsage[cleanCard] || 0) + 1;
+      }
+    }
+
+    // Active cards sorted by priority
+    const activeCards = settings.cards
+      .filter((c) => c.isActive !== false)
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+
+    // Pick first card that has not exceeded its daily limit
+    for (const card of activeCards) {
+      const cleanNum = card.cardNumber.replace(/\s/g, '');
+      const count = cardUsage[cleanNum] || 0;
+      const limit = card.dailyLimit || settings.maxDailyTransfersPerCard || 40;
+      if (count < limit) {
+        return { card, todayCount: count, remainingToday: limit - count };
+      }
+    }
+
+    // Fallback if all cards reached their daily limits
+    const fallback = activeCards[0] || settings.cards[0];
+    const cleanNum = fallback.cardNumber.replace(/\s/g, '');
+    const count = cardUsage[cleanNum] || 0;
+    return { card: fallback, todayCount: count, remainingToday: 0 };
+  }
+
+  /**
+   * Get all cards with live today's transfer statistics
+   */
+  getCardsWithStats(): {
+    cards: (AdminCard & {
+      todayCount: number;
+      remainingToday: number;
+      isCurrentActive: boolean;
+    })[];
+    currentActiveCardId: string;
+    maxDailyLimit: number;
+  } {
+    const settings = this.getSettings();
+    const invoices = this.getInvoices();
+    const activeInfo = this.getActiveCard();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const cardUsage: Record<string, number> = {};
+    for (const inv of invoices) {
+      if (inv.status === 'paid' && inv.paidAt && inv.paidAt.slice(0, 10) === todayStr) {
+        const cleanCard = (inv.cardNumber || settings.cardNumber).replace(/\s/g, '');
+        cardUsage[cleanCard] = (cardUsage[cleanCard] || 0) + 1;
+      }
+    }
+
+    const cardsWithStats = settings.cards.map((card) => {
+      const clean = card.cardNumber.replace(/\s/g, '');
+      const count = cardUsage[clean] || 0;
+      const limit = card.dailyLimit || settings.maxDailyTransfersPerCard || 40;
+      return {
+        ...card,
+        todayCount: count,
+        remainingToday: Math.max(0, limit - count),
+        isCurrentActive: card.id === activeInfo.card.id,
+      };
+    });
+
+    return {
+      cards: cardsWithStats,
+      currentActiveCardId: activeInfo.card.id,
+      maxDailyLimit: settings.maxDailyTransfersPerCard || 40,
+    };
+  }
+
+  addCard(newCard: { cardNumber: string; cardHolder: string; dailyLimit?: number; bankName?: string }): AdminCard {
+    const settings = this.getSettings();
+    const cleanNum = newCard.cardNumber.trim();
+    const id = 'card_' + Date.now();
+    const card: AdminCard = {
+      id,
+      cardNumber: cleanNum,
+      cardHolder: newCard.cardHolder.trim() || 'ADMIN',
+      dailyLimit: newCard.dailyLimit && newCard.dailyLimit > 0 ? newCard.dailyLimit : (settings.maxDailyTransfersPerCard || 40),
+      bankName: newCard.bankName?.trim() || '',
+      isActive: true,
+      priority: settings.cards.length + 1,
+    };
+
+    settings.cards.push(card);
+    this.saveSettings(settings);
+    console.log(`💳 Yangi karta qo'shildi: ${card.cardNumber} (${card.cardHolder}), Kunlik limit: ${card.dailyLimit} ta`);
+    return card;
+  }
+
+  updateCard(id: string, updates: Partial<AdminCard>): AdminCard | null {
+    const settings = this.getSettings();
+    const card = settings.cards.find((c) => c.id === id);
+    if (!card) return null;
+
+    Object.assign(card, updates);
+    this.saveSettings(settings);
+    return card;
+  }
+
+  deleteCard(id: string): boolean {
+    const settings = this.getSettings();
+    if (settings.cards.length <= 1) {
+      throw new Error('Kamida bitta karta qolishi shart! Oxirgi kartani o\'chirib bo\'lmaydi.');
+    }
+    const idx = settings.cards.findIndex((c) => c.id === id);
+    if (idx === -1) return false;
+
+    settings.cards.splice(idx, 1);
+    if (settings.cards.length > 0) {
+      settings.cardNumber = settings.cards[0].cardNumber;
+      settings.cardHolder = settings.cards[0].cardHolder;
+    }
+    this.saveSettings(settings);
+    return true;
+  }
+
 
   private getInvoices(): PaymentInvoice[] {
     try {
@@ -204,6 +393,10 @@ export class PaymentService {
     const expiresAt = new Date(now.getTime() + 20 * 60 * 1000).toISOString();
     const totalAmount = settings.basePrice + chosenOffset;
 
+    // Kunlik 40 ta limit hisobga olingan faol kartani olish
+    const activeCardInfo = this.getActiveCard();
+    const activeCard = activeCardInfo.card;
+
     const newInvoice: PaymentInvoice = {
       id: 'inv_' + Math.random().toString(36).substring(2, 10),
       workspaceId,
@@ -214,13 +407,17 @@ export class PaymentService {
       createdAt: now.toISOString(),
       expiresAt,
       paidAt: null,
+      cardId: activeCard.id,
+      cardNumber: activeCard.cardNumber,
+      cardHolder: activeCard.cardHolder,
     };
 
     invoices.push(newInvoice);
     this.saveInvoices(invoices);
 
-    console.log(`💳 [${workspaceId}] Yangi invoys yaratildi: ${totalAmount} UZS (offset: +${chosenOffset})`);
+    console.log(`💳 [${workspaceId}] Yangi invoys: ${totalAmount} UZS (offset: +${chosenOffset}) -> Karta: ${activeCard.cardNumber} (${activeCard.cardHolder}, Bugun: ${activeCardInfo.todayCount}/${activeCard.dailyLimit} ta)`);
     return newInvoice;
+
   }
 
   /**

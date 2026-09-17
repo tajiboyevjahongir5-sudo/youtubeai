@@ -24,8 +24,13 @@ import {
   Radio,
   Power,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Trash2,
+  Layers
 } from 'lucide-react';
+
+
 import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -63,7 +68,14 @@ export const AdminPage = () => {
   const [tgLoading, setTgLoading] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [cards, setCards] = useState<any[]>([]);
+  const [currentActiveCardId, setCurrentActiveCardId] = useState('');
+  const [newCardNumber, setNewCardNumber] = useState('');
+  const [newCardHolder, setNewCardHolder] = useState('');
+  const [newCardLimit, setNewCardLimit] = useState(40);
+  const [isAddingCard, setIsAddingCard] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
+
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -154,11 +166,12 @@ export const AdminPage = () => {
     if (!sessionToken) return;
     setIsLoading(true);
     try {
-      const [usersRes, settingsRes, invoicesRes, tgRes] = await Promise.all([
+      const [usersRes, settingsRes, invoicesRes, tgRes, cardsRes] = await Promise.all([
         fetch('/api/admin/users', { headers: getAuthHeaders() }),
         fetch('/api/admin/settings', { headers: getAuthHeaders() }),
         fetch('/api/admin/invoices', { headers: getAuthHeaders() }),
         fetch('/api/admin/telegram-user/status', { headers: getAuthHeaders() }),
+        fetch('/api/admin/cards', { headers: getAuthHeaders() }),
       ]);
 
       if (usersRes.status === 401) {
@@ -176,6 +189,13 @@ export const AdminPage = () => {
       if (usersData.success) setUsers(usersData.users);
       if (settingsData.success) setSettings(settingsData.settings);
       if (invoicesData.success) setInvoices(invoicesData.invoices);
+      if (cardsRes.ok) {
+        const cardsData = await cardsRes.json();
+        if (cardsData.success) {
+          setCards(cardsData.cards || []);
+          setCurrentActiveCardId(cardsData.currentActiveCardId || '');
+        }
+      }
       if (tgData.success) {
         setTgUserStatus(tgData);
         if (tgData.connected) {
@@ -183,6 +203,7 @@ export const AdminPage = () => {
         }
       }
       setIsAuthenticated(true);
+
     } catch (e) {
       console.error('Failed to load admin data:', e);
     } finally {
@@ -362,7 +383,76 @@ export const AdminPage = () => {
     }
   };
 
+
+  // Multi-Card Handlers
+
+  const handleAddCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCardNumber || !newCardHolder) {
+      showNotification('Iltimos, karta raqami va egasining ismini kiriting');
+      return;
+    }
+    setIsAddingCard(true);
+    try {
+      const res = await fetch('/api/admin/cards', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          cardNumber: newCardNumber,
+          cardHolder: newCardHolder,
+          dailyLimit: Number(newCardLimit) || 40,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('✅ Yangi karta muvaffaqiyatli qo\'shildi!');
+        setNewCardNumber('');
+        setNewCardHolder('');
+        loadAdminData();
+      } else {
+        showNotification(`❌ Xatolik: ${data.error}`);
+      }
+    } catch (err) {
+      showNotification('Karta qo\'shishda xatolik');
+    } finally {
+      setIsAddingCard(false);
+    }
+  };
+
+  const handleToggleCardActive = async (card: any) => {
+    try {
+      const res = await fetch(`/api/admin/cards/${card.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ isActive: !card.isActive }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification(`Karta holati yangilandi: ${!card.isActive ? 'Faollashtirildi' : 'Vaqtincha to\'xtatildi'}`);
+        loadAdminData();
+      }
+    } catch (e) {}
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm('Ushbu kartani o\'chirishni xohlaysizmi?')) return;
+    try {
+      const res = await fetch(`/api/admin/cards/${cardId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('Karta o\'chirildi');
+        loadAdminData();
+      } else {
+        showNotification(`Xatolik: ${data.error}`);
+      }
+    } catch (e) {}
+  };
+
   // 1. If not authenticated, show Secure Login Screen
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -853,82 +943,249 @@ export const AdminPage = () => {
         </div>
       )}
 
-      {/* TAB 3: SETTINGS */}
+      {/* TAB 3: MULTI-CARD POOL & SETTINGS */}
       {activeTab === 'settings' && (
-        <div className="max-w-2xl">
-          <form onSubmit={handleSaveSettings} className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <CreditCard size={20} className="text-red-500" /> To'lov Qabul Qilish Karta Ma'lumotlari
-            </h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Karta Raqami (Uzcard / Humo):
-                </label>
-                <input
-                  type="text"
-                  value={settings.cardNumber}
-                  onChange={(e) => setSettings({ ...settings, cardNumber: e.target.value })}
-                  placeholder="8600 0000 0000 0000"
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-base focus:outline-none focus:border-red-500"
-                />
-                <span className="text-[11px] text-gray-400 mt-1 block">
-                  Foydalanuvchilarga to'lov oynasida aynan shu karta raqam ko'rsatiladi.
-                </span>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Karta Egasi (F.I.O):
-                </label>
-                <input
-                  type="text"
-                  value={settings.cardHolder}
-                  onChange={(e) => setSettings({ ...settings, cardHolder: e.target.value })}
-                  placeholder="JAHONGIR T."
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white focus:outline-none focus:border-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Oylik Obuna Asosiy Narxi (UZS):
-                </label>
-                <input
-                  type="number"
-                  value={settings.basePrice}
-                  onChange={(e) => setSettings({ ...settings, basePrice: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white font-mono focus:outline-none focus:border-red-500"
-                />
-                <span className="text-[11px] text-gray-400 mt-1 block">
-                  Standart: 60 000 so'm. Unga 1..99 so'm unikal qo'shimcha qo'shiladi.
-                </span>
-              </div>
-
-              <div className="pt-4 border-t border-white/10">
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Admin Panel Paroli:
-                </label>
-                <input
-                  type="text"
-                  value={settings.adminPin}
-                  onChange={(e) => setSettings({ ...settings, adminPin: e.target.value })}
-                  placeholder="KuchliParol#2026!"
-                  className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono focus:outline-none focus:border-red-500"
-                />
-                <span className="text-[11px] text-gray-400 mt-1 block">
-                  Standart: <code className="text-emerald-400">7777</code>. Xohlagan yangi parol qo'yishingiz mumkin.
-                </span>
-              </div>
-
-              <Button type="submit" variant="primary" className="flex items-center gap-2 shadow-lg">
-                <Save size={16} /> Sozlamalarni saqlash
-              </Button>
+        <div className="space-y-6 max-w-4xl">
+          {/* Smart Limit Notice Banner */}
+          <div className="liquid-glass rounded-3xl p-6 border border-amber-500/30 bg-amber-500/10 flex items-start gap-4">
+            <Zap size={24} className="text-amber-400 mt-1 flex-shrink-0 animate-pulse" />
+            <div className="space-y-1 text-xs text-gray-200">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                Kartalar Limitini Avtomatik Boshqarish (40 ta limitli aqlli tizim)
+              </h4>
+              <p className="text-gray-300 leading-relaxed">
+                Banklarda 1 ta kartaga kunlik kirim o'tkazmalari chegarasi mavjud (50 ta). 
+                Tizim har bir kartaga bugun tushgan to'lovlar sonini mustaqil sanab boradi. 
+                Birinchi kartada <b>40 ta to'lov</b> bo'lishi bilan, yangi to'lovlar <b>avtomatik tarzda 2-kartaga</b> yo'naltiriladi!
+                Har kuni soat 00:00 da barcha kartalarning kunlik hisoblagichi avtomatik nolga yangilanadi.
+              </p>
             </div>
-          </form>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Left 2 Cols: Cards Pool */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <CreditCard size={18} className="text-red-500" />
+                  Ulangan Kartalar ({cards.length} ta)
+                </h3>
+                <span className="text-xs text-gray-400">
+                  Navbat bo'yicha to'lov qabul qilinadi
+                </span>
+              </div>
+
+              {cards.map((card, idx) => {
+                const percent = Math.min(100, Math.round(((card.todayCount || 0) / (card.dailyLimit || 40)) * 100));
+                const isLimitReached = (card.todayCount || 0) >= (card.dailyLimit || 40);
+
+                return (
+                  <div 
+                    key={card.id} 
+                    className={`liquid-glass rounded-2xl p-5 border transition-all ${
+                      card.isCurrentActive 
+                        ? 'border-emerald-500/50 bg-emerald-500/[0.05] shadow-[0_0_25px_rgba(16,185,129,0.15)]' 
+                        : isLimitReached
+                          ? 'border-amber-500/30 bg-amber-500/[0.03]'
+                          : 'border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/10 text-gray-300">
+                            #{idx + 1} - Karta
+                          </span>
+                          <span className="font-mono font-bold text-white text-lg tracking-wider">
+                            {card.cardNumber}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-300 font-semibold flex items-center gap-2">
+                          <span>{card.cardHolder}</span>
+                          {card.bankName && <span className="text-gray-400">({card.bankName})</span>}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCardActive(card)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                            card.isActive !== false
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
+                          }`}
+                        >
+                          {card.isActive !== false ? 'Faol' : 'Nofaol'}
+                        </button>
+                        {cards.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCard(card.id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 transition-all"
+                            title="Kartani o'chirish"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Bar & Status */}
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-400">
+                          Bugungi to'lovlar: <b className="text-white">{card.todayCount || 0}</b> / {card.dailyLimit || 40} ta
+                        </span>
+                        <span className={`font-semibold ${isLimitReached ? 'text-amber-400' : card.isCurrentActive ? 'text-emerald-400' : 'text-gray-400'}`}>
+                          {card.isCurrentActive 
+                            ? '🟢 Hozir to\'lovlar shu kartaga yo\'naltirilmoqda' 
+                            : isLimitReached 
+                              ? '🟡 Limit to\'lgan (Keyingi kartaga o\'tkazildi)' 
+                              : '⚪ Zaxirada (Navbatda)'}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            isLimitReached 
+                              ? 'bg-amber-500' 
+                              : card.isCurrentActive 
+                                ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]' 
+                                : 'bg-blue-500'
+                          }`} 
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Add New Card Form */}
+              <form onSubmit={handleAddCard} className="liquid-glass rounded-2xl p-5 border border-white/15 space-y-4">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Plus size={16} className="text-red-500" /> Yangi Karta Qo'shish (2-chi, 3-chi zaxira karta)
+                </h4>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Karta Raqami:
+                    </label>
+                    <input
+                      type="text"
+                      value={newCardNumber}
+                      onChange={(e) => setNewCardNumber(e.target.value)}
+                      placeholder="8600 0000 0000 0000"
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Karta Egasi (F.I.O):
+                    </label>
+                    <input
+                      type="text"
+                      value={newCardHolder}
+                      onChange={(e) => setNewCardHolder(e.target.value)}
+                      placeholder="Tojiboyev Jahongir"
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Kunlik To'lovlar Chegarasi:
+                    </label>
+                    <input
+                      type="number"
+                      value={newCardLimit}
+                      onChange={(e) => setNewCardLimit(Number(e.target.value))}
+                      placeholder="40"
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                    />
+                    <span className="text-[10px] text-gray-400">40 taga yetganda keyingi kartaga o'tadi</span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button 
+                      type="submit" 
+                      variant="primary" 
+                      className="w-full flex items-center justify-center gap-2 h-[42px]"
+                      disabled={isAddingCard}
+                    >
+                      <Plus size={16} /> {isAddingCard ? 'Qo\'shilmoqda...' : 'Kartani Qo\'shish'}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Right 1 Col: General Price & Password Settings */}
+            <div className="space-y-4">
+              <form onSubmit={handleSaveSettings} className="liquid-glass rounded-3xl p-6 border border-white/10 space-y-5 shadow-xl">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-red-500" /> Tarif va Xavfsizlik
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Oylik Obuna Narxi (UZS):
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.basePrice}
+                      onChange={(e) => setSettings({ ...settings, basePrice: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">
+                      Standart: 60 000 so'm (+ 1..99 unikal tiyin).
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Standart Kunlik Chegara:
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.maxDailyTransfersPerCard || 40}
+                      onChange={(e) => setSettings({ ...settings, maxDailyTransfersPerCard: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">
+                      Kartalarni almashtirish chegarasi (standart: 40 ta).
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/10">
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Admin Panel Paroli:
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.adminPin}
+                      onChange={(e) => setSettings({ ...settings, adminPin: e.target.value })}
+                      placeholder="Lizard_2006"
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <Button type="submit" variant="primary" className="w-full flex items-center justify-center gap-2">
+                    <Save size={16} /> Sozlamalarni Saqlash
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
+
 
       {/* TAB 4: INVOICES & SMS PARSER TEST */}
       {activeTab === 'invoices' && (

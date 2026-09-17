@@ -16,8 +16,8 @@ router.get('/status', (req: Request, res: Response) => {
     workspaceId,
     subscription: status,
     cardInfo: {
-      cardNumber: settings.cardNumber,
-      cardHolder: settings.cardHolder,
+      cardNumber: paymentService.getActiveCard().card.cardNumber,
+      cardHolder: paymentService.getActiveCard().card.cardHolder,
       basePrice: settings.basePrice,
     },
   });
@@ -35,8 +35,8 @@ router.post('/create-invoice', (req: Request, res: Response) => {
     success: true,
     invoice,
     paymentDetails: {
-      cardNumber: settings.cardNumber,
-      cardHolder: settings.cardHolder,
+      cardNumber: invoice.cardNumber || settings.cardNumber,
+      cardHolder: invoice.cardHolder || settings.cardHolder,
       exactAmount: invoice.totalAmount,
       currency: 'UZS',
       expiresAt: invoice.expiresAt,
@@ -44,6 +44,7 @@ router.post('/create-invoice', (req: Request, res: Response) => {
     },
   });
 });
+
 
 /**
  * Check if a specific invoice has been paid
