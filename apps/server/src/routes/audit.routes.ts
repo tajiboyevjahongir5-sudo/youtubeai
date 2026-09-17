@@ -28,7 +28,7 @@ router.get('/audit-logs', async (req: Request, res: Response, next: NextFunction
     {
       id: 'log_2',
       action: 'generate',
-      details: { model: 'Gemini 1.5 Flash', type: 'script' },
+      details: { model: 'Gemini 2.0 Flash', type: 'script' },
       performedBy: 'AI Autopilot Engine',
       createdAt: new Date().toISOString(),
     }

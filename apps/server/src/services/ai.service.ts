@@ -11,13 +11,27 @@ export interface IAiService {
 
 export class GeminiAiService implements IAiService {
   private genAI: GoogleGenerativeAI;
+  private primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  private fallbackModel = 'gemini-1.5-flash';
 
   constructor(apiKey: string) {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
+  private async generateWithFallback(prompt: string): Promise<string> {
+    try {
+      const model = this.genAI.getGenerativeModel({ model: this.primaryModel });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (err: any) {
+      console.warn(`⚠️ [${this.primaryModel}] so'rovida xatolik, zaxira modelga [${this.fallbackModel}] o'tilmoqda...`, err?.message || err);
+      const fallback = this.genAI.getGenerativeModel({ model: this.fallbackModel });
+      const result = await fallback.generateContent(prompt);
+      return result.response.text();
+    }
+  }
+
   async generateIdea(context: any) {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are a YouTube content strategist. Generate a video idea based on:
 Niche: ${context.niche}
 Audience: ${context.audience}
@@ -25,15 +39,13 @@ Strategy Memory: ${context.strategyMemory}
 
 Disclaimer: We do not guarantee recommendations.
 Generate content in ENGLISH. Return JSON format with fields: title, contentPillar, viewerProblem, targetAudience, hook, suggestedStructure, expectedLengthMinutes, videoFormat, riskFlags (array), originalityNote, relevanceReason, confidenceLevel, evidence, status.`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await this.generateWithFallback(prompt);
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     return JSON.parse(text.slice(jsonStart, jsonEnd));
   }
 
   async generateScript(context: any) {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `Write a high-retention, viral YouTube Shorts script for topic: ${context.title}. Generate content strictly in ENGLISH for high-CPM US/UK audience.
 Follow the 2026 Viral Shorts Retention Blueprint:
 1. 0-3s Explosive Hook: Urgent pattern interrupt with bold curiosity gap or pain point (e.g. "Stop scrolling! You are wasting hours...").
@@ -48,19 +60,16 @@ Return JSON with fields:
 - closingCta: string (comment question + channel subscription CTA)
 - factCheckNotes: array of strings
 - copyrightRiskNotes: array of strings`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await this.generateWithFallback(prompt);
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     return JSON.parse(text.slice(jsonStart, jsonEnd));
   }
 
   async generateMetadata(context: any) {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `Generate metadata for video: ${context.title}. Generate content in ENGLISH.
 Include: titleVariations (array of 3), selectedTitle, description, tags (array of 15+), hashtags (array), chapters (array), pinnedComment, metadataQualityScore (0-100). Return JSON.`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await this.generateWithFallback(prompt);
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     return JSON.parse(text.slice(jsonStart, jsonEnd));

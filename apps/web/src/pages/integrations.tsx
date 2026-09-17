@@ -223,21 +223,31 @@ export const IntegrationsPage = () => {
       </div>
 
       {/* AI Provider Section */}
-      <div className="liquid-glass rounded-3xl p-6 sm:p-7 border border-white/10 space-y-4 animate-fade-in-up stagger-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <h3 className="font-bold text-white text-base">AI Skript va SEO Provayderi</h3>
-            <p className="text-xs text-gray-400">Google Gemini 1.5 Flash API modeli orqali ishlamoqda</p>
+      <div className="liquid-glass rounded-3xl p-6 sm:p-7 border border-purple-500/20 bg-purple-500/[0.02] space-y-4 animate-fade-in-up stagger-3 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-base">AI Skript va SEO Provayderi</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]">
+                  FLAGSHIP 2026
+                </span>
+              </div>
+              <p className="text-xs text-gray-400">Google Gemini 2.0 Flash eng so'nggi flagman modeli orqali ishlamoqda</p>
+            </div>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4 pt-2">
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-purple-500/20">
             <span className="text-xs text-gray-400 block mb-1">Model</span>
-            <span className="text-sm font-bold text-white">Gemini 1.5 Flash</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white">Gemini 2.0 Flash</span>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ENG YAXSHISI</span>
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
             <span className="text-xs text-gray-400 block mb-1">Kontent Tili</span>
@@ -245,7 +255,10 @@ export const IntegrationsPage = () => {
           </div>
           <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
             <span className="text-xs text-gray-400 block mb-1">Sifat Nazorati</span>
-            <span className="text-sm font-bold text-emerald-400">Avtomatik faol</span>
+            <span className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Ultra-Yuqori Sifat
+            </span>
           </div>
         </div>
       </div>
