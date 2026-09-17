@@ -28,7 +28,9 @@ import {
   ArrowUpRight,
   Info,
   Sparkles,
-  Layers
+  Layers,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -90,16 +92,36 @@ const AnalyticsPage = () => {
   const [period, setPeriod] = useState('7');
   const [mode, setMode] = useState<'real' | 'benchmark'>('real');
   const [channelInfo, setChannelInfo] = useState<any>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const wsId = getWorkspaceId();
 
-  useEffect(() => {
+  const fetchSummary = () => {
     fetch(`/api/workspaces/${wsId}/analytics/summary`, {
       headers: { 'x-workspace-id': wsId }
     })
       .then(res => res.json())
       .then(data => setChannelInfo(data))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchSummary();
   }, [wsId]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await fetch(`/api/workspaces/${wsId}/youtube/sync`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': wsId }
+      });
+      fetchSummary();
+    } catch (e) {
+      console.error('Sync error:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const isReal = mode === 'real';
   const isConnected = channelInfo?.channelConnected !== false && channelInfo?.channelTitle !== 'YouTube Kanal Ulanmagan';
@@ -117,12 +139,22 @@ const AnalyticsPage = () => {
         description="YouTube Analytics API orqali sinxronlashtirilgan ko'rsatkichlar." 
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSync}
+              disabled={isSyncing}
+              variant="outline"
+              size="sm"
+              className="gap-2 border-white/10 hover:border-red-500/40 text-xs font-semibold bg-white/[0.04]"
+            >
+              <RefreshCw size={13} className={isSyncing ? "animate-spin text-red-500" : "text-gray-400"} />
+              {isSyncing ? "Sinxronlanmoqda..." : "Sinxronlash"}
+            </Button>
             <div className="flex p-1 rounded-xl bg-white/[0.05] border border-white/10">
               <button 
                 onClick={() => setMode('real')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isReal ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
               >
-                Jonli Kanal (0)
+                Jonli Kanal ({channelInfo?.views ?? 0})
               </button>
               <button 
                 onClick={() => setMode('benchmark')}
@@ -141,6 +173,7 @@ const AnalyticsPage = () => {
           </div>
         }
       />
+
 
       {/* Info notification about real channel state */}
       <div className="liquid-glass rounded-2xl p-4 border border-blue-500/30 bg-blue-500/10 flex items-start gap-3.5">
@@ -162,9 +195,9 @@ const AnalyticsPage = () => {
         <StatCard 
           title="Ko'rishlar (Views)" 
           value={views} 
-          description={isReal ? "Hozircha videolar yuklanmagan" : "Oxirgi 7 kunda"}
+          description={isReal ? (channelInfo?.views > 0 ? "YouTube API orqali tasdiqlangan" : "Hozircha videolar yuklanmagan") : "Oxirgi 7 kunda"}
           icon={<Eye size={20} className="text-red-500" />} 
-          trend={isReal ? undefined : "+24.8% o'tgan haftaga nisbatan"}
+          trend={isReal && channelInfo?.views > 0 ? `+${channelInfo.views} jonli ko'rish` : (isReal ? undefined : "+24.8% o'tgan haftaga nisbatan")}
           delay={50}
         />
         <StatCard 
@@ -172,7 +205,7 @@ const AnalyticsPage = () => {
           value={impressions} 
           description={isReal ? "Tavsiyalar va qidiruvda" : "Tavsiyalar va qidiruvda"}
           icon={<Play size={20} className="text-rose-500" />} 
-          trend={isReal ? undefined : "+18.2% o'sish"}
+          trend={isReal && channelInfo?.impressions > 0 ? "+100% yangi video" : (isReal ? undefined : "+18.2% o'sish")}
           delay={100}
         />
         <StatCard 
@@ -180,7 +213,7 @@ const AnalyticsPage = () => {
           value={ctr} 
           description="O'rtacha me'yor: 4-8%"
           icon={<MousePointerClick size={20} className="text-amber-400" />} 
-          trend={isReal ? undefined : "+0.6% yuqori"}
+          trend={isReal && channelInfo?.ctr > 0 ? "Barqaror CTR" : (isReal ? undefined : "+0.6% yuqori")}
           delay={150}
         />
         <StatCard 
@@ -267,9 +300,95 @@ const AnalyticsPage = () => {
         </CardContent>
       </Card>
 
+      {/* Live Uploaded Videos Table (from YouTube API) */}
+      {channelInfo?.recentVideos && channelInfo.recentVideos.length > 0 && (
+        <Card className="liquid-glass border border-red-500/20 bg-red-500/[0.02] overflow-hidden">
+          <div className="p-5 border-b border-white/10 flex items-center justify-between">
+            <h3 className="font-bold text-white text-base flex items-center gap-2">
+              <Youtube size={18} className="text-red-500 fill-red-500" /> 
+              YouTube'dagi Videolar (Jonli Ko'rsatkichlar)
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                {channelInfo.recentVideos.length} ta video
+              </span>
+            </h3>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              Real-time sinxronizatsiya
+            </span>
+          </div>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.03] text-gray-400 text-xs uppercase tracking-wider border-b border-white/10">
+                  <tr>
+                    <th className="px-6 py-3.5 font-semibold">Video</th>
+                    <th className="px-6 py-3.5 font-semibold">Ko'rishlar (Views)</th>
+                    <th className="px-6 py-3.5 font-semibold">Layklar (Likes)</th>
+                    <th className="px-6 py-3.5 font-semibold">Izohlar</th>
+                    <th className="px-6 py-3.5 font-semibold">Yuklangan sana</th>
+                    <th className="px-6 py-3.5 font-semibold text-right">Harakat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {channelInfo.recentVideos.map((v: any) => (
+                    <tr key={v.id} className="hover:bg-white/[0.03] transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {v.thumbnail && (
+                            <img 
+                              src={v.thumbnail} 
+                              alt={v.title} 
+                              className="w-16 h-10 object-cover rounded-lg border border-white/10 shadow"
+                            />
+                          )}
+                          <div>
+                            <p className="font-semibold text-white group-hover:text-red-400 transition-colors line-clamp-1">
+                              {v.title}
+                            </p>
+                            <span className="text-[10px] text-gray-400">ID: {v.id}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-white font-bold text-base flex items-center gap-1.5">
+                          <Eye size={16} className="text-red-500" />
+                          {v.views.toLocaleString()} marta
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-300 font-semibold flex items-center gap-1">
+                          <ThumbsUp size={14} className="text-amber-400" />
+                          {v.likes}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-400">{v.comments || 0}</td>
+                      <td className="px-6 py-4 text-gray-400 text-xs">
+                        {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <a
+                          href={`https://youtube.com/watch?v=${v.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 text-xs font-semibold transition-all"
+                        >
+                          YouTube'da ko'rish
+                          <ExternalLink size={12} />
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Video Performance / Pipeline Table */}
       <Card className="liquid-glass border border-white/10 overflow-hidden">
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
+
           <h3 className="font-bold text-white text-base flex items-center gap-2">
             <Youtube size={18} className="text-red-500 fill-red-500" /> 
             Rejalashtirilgan Viral AI Videolar Pipeline'i

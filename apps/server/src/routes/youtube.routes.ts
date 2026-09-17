@@ -81,21 +81,29 @@ router.post('/disconnect', async (req: Request, res: Response, next: NextFunctio
 router.get('/channel', async (req: Request, res: Response, next: NextFunction) => {
   const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
   const isAuth = youtubeService.isAuthenticated(workspaceId);
-  const savedChannel = youtubeService.loadChannelInfo(workspaceId);
 
-  if (isAuth && savedChannel) {
-    return res.json({
-      id: savedChannel.id || `yt_${workspaceId}`,
-      workspaceId,
-      channelId: savedChannel.id,
-      channelTitle: savedChannel.snippet?.title || 'YouTube Kanal',
-      thumbnailUrl: savedChannel.snippet?.thumbnails?.default?.url,
-      subscriberCount: parseInt(savedChannel.statistics?.subscriberCount || '0', 10),
-      videoCount: parseInt(savedChannel.statistics?.videoCount || '0', 10),
-      viewCount: parseInt(savedChannel.statistics?.viewCount || '0', 10),
-      connectionStatus: 'connected',
-      lastSyncAt: new Date().toISOString()
-    });
+  if (isAuth) {
+    let savedChannel = await youtubeService.getLiveStats(workspaceId);
+    if (!savedChannel) {
+      savedChannel = youtubeService.loadChannelInfo(workspaceId);
+    }
+
+    if (savedChannel) {
+      return res.json({
+        id: savedChannel.id || `yt_${workspaceId}`,
+        workspaceId,
+        channelId: savedChannel.id,
+        channelTitle: savedChannel.snippet?.title || 'YouTube Kanal',
+        thumbnailUrl: savedChannel.snippet?.thumbnails?.default?.url,
+        subscriberCount: parseInt(savedChannel.statistics?.subscriberCount || '0', 10),
+        videoCount: parseInt(savedChannel.statistics?.videoCount || '0', 10),
+        viewCount: parseInt(savedChannel.statistics?.viewCount || '0', 10),
+        totalLikes: parseInt(savedChannel.statistics?.totalLikes || '0', 10),
+        recentVideos: savedChannel.recentVideos || [],
+        connectionStatus: 'connected',
+        lastSyncAt: savedChannel.lastLiveSyncAt || new Date().toISOString()
+      });
+    }
   }
 
   res.json({
@@ -106,9 +114,30 @@ router.get('/channel', async (req: Request, res: Response, next: NextFunction) =
     subscriberCount: 0,
     videoCount: 0,
     viewCount: 0,
+    totalLikes: 0,
+    recentVideos: [],
     connectionStatus: 'disconnected',
     lastSyncAt: null
   });
 });
 
+router.post('/sync', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.workspaceId || req.params.id || (req.body?.workspaceId as string) || 'default';
+    if (!youtubeService.isAuthenticated(workspaceId)) {
+      return res.status(400).json({ success: false, error: 'YouTube kanal ulanmagan' });
+    }
+
+    const liveChannel = await youtubeService.getLiveStats(workspaceId);
+    res.json({
+      success: true,
+      channel: liveChannel,
+      message: 'YouTube ma\'lumotlari jonli sinxronlashtirildi!'
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
 export default router;
+

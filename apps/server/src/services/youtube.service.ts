@@ -7,6 +7,7 @@ export interface IYouTubeService {
   getAuthUrl(state?: string): string;
   getToken(code: string): Promise<any>;
   getChannelInfo(workspaceId: string, accessToken?: string, refreshToken?: string): Promise<any>;
+  getLiveStats(workspaceId: string): Promise<any>;
   uploadVideo(workspaceId: string, videoPath: string, metadata: any, accessToken?: string, refreshToken?: string): Promise<any>;
   getAnalytics(workspaceId: string, accessToken?: string, refreshToken?: string, channelId?: string): Promise<any>;
   saveTokens(workspaceId: string, tokens: any): void;
@@ -194,6 +195,107 @@ export class YouTubeService implements IYouTubeService {
     return response.data.items?.[0];
   }
 
+  async getLiveStats(workspaceId: string): Promise<any> {
+    if (!this.isAuthenticated(workspaceId)) {
+      return null;
+    }
+
+    try {
+      const auth = this.getClient(workspaceId);
+      const youtube = google.youtube({ version: 'v3', auth });
+
+      // 1. Fetch channel base info
+      const chRes = await youtube.channels.list({
+        part: ['snippet', 'statistics', 'contentDetails'],
+        mine: true,
+      });
+
+      const channel = chRes.data.items?.[0];
+      if (!channel) {
+        return this.loadChannelInfo(workspaceId);
+      }
+
+      let realViews = parseInt(channel.statistics?.viewCount || '0', 10);
+      let subscriberCount = parseInt(channel.statistics?.subscriberCount || '0', 10);
+      let videoCount = parseInt(channel.statistics?.videoCount || '0', 10);
+      let totalLikes = 0;
+      let totalComments = 0;
+      const recentVideos: any[] = [];
+
+      // 2. Fetch uploads playlist to get real-time video view counts
+      const uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
+      if (uploadsPlaylistId) {
+        const playlistRes = await youtube.playlistItems.list({
+          part: ['contentDetails', 'snippet'],
+          playlistId: uploadsPlaylistId,
+          maxResults: 25,
+        });
+
+        const items = playlistRes.data.items || [];
+        const videoIds = items
+          .map((i) => i.contentDetails?.videoId)
+          .filter(Boolean) as string[];
+
+        if (videoIds.length > 0) {
+          const vRes = await youtube.videos.list({
+            part: ['statistics', 'snippet'],
+            id: videoIds,
+          });
+
+          let sumVideoViews = 0;
+          for (const v of vRes.data.items || []) {
+            const vViews = parseInt(v.statistics?.viewCount || '0', 10);
+            const vLikes = parseInt(v.statistics?.likeCount || '0', 10);
+            const vComments = parseInt(v.statistics?.commentCount || '0', 10);
+            sumVideoViews += vViews;
+            totalLikes += vLikes;
+            totalComments += vComments;
+
+            recentVideos.push({
+              id: v.id,
+              title: v.snippet?.title,
+              views: vViews,
+              likes: vLikes,
+              comments: vComments,
+              publishedAt: v.snippet?.publishedAt,
+              thumbnail: v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url,
+            });
+          }
+
+          // YouTube channel-level viewCount often lags 24-48h.
+          // If the sum of individual video views is higher, use it!
+          if (sumVideoViews > realViews || realViews === 0) {
+            realViews = sumVideoViews;
+          }
+          if (videoIds.length > videoCount) {
+            videoCount = videoIds.length;
+          }
+        }
+      }
+
+      const liveData = {
+        ...channel,
+        statistics: {
+          ...channel.statistics,
+          viewCount: realViews.toString(),
+          subscriberCount: subscriberCount.toString(),
+          videoCount: videoCount.toString(),
+          totalLikes: totalLikes.toString(),
+          totalComments: totalComments.toString(),
+        },
+        recentVideos,
+        lastLiveSyncAt: new Date().toISOString(),
+      };
+
+      this.saveChannelInfo(workspaceId, liveData);
+      console.log(`📊 [${workspaceId}] Live YouTube statistika yangilandi: ${realViews} ko'rish, ${videoCount} video, ${subscriberCount} obunachi`);
+      return liveData;
+    } catch (error: any) {
+      console.error(`⚠️ [${workspaceId}] Live YouTube statistika olishda xatolik:`, error?.message || error);
+      return this.loadChannelInfo(workspaceId);
+    }
+  }
+
   async uploadVideo(workspaceId: string, videoPath: string, metadata: any, accessToken?: string, refreshToken?: string) {
     if (!this.isAuthenticated(workspaceId)) {
       throw new Error(`Ushbu foydalanuvchi (${workspaceId}) YouTube hisobiga ulanmagan!`);
@@ -258,6 +360,14 @@ export class MockYouTubeService implements IYouTubeService {
   getAuthUrl(state?: string) { return 'https://mock.auth.url?state=' + (state || ''); }
   async getToken(code: string) { return { access_token: 'mock_access', refresh_token: 'mock_refresh', expiry_date: 1234567890 }; }
   async getChannelInfo(workspaceId: string) { return { id: 'mock_channel_' + workspaceId, snippet: { title: 'Mock Channel ' + workspaceId }, statistics: { subscriberCount: 100 } }; }
+  async getLiveStats(workspaceId: string) {
+    return {
+      id: 'mock_channel_' + workspaceId,
+      snippet: { title: 'Mock Channel ' + workspaceId },
+      statistics: { subscriberCount: '100', viewCount: '150', videoCount: '3', totalLikes: '12', totalComments: '4' },
+      recentVideos: []
+    };
+  }
   async uploadVideo(workspaceId: string, videoPath: string, metadata: any) { return { id: 'mock_video_id', snippet: { title: metadata?.title } }; }
   async getAnalytics(workspaceId: string) { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
   saveTokens(workspaceId: string, tokens: any) {}
