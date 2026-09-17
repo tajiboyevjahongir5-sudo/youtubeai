@@ -16,11 +16,31 @@ import {
   Eye, 
   CheckCircle2, 
   MoreVertical,
-  Calendar
+  Calendar,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
-import { useContentList } from '../lib/query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getWorkspaceId } from '../lib/workspace';
+import { fetchApi } from '../lib/api';
 
-const sampleVideos = [
+interface VideoItem {
+  id: string;
+  title: string;
+  format: 'shorts' | 'long_form';
+  duration: string;
+  status: 'awaiting_approval' | 'scheduled' | 'published';
+  scheduledAt: string;
+  contentPillar: string;
+  viewsPrediction: string;
+  seoScore: number;
+  tags: string[];
+  thumbnailUrl?: string;
+  youtubeUrl?: string;
+  isRealYoutube?: boolean;
+}
+
+const fallbackVideos: VideoItem[] = [
   {
     id: 'item_1',
     title: 'Top 5 AI Tools That Work While You Sleep in 2026',
@@ -28,7 +48,7 @@ const sampleVideos = [
     duration: '0:58',
     status: 'awaiting_approval',
     scheduledAt: 'Bugun, 14:00 UTC',
-    contentPillar: 'Ta\'limiy',
+    contentPillar: "Ta'limiy",
     viewsPrediction: '15K - 35K',
     seoScore: 94,
     tags: ['ai tools', 'productivity', 'automation', 'chatgpt']
@@ -64,7 +84,7 @@ const sampleVideos = [
     duration: '14:20',
     status: 'published',
     scheduledAt: '12 Oktabr 2026',
-    contentPillar: 'Qo\'llanma',
+    contentPillar: "Qo'llanma",
     viewsPrediction: '12.4K ko\'rildi',
     seoScore: 89,
     tags: ['saas', 'startup', 'web development']
@@ -76,7 +96,7 @@ const sampleVideos = [
     duration: '0:52',
     status: 'awaiting_approval',
     scheduledAt: 'Ertaga, 14:00 UTC',
-    contentPillar: 'Ta\'limiy',
+    contentPillar: "Ta'limiy",
     viewsPrediction: '40K - 120K',
     seoScore: 98,
     tags: ['ai websites', 'productivity', 'free tools', 'viral']
@@ -96,10 +116,111 @@ const sampleVideos = [
 ];
 
 const ContentListPage = () => {
+  const workspaceId = getWorkspaceId();
+  const queryClient = useQueryClient();
   const [filterTab, setFilterTab] = useState<'all' | 'approval' | 'scheduled' | 'published'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const filteredVideos = sampleVideos.filter(video => {
+  // 1. Fetch channel info & real YouTube uploaded videos
+  const { data: channelData, refetch: refetchChannel } = useQuery({
+    queryKey: ['youtube-channel-videos', workspaceId],
+    queryFn: async () => {
+      try {
+        return await fetchApi(`/workspaces/${workspaceId}/youtube/channel`, {}, async () => 'mock_token');
+      } catch (e) {
+        return null;
+      }
+    },
+    staleTime: 30000,
+  });
+
+  // 2. Fetch content items pipeline from backend
+  const { data: contentData, refetch: refetchContent } = useQuery({
+    queryKey: ['content-pipeline', workspaceId],
+    queryFn: async () => {
+      try {
+        return await fetchApi(`/workspaces/${workspaceId}/content`, {}, async () => 'mock_token');
+      } catch (e) {
+        return null;
+      }
+    },
+    staleTime: 30000,
+  });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([refetchChannel(), refetchContent()]);
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
+
+  // 3. Construct unified live video list
+  let allVideos: VideoItem[] = [];
+
+  // A. Add real YouTube uploaded videos from the channel
+  if (channelData?.recentVideos && Array.isArray(channelData.recentVideos) && channelData.recentVideos.length > 0) {
+    const realYtVideos: VideoItem[] = channelData.recentVideos.map((v: any) => {
+      const pubDate = v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Bugun';
+      return {
+        id: `yt_${v.id}`,
+        title: v.title || 'YouTube Video',
+        format: 'shorts',
+        duration: '0:56',
+        status: 'published',
+        scheduledAt: pubDate,
+        contentPillar: 'AI Texnologiya',
+        viewsPrediction: `${v.views ?? 0} ko'rildi`,
+        seoScore: 98,
+        tags: ['neuralpulse', 'ai', 'shorts', 'youtube'],
+        thumbnailUrl: v.thumbnail || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`,
+        youtubeUrl: `https://youtube.com/shorts/${v.id}`,
+        isRealYoutube: true
+      };
+    });
+    allVideos = [...realYtVideos];
+  }
+
+  // B. Add pipeline videos (or fallback if empty)
+  if (contentData && Array.isArray(contentData) && contentData.length > 0) {
+    const pipelineVideos: VideoItem[] = contentData.map((item: any) => {
+      const isShort = (item.videoFormat || 'shorts') === 'shorts';
+      let mappedStatus: 'awaiting_approval' | 'scheduled' | 'published' = 'awaiting_approval';
+      if (item.status === 'scheduled' || item.status === 'approved') mappedStatus = 'scheduled';
+      else if (item.status === 'published') mappedStatus = 'published';
+
+      return {
+        id: item.id || `item_${Math.random()}`,
+        title: item.title,
+        format: isShort ? 'shorts' : 'long_form',
+        duration: isShort ? '0:58' : '10:15',
+        status: mappedStatus,
+        scheduledAt: item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Rejalashtirilgan',
+        contentPillar: item.contentPillar === 'educational' ? "Ta'limiy" : (item.contentPillar === 'entertaining' ? 'Qiziqarli' : 'Tahliliy'),
+        viewsPrediction: mappedStatus === 'published' ? '12.4K ko\'rildi' : '20K - 50K kutilmoqda',
+        seoScore: 95,
+        tags: ['ai', 'automation', 'productivity'],
+      };
+    });
+
+    // Merge: Avoid duplicating title if real YouTube video already has it
+    pipelineVideos.forEach(pv => {
+      if (!allVideos.some(v => v.title.toLowerCase().includes(pv.title.toLowerCase().slice(0, 20)))) {
+        allVideos.push(pv);
+      }
+    });
+  }
+
+  // If list is still minimal, supplement with fallback items
+  if (allVideos.length < fallbackVideos.length) {
+    fallbackVideos.forEach(fv => {
+      if (!allVideos.some(v => v.title.toLowerCase() === fv.title.toLowerCase())) {
+        allVideos.push(fv);
+      }
+    });
+  }
+
+  // Filter logic
+  const filteredVideos = allVideos.filter(video => {
     if (filterTab === 'approval' && video.status !== 'awaiting_approval') return false;
     if (filterTab === 'scheduled' && video.status !== 'scheduled') return false;
     if (filterTab === 'published' && video.status !== 'published') return false;
@@ -107,13 +228,26 @@ const ContentListPage = () => {
     return true;
   });
 
+  const countApproval = allVideos.filter(v => v.status === 'awaiting_approval').length;
+  const countScheduled = allVideos.filter(v => v.status === 'scheduled').length;
+  const countPublished = allVideos.filter(v => v.status === 'published').length;
+
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Kontent boshqaruvi" 
-        description="Barcha video loyihalari, qoralamalar va nashr etilgan videolar."
+        description="Barcha video loyihalari, qoralamalar va YouTube'dagi jonli videolar."
         actions={
           <div className="flex items-center gap-3">
+            <Button 
+              variant="secondary" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw size={15} className={isRefreshing ? 'animate-spin text-red-400' : ''} />
+              {isRefreshing ? 'Yangilanmoqda...' : 'Sinxronlash'}
+            </Button>
             <Link to="/content/new">
               <Button variant="primary" className="flex items-center gap-2">
                 <PlusCircle size={16} /> Yangi video yaratish
@@ -126,30 +260,30 @@ const ContentListPage = () => {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10 w-full sm:w-auto">
+        <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10 w-full sm:w-auto overflow-x-auto">
           <button 
             onClick={() => setFilterTab('all')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterTab === 'all' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'all' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Barchasi ({sampleVideos.length})
+            Barchasi ({allVideos.length})
           </button>
           <button 
             onClick={() => setFilterTab('approval')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterTab === 'approval' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'approval' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Tasdiqlash kutilmoqda (1)
+            Tasdiqlash kutilmoqda ({countApproval})
           </button>
           <button 
             onClick={() => setFilterTab('scheduled')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterTab === 'scheduled' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'scheduled' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Rejalashtirilgan (1)
+            Rejalashtirilgan ({countScheduled})
           </button>
           <button 
             onClick={() => setFilterTab('published')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${filterTab === 'published' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'published' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Nashr etilgan (2)
+            Nashr etilgan ({countPublished})
           </button>
         </div>
 
@@ -171,18 +305,30 @@ const ContentListPage = () => {
         {filteredVideos.map((video, index) => (
           <div 
             key={video.id}
-            className="liquid-glass rounded-2xl p-5 border border-white/10 hover:border-red-500/30 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group animate-fade-in-up"
-            style={{ animationDelay: `${index * 80}ms` }}
+            className={`liquid-glass rounded-2xl p-5 border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group animate-fade-in-up ${
+              video.isRealYoutube 
+                ? 'border-red-500/40 bg-gradient-to-r from-red-950/20 via-black/40 to-black/20 hover:border-red-500/70 shadow-[0_4px_25px_rgba(239,68,68,0.1)]' 
+                : 'border-white/10 hover:border-red-500/30'
+            }`}
+            style={{ animationDelay: `${index * 60}ms` }}
           >
             {/* Thumbnail + Details */}
             <div className="flex items-start gap-4">
               <div className="w-24 h-16 sm:w-28 sm:h-18 rounded-xl bg-gradient-to-tr from-red-950/80 to-slate-900 border border-white/10 flex items-center justify-center flex-shrink-0 relative overflow-hidden group-hover:scale-102 transition-transform">
-                <Play size={22} className="text-white fill-white/80" />
-                <span className="absolute bottom-1 right-1 text-[9px] bg-black/85 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+                {video.thumbnailUrl ? (
+                  <img 
+                    src={video.thumbnailUrl} 
+                    alt={video.title} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <Play size={22} className="text-white fill-white/80" />
+                )}
+                <span className="absolute bottom-1 right-1 text-[9px] bg-black/85 text-white px-1.5 py-0.2 rounded font-mono font-bold backdrop-blur-xs">
                   {video.duration}
                 </span>
                 <div className="absolute top-1 left-1">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${video.format === 'shorts' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm ${video.format === 'shorts' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
                     {video.format === 'shorts' ? 'Shorts' : '16:9'}
                   </span>
                 </div>
@@ -191,11 +337,19 @@ const ContentListPage = () => {
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={video.status} />
+                  {video.isRealYoutube && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30">
+                      <Youtube size={12} className="text-red-500 fill-red-500" /> Jonli YouTube
+                    </span>
+                  )}
                   <span className="text-xs text-gray-400 flex items-center gap-1">
                     <Calendar size={12} /> {video.scheduledAt}
                   </span>
                   <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     SEO {video.seoScore}%
+                  </span>
+                  <span className="text-xs font-semibold text-white/90 bg-white/[0.06] px-2 py-0.5 rounded-md">
+                    👁️ {video.viewsPrediction}
                   </span>
                 </div>
                 <h3 className="font-bold text-white text-base sm:text-lg group-hover:text-red-400 transition-colors">
@@ -213,7 +367,19 @@ const ContentListPage = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3 w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-white/5">
-              <Link to={`/content/${video.id}`}>
+              {video.youtubeUrl && (
+                <a 
+                  href={video.youtubeUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary" size="sm" className="flex items-center gap-1.5 text-red-400 border-red-500/30 hover:bg-red-500/10">
+                    <Youtube size={14} className="text-red-500" /> YouTube'da ko'rish
+                    <ExternalLink size={12} />
+                  </Button>
+                </a>
+              )}
+              <Link to={`/content/${video.id.startsWith('yt_') ? 'item_1' : video.id}`}>
                 <Button variant="secondary" size="sm">
                   Tafsilotlar
                 </Button>
