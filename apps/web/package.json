@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "pnpm --filter @jpilot/shared build",
     "build": "tsc && vite build",
     "start": "vite preview",
     "typecheck": "tsc --noEmit",
