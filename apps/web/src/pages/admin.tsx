@@ -84,9 +84,12 @@ export const AdminPage = () => {
   const [editBankName, setEditBankName] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
-
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  
+  // Settings saving status
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
 
   // SMS / CardXabar tester state
   const [testSmsText, setTestSmsText] = useState('Karta: *4589. Kirim: +60 042 UZS. Qoldiq: 1 250 000 UZS');
@@ -97,9 +100,11 @@ export const AdminPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Helper: Auth headers
+  // Helper: Auth headers with robust fallback
   const getAuthHeaders = () => ({
     'Authorization': `Bearer ${sessionToken}`,
+    'x-admin-token': sessionToken || '',
+    'x-admin-pin': (settings.adminPin || '7777').trim(),
     'Content-Type': 'application/json',
   });
 
@@ -265,18 +270,39 @@ export const AdminPage = () => {
   // Save settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingSettings(true);
+    setSettingsSuccessMsg(null);
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          basePrice: Number(settings.basePrice) || 60000,
+          maxDailyTransfersPerCard: Number(settings.maxDailyTransfersPerCard) || 40,
+          adminPin: String(settings.adminPin || '7777').trim(),
+          cardNumber: settings.cardNumber,
+          cardHolder: settings.cardHolder,
+          tgBotToken: settings.tgBotToken || '',
+          tgAdminChatId: settings.tgAdminChatId || '',
+        }),
       });
       const data = await res.json();
       if (data.success) {
+        setSettingsSuccessMsg('✅ Sozlamalar muvaffaqiyatli saqlandi!');
         showNotification('✅ Karta va tizim sozlamalari muvaffaqiyatli saqlandi!');
+        if (data.settings) {
+          setSettings(data.settings);
+        }
+        setTimeout(() => setSettingsSuccessMsg(null), 4000);
+      } else {
+        setSettingsSuccessMsg(`❌ Xatolik: ${data.error || 'Saqlanmadi'}`);
+        showNotification(`❌ Xatolik: ${data.error || 'Saqlanmadi'}`);
       }
-    } catch (e) {
+    } catch (e: any) {
+      setSettingsSuccessMsg(`❌ Tarmoq xatoligi: ${e?.message || 'Server javob bermadi'}`);
       showNotification('Sozlamalarni saqlashda xatolik');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -609,7 +635,7 @@ export const AdminPage = () => {
       />
 
       {notification && (
-        <div className="liquid-glass rounded-2xl p-4 border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 flex items-center gap-3 text-sm font-semibold shadow-xl">
+        <div className="fixed bottom-6 right-6 z-50 liquid-glass rounded-2xl px-5 py-4 border border-emerald-500/50 bg-emerald-950/90 text-emerald-300 flex items-center gap-3 text-sm font-semibold shadow-2xl backdrop-blur-xl max-w-md animate-fade-in">
           <CheckCircle2 size={20} className="text-emerald-400 flex-shrink-0" />
           <span>{notification}</span>
         </div>
@@ -1298,8 +1324,37 @@ export const AdminPage = () => {
                     />
                   </div>
 
-                  <Button type="submit" variant="primary" className="w-full flex items-center justify-center gap-2">
-                    <Save size={16} /> Sozlamalarni Saqlash
+                  {settingsSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
+                      <span>{settingsSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    variant={settingsSuccessMsg ? 'secondary' : 'primary'} 
+                    disabled={isSavingSettings}
+                    className={`w-full flex items-center justify-center gap-2 transition-all h-[44px] ${
+                      settingsSuccessMsg ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : ''
+                    }`}
+                  >
+                    {isSavingSettings ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Saqlanmoqda...</span>
+                      </>
+                    ) : settingsSuccessMsg ? (
+                      <>
+                        <Check size={16} />
+                        <span>Saqlandi!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        <span>Sozlamalarni Saqlash</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
