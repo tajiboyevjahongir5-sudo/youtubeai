@@ -666,7 +666,6 @@ export const ContentDetailPage = () => {
                         <div className="w-full max-w-[800px] aspect-video rounded-3xl border-4 border-white/20 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(59,130,246,0.3)] flex flex-col justify-center bg-zinc-950 group select-none">
                           <video 
                             ref={videoRef}
-                            src={`/neural_pulse_16x9.mp4?v=${videoVersion}`} 
                             poster={`/banner.jpg?v=${videoVersion}`} 
                             playsInline
                             preload="auto"
@@ -678,7 +677,10 @@ export const ContentDetailPage = () => {
                             onEnded={() => setIsPlaying(false)}
                             className="w-full h-full object-cover cursor-pointer"
                             onClick={togglePlay}
-                          />
+                          >
+                            <source src={`/neural_pulse_16x9.mp4?v=${videoVersion}`} type="video/mp4" />
+                            <source src={`https://jpilot.up.railway.app/media/neural_pulse_16x9.mp4?v=${videoVersion}`} type="video/mp4" />
+                          </video>
 
                           {/* Center Play Overlay */}
                           {!isPlaying && (
@@ -783,11 +785,11 @@ export const ContentDetailPage = () => {
                       {/* Buttons */}
                       <div className="pt-2 flex flex-wrap items-center gap-3">
                         <a 
-                          href={`/banner.jpg?v=${videoVersion}`} 
-                          download="autonomous_coding_1080p.jpg"
+                          href={`/neural_pulse_16x9.mp4?v=${videoVersion}`} 
+                          download="autonomous_coding_1080p.mp4"
                           className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/15 transition-all flex items-center gap-1.5"
                         >
-                          📥 16:9 Muqovani yuklab olish
+                          📥 16:9 Videoni yuklab olish (MP4)
                         </a>
                         <Button variant="outline" size="sm" onClick={() => {
                           setVideoVersion(Date.now());
@@ -815,70 +817,121 @@ export const ContentDetailPage = () => {
                   /* 9:16 Shorts Vertical Player */
                   <div className="grid md:grid-cols-12 gap-8 items-center">
                     <div className="md:col-span-5 flex flex-col items-center">
-                      <div className="w-[290px] h-[515px] rounded-[38px] border-4 border-white/20 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(255,0,0,0.4)] flex flex-col justify-center bg-zinc-950 group select-none">
-                        <video 
-                          ref={videoRef}
-                          src={`/neural_pulse_short.mp4?v=${videoVersion}`} 
-                          poster={`/host_alex.jpg?v=${videoVersion}`} 
-                          playsInline
-                          loop
-                          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 55.63)}
-                          onPlay={() => setIsPlaying(true)}
-                          onPause={() => setIsPlaying(false)}
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={togglePlay}
-                        />
-
-                        {/* Center Play Overlay */}
-                        {!isPlaying && (
-                          <div 
-                            onClick={togglePlay}
-                            className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
+                      {/* Player Mode Switcher for Shorts */}
+                      <div className="flex items-center justify-between w-[290px] mb-3 px-1">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowYouTubeEmbed(false)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              !showYouTubeEmbed ? 'bg-red-600 text-white shadow-md' : 'bg-white/5 text-gray-400 hover:text-white'
+                            }`}
                           >
-                            <div className="w-20 h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(255,0,0,0.85)] transform transition-transform hover:scale-110 active:scale-95">
-                              <Play size={36} className="ml-1.5 fill-white" />
-                            </div>
-                            <span className="mt-4 text-xs font-bold text-white bg-black/75 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                              ▶ Videoni tomosha qilish
-                            </span>
-                            <span className="text-[11px] text-emerald-400 font-semibold mt-1.5 bg-black/60 px-2 py-0.5 rounded-md">
-                              🔊 Tabiiy Studio Diktor Ovozli
-                            </span>
-                          </div>
+                            🎬 Studio
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowYouTubeEmbed(true)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                              showYouTubeEmbed ? 'bg-red-600 text-white shadow-md' : 'bg-white/5 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            <Youtube size={12} className="text-red-400 fill-red-400" /> YouTube
+                          </button>
+                        </div>
+                        {!showYouTubeEmbed && (
+                          <Button 
+                            onClick={togglePlay} 
+                            variant="secondary" 
+                            size="sm"
+                            className="text-[11px] h-7 px-2.5 border-red-500/30 text-red-300 hover:bg-red-500/10"
+                          >
+                            {isPlaying ? <Pause size={12} className="mr-1" /> : <Play size={12} className="mr-1 fill-red-300" />}
+                            {isPlaying ? "To'xtatish" : "Ko'rish"}
+                          </Button>
                         )}
+                      </div>
 
-                        {/* Bottom Scrubber */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col gap-1.5 opacity-90 transition-opacity hover:opacity-100">
-                          <div 
-                            className="w-full h-1.5 bg-white/25 rounded-full cursor-pointer overflow-hidden"
-                            onClick={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const pos = (e.clientX - rect.left) / rect.width;
-                              jumpToScene(pos * duration);
-                            }}
+                      {showYouTubeEmbed ? (
+                        <div className="w-[290px] h-[515px] rounded-[38px] border-4 border-red-500/30 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(255,0,0,0.4)]">
+                          <iframe 
+                            src="https://www.youtube.com/embed/y2uIY0kprx0?autoplay=1"
+                            title="Neural Pulse AI Shorts"
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-[290px] h-[515px] rounded-[38px] border-4 border-white/20 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(255,0,0,0.4)] flex flex-col justify-center bg-zinc-950 group select-none">
+                          <video 
+                            ref={videoRef}
+                            poster={`/host_alex.jpg?v=${videoVersion}`} 
+                            playsInline
+                            preload="auto"
+                            loop
+                            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 55.63)}
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => setIsPlaying(false)}
+                            onEnded={() => setIsPlaying(false)}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={togglePlay}
                           >
-                            <div 
-                              className="bg-red-500 h-full rounded-full transition-all"
-                              style={{ width: `${(currentTime / duration) * 100}%` }}
-                            />
-                          </div>
+                            <source src={`/neural_pulse_short.mp4?v=${videoVersion}`} type="video/mp4" />
+                            <source src={`https://jpilot.up.railway.app/media/neural_pulse_short.mp4?v=${videoVersion}`} type="video/mp4" />
+                          </video>
 
-                          <div className="flex items-center justify-between text-white text-[11px] font-semibold pt-1">
-                            <div className="flex items-center gap-2">
-                              <button onClick={togglePlay} className="p-1 rounded hover:bg-white/20">
-                                {isPlaying ? <Pause size={14} className="fill-white" /> : <Play size={14} className="fill-white" />}
-                              </button>
-                              <button onClick={toggleMute} className="p-1 rounded hover:bg-white/20">
-                                {isMuted ? <VolumeX size={14} className="text-red-400" /> : <Volume2 size={14} className="text-emerald-400" />}
-                              </button>
+                          {/* Center Play Overlay */}
+                          {!isPlaying && (
+                            <div 
+                              onClick={togglePlay}
+                              className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
+                            >
+                              <div className="w-20 h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(255,0,0,0.85)] transform transition-transform hover:scale-110 active:scale-95">
+                                <Play size={36} className="ml-1.5 fill-white" />
+                              </div>
+                              <span className="mt-4 text-xs font-bold text-white bg-black/75 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
+                                ▶ Videoni tomosha qilish
+                              </span>
+                              <span className="text-[11px] text-emerald-400 font-semibold mt-1.5 bg-black/60 px-2 py-0.5 rounded-md">
+                                🔊 Tabiiy Studio Diktor Ovozli
+                              </span>
                             </div>
-                            <span className="font-mono text-[10px] text-gray-300">
-                              {Math.floor(currentTime)}s / {Math.floor(duration)}s
-                            </span>
+                          )}
+
+                          {/* Bottom Scrubber */}
+                          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col gap-1.5 opacity-90 transition-opacity hover:opacity-100">
+                            <div 
+                              className="w-full h-1.5 bg-white/25 rounded-full cursor-pointer overflow-hidden"
+                              onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const pos = (e.clientX - rect.left) / rect.width;
+                                jumpToScene(pos * duration);
+                              }}
+                            >
+                              <div 
+                                className="bg-red-500 h-full rounded-full transition-all"
+                                style={{ width: `${(currentTime / duration) * 100}%` }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between text-white text-[11px] font-semibold pt-1">
+                              <div className="flex items-center gap-2">
+                                <button onClick={togglePlay} className="p-1 rounded hover:bg-white/20">
+                                  {isPlaying ? <Pause size={14} className="fill-white" /> : <Play size={14} className="fill-white" />}
+                                </button>
+                                <button onClick={toggleMute} className="p-1 rounded hover:bg-white/20">
+                                  {isMuted ? <VolumeX size={14} className="text-red-400" /> : <Volume2 size={14} className="text-emerald-400" />}
+                                </button>
+                              </div>
+                              <span className="font-mono text-[10px] text-gray-300">
+                                {Math.floor(currentTime)}s / {Math.floor(duration)}s
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Scene Jumper Chips */}
                       <div className="mt-3.5 flex flex-wrap gap-1.5 justify-center max-w-[310px]">

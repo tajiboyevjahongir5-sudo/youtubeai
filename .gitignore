@@ -55,4 +55,5 @@ packages/api-client/src/generated/
 *.mp3
 *.wav
 !apps/web/public/*.mp4
+!apps/server/public/*.mp4
 !apps/web/public/favicon.ico
