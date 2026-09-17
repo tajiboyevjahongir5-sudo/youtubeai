@@ -51,8 +51,9 @@ app.use('/api', routes);
 
 app.use(errorHandler);
 
-const server = app.listen(env.PORT, () => {
-  console.log(`🚀 Jpilot Server listening on port ${env.PORT}`);
+const port = Number(env.PORT) || 3000;
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Jpilot Server listening on 0.0.0.0:${port}`);
 });
 
 process.on('SIGTERM', () => {
