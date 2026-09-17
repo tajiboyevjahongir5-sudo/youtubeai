@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { paymentService } from '../services/payment.service';
 import { youtubeService } from '../services/youtube.service';
+import { telegramUserService } from '../services/telegram-user.service';
 import crypto from 'crypto';
 
 const router = Router();
@@ -321,6 +322,66 @@ router.post('/telegram/webhook', (req: Request, res: Response) => {
     console.error('Telegram webhook error:', error);
     res.status(500).json({ ok: false, error: error.message });
   }
+});
+
+/**
+ * TELEGRAM USER ACCOUNT (USERBOT) ROUTES FOR CARDXABAR & HUMOCARD
+ */
+
+// Get live status of Telegram user account connection
+router.get('/telegram-user/status', (req: Request, res: Response) => {
+  const status = telegramUserService.getStatus();
+  res.json({ success: true, ...status });
+});
+
+// Step 1: Send Telegram code to phone number (+998...)
+router.post('/telegram-user/send-code', async (req: Request, res: Response) => {
+  try {
+    const { phoneNumber, apiId, apiHash } = req.body;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, error: 'Telefon raqam kiritilishi shart (masalan: +998901234567).' });
+    }
+    const result = await telegramUserService.sendLoginCode(phoneNumber, apiId ? Number(apiId) : undefined, apiHash);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Send Telegram code error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Telegramga kod yuborishda xatolik' });
+  }
+});
+
+// Step 2: Sign in with the code received in Telegram
+router.post('/telegram-user/sign-in', async (req: Request, res: Response) => {
+  try {
+    const { code, password } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, error: 'Telegram kodi kiritilishi shart.' });
+    }
+    const result = await telegramUserService.signInWithCode(code, password);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Sign in with code error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Kodni tasdiqlashda xatolik' });
+  }
+});
+
+// Step 2b: Connect directly with StringSession
+router.post('/telegram-user/connect-session', async (req: Request, res: Response) => {
+  try {
+    const { sessionString, apiId, apiHash } = req.body;
+    if (!sessionString) {
+      return res.status(400).json({ success: false, error: 'Sessiya matni (StringSession) kiritilmadi.' });
+    }
+    const result = await telegramUserService.connectWithStringSession(sessionString, apiId ? Number(apiId) : undefined, apiHash);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Sessiya orqali ulanishda xatolik' });
+  }
+});
+
+// Disconnect Telegram user account
+router.post('/telegram-user/disconnect', async (req: Request, res: Response) => {
+  const result = await telegramUserService.disconnect();
+  res.json(result);
 });
 
 export default router;

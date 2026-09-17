@@ -14,6 +14,7 @@
   "dependencies": {
     "@clerk/express": "^1.3.15",
     "@google/generative-ai": "^0.21.0",
+    "@jpilot/shared": "workspace:*",
     "bullmq": "^5.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -22,12 +23,13 @@
     "googleapis": "^144.0.0",
     "grammy": "^1.32.0",
     "helmet": "^8.0.0",
+    "input": "^1.0.1",
     "ioredis": "^5.4.1",
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
+    "telegram": "^2.26.22",
     "uuid": "^11.0.3",
-    "zod": "^3.23.8",
-    "@jpilot/shared": "workspace:*"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

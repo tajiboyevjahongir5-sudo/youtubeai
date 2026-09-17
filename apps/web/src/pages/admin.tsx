@@ -20,7 +20,11 @@ import {
   TrendingUp,
   X,
   Lock,
-  Smartphone
+  Smartphone,
+  Radio,
+  Power,
+  MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
@@ -37,7 +41,7 @@ export const AdminPage = () => {
   const [authError, setAuthError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'invoices'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'telegram-user' | 'settings' | 'invoices'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
@@ -48,6 +52,15 @@ export const AdminPage = () => {
     tgBotToken: '',
     tgAdminChatId: '',
   });
+
+  // Telegram User Account state
+  const [tgUserStatus, setTgUserStatus] = useState<any>(null);
+  const [tgPhone, setTgPhone] = useState('+998');
+  const [tgCode, setTgCode] = useState('');
+  const [tg2FAPassword, setTg2FAPassword] = useState('');
+  const [tgStep, setTgStep] = useState<'enter_phone' | 'enter_code'>('enter_phone');
+  const [tgSessionString, setTgSessionString] = useState('');
+  const [tgLoading, setTgLoading] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
@@ -63,7 +76,13 @@ export const AdminPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Step 1: Submit Password (with Brute-Force Rate Limiting)
+  // Helper: Auth headers
+  const getAuthHeaders = () => ({
+    'Authorization': `Bearer ${sessionToken}`,
+    'Content-Type': 'application/json',
+  });
+
+  // Step 1: Submit Password
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -130,21 +149,16 @@ export const AdminPage = () => {
     }
   };
 
-  // Helper: Auth headers
-  const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${sessionToken}`,
-    'Content-Type': 'application/json',
-  });
-
   // Load data
   const loadAdminData = async () => {
     if (!sessionToken) return;
     setIsLoading(true);
     try {
-      const [usersRes, settingsRes, invoicesRes] = await Promise.all([
+      const [usersRes, settingsRes, invoicesRes, tgRes] = await Promise.all([
         fetch('/api/admin/users', { headers: getAuthHeaders() }),
         fetch('/api/admin/settings', { headers: getAuthHeaders() }),
         fetch('/api/admin/invoices', { headers: getAuthHeaders() }),
+        fetch('/api/admin/telegram-user/status', { headers: getAuthHeaders() }),
       ]);
 
       if (usersRes.status === 401) {
@@ -157,10 +171,17 @@ export const AdminPage = () => {
       const usersData = await usersRes.json();
       const settingsData = await settingsRes.json();
       const invoicesData = await invoicesRes.json();
+      const tgData = await tgRes.json();
 
       if (usersData.success) setUsers(usersData.users);
       if (settingsData.success) setSettings(settingsData.settings);
       if (invoicesData.success) setInvoices(invoicesData.invoices);
+      if (tgData.success) {
+        setTgUserStatus(tgData);
+        if (tgData.connected) {
+          setTgStep('enter_phone');
+        }
+      }
       setIsAuthenticated(true);
     } catch (e) {
       console.error('Failed to load admin data:', e);
@@ -222,10 +243,103 @@ export const AdminPage = () => {
       });
       const data = await res.json();
       if (data.success) {
-        showNotification('✅ Karta, Telegram va Parol sozlamalari muvaffaqiyatli saqlandi!');
+        showNotification('✅ Karta va tizim sozlamalari muvaffaqiyatli saqlandi!');
       }
     } catch (e) {
       showNotification('Sozlamalarni saqlashda xatolik');
+    }
+  };
+
+  // Telegram Userbot: Send Login Code
+  const handleSendTgCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/admin/telegram-user/send-code', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ phoneNumber: tgPhone }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTgStep('enter_code');
+        showNotification(`✅ Kod ${tgPhone} Telegram ilovasiga yuborildi!`);
+      } else {
+        showNotification(`❌ Xatolik: ${data.error}`);
+      }
+    } catch (e) {
+      showNotification('Telegramga kod yuborishda xatolik yuz berdi');
+    } finally {
+      setTgLoading(false);
+    }
+  };
+
+  // Telegram Userbot: Sign In with Code
+  const handleSignInTgCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/admin/telegram-user/sign-in', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ code: tgCode, password: tg2FAPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('🎉 Telegram akkauntingiz muvaffaqiyatli ulandi!');
+        setTgStep('enter_phone');
+        setTgCode('');
+        loadAdminData();
+      } else {
+        showNotification(`❌ Xatolik: ${data.error}`);
+      }
+    } catch (e) {
+      showNotification('Kodni tasdiqlashda xatolik yuz berdi');
+    } finally {
+      setTgLoading(false);
+    }
+  };
+
+  // Telegram Userbot: Connect with Session String
+  const handleConnectSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/admin/telegram-user/connect-session', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ sessionString: tgSessionString }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('🎉 Telegram akkaunt sessiya orqali ulandi!');
+        setTgSessionString('');
+        loadAdminData();
+      } else {
+        showNotification(`❌ Xatolik: ${data.error}`);
+      }
+    } catch (e) {
+      showNotification('Sessiya orqali ulanishda xatolik');
+    } finally {
+      setTgLoading(false);
+    }
+  };
+
+  // Telegram Userbot: Disconnect
+  const handleDisconnectTg = async () => {
+    if (!confirm('Haqiqatan ham Telegram akkauntingizni uzmoqchimisiz? CardXabar/HumoCard avtomat kuzatuvi to\'xtatiladi.')) return;
+    try {
+      const res = await fetch('/api/admin/telegram-user/disconnect', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('Telegram akkaunti uzildi.');
+        loadAdminData();
+      }
+    } catch (e) {
+      showNotification('Uzishda xatolik yuz berdi');
     }
   };
 
@@ -248,7 +362,7 @@ export const AdminPage = () => {
     }
   };
 
-  // 1. If not authenticated, show Secure Login Screen (with Brute-Force & 2FA)
+  // 1. If not authenticated, show Secure Login Screen
   if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -327,6 +441,7 @@ export const AdminPage = () => {
     );
   }
 
+  const isTgConnected = !!tgUserStatus?.connected;
   const activeSubscriptionsCount = users.filter((u) => u.subscription?.isActive && u.subscription?.status === 'active').length;
   const trialCount = users.filter((u) => u.subscription?.status === 'trial').length;
 
@@ -334,7 +449,7 @@ export const AdminPage = () => {
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
       <PageHeader
         title="Jpilot Boshqaruv Paneli (Super Admin)"
-        description="Foydalanuvchilar bazasi, oylik 60 000 so'm obunalar, to'lov kartasi va CardXabar integratsiyasi."
+        description="Foydalanuvchilar bazasi, oylik 60 000 so'm obunalar, to'lov kartasi va CardXabar/HumoCard Telegram integratsiyasi."
         actions={
           <div className="flex items-center gap-3">
             <Button variant="secondary" size="sm" onClick={loadAdminData} className="flex items-center gap-1.5">
@@ -381,12 +496,15 @@ export const AdminPage = () => {
           <span className="text-[11px] text-emerald-400">Oylik 60 000 so'm to'langan</span>
         </div>
 
-        <div className="liquid-glass p-5 rounded-2xl border border-amber-500/20 bg-amber-950/10 space-y-1">
-          <span className="text-xs text-amber-300 flex items-center gap-1.5 font-medium">
-            <Clock size={16} className="text-amber-400" /> Sinov (Trial) Rejimida
+        <div className="liquid-glass p-5 rounded-2xl border border-blue-500/20 bg-blue-950/10 space-y-1">
+          <span className="text-xs text-blue-300 flex items-center gap-1.5 font-medium">
+            <Smartphone size={16} className="text-blue-400" /> Telegram Akkaunt
           </span>
-          <div className="text-2xl font-black text-white">{trialCount} ta</div>
-          <span className="text-[11px] text-amber-400">3 kunlik bepul sinov</span>
+          <div className="text-base font-bold text-white flex items-center gap-2 mt-1">
+            <span className={`w-2.5 h-2.5 rounded-full ${isTgConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            {isTgConnected ? (tgUserStatus?.user?.username ? `@${tgUserStatus.user.username}` : 'Ulangan') : 'Ulanmagan'}
+          </div>
+          <span className="text-[11px] text-gray-400">CardXabar & HumoCard</span>
         </div>
 
         <div className="liquid-glass-red p-5 rounded-2xl border border-red-500/20 space-y-1">
@@ -401,10 +519,10 @@ export const AdminPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 gap-2">
+      <div className="flex border-b border-white/10 gap-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'users'
               ? 'border-red-500 text-white'
               : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -414,25 +532,37 @@ export const AdminPage = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('telegram-user')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === 'telegram-user'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Smartphone size={16} /> Telegram Akkaunt (CardXabar & HumoCard)
+          {isTgConnected && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+        </button>
+
+        <button
           onClick={() => setActiveTab('settings')}
-          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'settings'
               ? 'border-red-500 text-white'
               : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
-          <CreditCard size={16} /> Karta, Parol va Telegram Sozlamalari
+          <CreditCard size={16} /> Karta va Parol Sozlamalari
         </button>
 
         <button
           onClick={() => setActiveTab('invoices')}
-          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'invoices'
               ? 'border-red-500 text-white'
               : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
-          <Send size={16} /> To'lovlar va CardXabar Sinovi ({invoices.length})
+          <Send size={16} /> To'lovlar & Invoyslar ({invoices.length})
         </button>
       </div>
 
@@ -517,7 +647,213 @@ export const AdminPage = () => {
         </div>
       )}
 
-      {/* TAB 2: SETTINGS */}
+      {/* TAB 2: TELEGRAM USER ACCOUNT (USERBOT) */}
+      {activeTab === 'telegram-user' && (
+        <div className="space-y-6">
+          {isTgConnected ? (
+            /* Connected State */
+            <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-emerald-500/30 space-y-6 shadow-2xl animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.3)]">
+                    <Radio size={28} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <h3 className="text-xl font-bold text-white">
+                        Telegram Akkaunt Ulangan va Jonli Kuzatuv Faol!
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-1">
+                      Foydalanuvchi: <strong className="text-white">{tgUserStatus?.user?.firstName} {tgUserStatus?.user?.lastName}</strong> {tgUserStatus?.user?.username ? `(@${tgUserStatus.user.username})` : ''} • Tel: <strong className="text-white font-mono">{tgUserStatus?.user?.phone}</strong>
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleDisconnectTg} className="text-red-400 border-red-500/30 hover:bg-red-500/10">
+                  <Power size={14} className="mr-1.5" /> Akkauntni uzish
+                </Button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2">
+                <span className="text-xs font-semibold text-gray-300 block">Doimiy kuzatilayotgan manbalar:</span>
+                <div className="flex flex-wrap gap-2">
+                  {tgUserStatus?.monitoredChannels?.map((ch: string) => (
+                    <span key={ch} className="px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-mono font-bold">
+                      {ch}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] text-gray-400 pt-1 leading-relaxed">
+                  Ushbu botlardan sizning shaxsiy Telegramingizga kelgan har qanday to'lov xabarnomasi (masalan, <code>Karta: *1234, Kirim: +60 042 UZS</code>) soniyalar ichida ushlanadi va tegishli foydalanuvchi obunasi 30 kunga avtomatik yoqiladi.
+                </p>
+              </div>
+
+              {/* Live Intercepted Messages Feed */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <MessageSquare size={16} className="text-blue-400" /> Telegramdan Ushlangan So'nggi Xabarlar
+                </h4>
+                {tgUserStatus?.recentLogs?.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center text-xs text-gray-400">
+                    Hozircha xabarlar tushmadi. CardXabar yoki HumoCard botidan pul tushumi haqida xabar kelishi bilan shu yerda ko'rinadi.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                    {tgUserStatus?.recentLogs?.map((log: any) => (
+                      <div key={log.id} className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                        log.matched ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200' : 'bg-white/[0.03] border-white/10 text-gray-300'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white flex items-center gap-1.5">
+                            <span>{log.sender}</span>
+                            {log.matched && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                                ✅ To'lov Tasdiqlandi ({log.extractedAmount} UZS)
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {new Date(log.date).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="font-mono text-xs break-all bg-black/30 p-2 rounded-lg">{log.text}</p>
+                        {log.workspaceId && (
+                          <span className="text-[11px] text-emerald-400 font-mono block">
+                            Faollashtirilgan Workspace: <strong>{log.workspaceId}</strong>
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Disconnected State: Connect Forms */
+            <div className="grid gap-6 lg:grid-cols-2 animate-fade-in">
+              {/* Method 1: Phone + Login Code */}
+              <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-blue-500/30 space-y-6 shadow-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                    <Smartphone size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">1-Usul: Telefon Raqam Orqali</h3>
+                    <p className="text-xs text-gray-400">Telegram ilovangizga keladigan kod orqali ulanish</p>
+                  </div>
+                </div>
+
+                {tgStep === 'enter_phone' ? (
+                  <form onSubmit={handleSendTgCode} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-300 block mb-1">
+                        Sizning Telegram Telefon Raqamingiz:
+                      </label>
+                      <input
+                        type="text"
+                        value={tgPhone}
+                        onChange={(e) => setTgPhone(e.target.value)}
+                        placeholder="+998901234567"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-base focus:outline-none focus:border-blue-500"
+                        required
+                      />
+                      <span className="text-[11px] text-gray-400 mt-1 block">
+                        CardXabar yoki HumoCard xabarnomalari keladigan shaxsiy raqamingiz.
+                      </span>
+                    </div>
+
+                    <Button type="submit" variant="primary" className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500" disabled={tgLoading}>
+                      <Send size={16} /> {tgLoading ? 'Kod yuborilmoqda...' : 'Telegramga Kod Yuborish'}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSignInTgCode} className="space-y-4">
+                    <div className="p-3 rounded-xl bg-blue-500/15 border border-blue-500/30 text-xs text-blue-200">
+                      <strong>{tgPhone}</strong> raqamiga Telegram ilovangiz orqali 5 xonali kirish kodi yuborildi. Iltimos, Telegramingizni ochib kodni kiriting.
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-300 block mb-1">
+                        Telegramdan Kelgan Kod:
+                      </label>
+                      <input
+                        type="text"
+                        value={tgCode}
+                        onChange={(e) => setTgCode(e.target.value)}
+                        placeholder="12345"
+                        className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-center text-xl tracking-widest focus:outline-none focus:border-blue-500"
+                        autoFocus
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-300 block mb-1">
+                        2FA Bulutli Parol (faqat Telegramingizda 2FA yoqilgan bo'lsa):
+                      </label>
+                      <input
+                        type="password"
+                        value={tg2FAPassword}
+                        onChange={(e) => setTg2FAPassword(e.target.value)}
+                        placeholder="Telegram bulutli paroli (ixtiyoriy)"
+                        className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" variant="primary" className="flex-1 bg-emerald-600 hover:bg-emerald-500" disabled={tgLoading}>
+                        {tgLoading ? 'Ulanmoqda...' : 'Ulanish va Kuzatuvni Boshlash'}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => setTgStep('enter_phone')}>
+                        Bekor qilish
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+              {/* Method 2: StringSession Direct Input */}
+              <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400">
+                    <KeyRound size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">2-Usul: Sessiya Matni (StringSession)</h3>
+                    <p className="text-xs text-gray-400">Telethon / Pyrogram sessiya kaliti orqali 1 soniyada ulanish</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleConnectSession} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Telegram StringSession matni:
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={tgSessionString}
+                      onChange={(e) => setTgSessionString(e.target.value)}
+                      placeholder="1BJWap1wBu8..."
+                      className="w-full p-3 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-purple-500"
+                      required
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">
+                      Agar avval StringSession generatsiya qilgan bo'lsangiz, uni to'g'ridan-to'g'ri joylashtirishingiz mumkin.
+                    </span>
+                  </div>
+
+                  <Button type="submit" variant="secondary" className="w-full flex items-center justify-center gap-2" disabled={tgLoading}>
+                    <ArrowRight size={16} /> {tgLoading ? 'Ulanmoqda...' : 'Sessiya Orqali Ulanish'}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: SETTINGS */}
       {activeTab === 'settings' && (
         <div className="max-w-2xl">
           <form onSubmit={handleSaveSettings} className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl">
@@ -571,44 +907,8 @@ export const AdminPage = () => {
               </div>
 
               <div className="pt-4 border-t border-white/10">
-                <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-emerald-400" /> Telegram 2FA (Ikki Bosqichli Xavfsizlik)
-                </h4>
-                <p className="text-xs text-gray-400 mb-3 leading-relaxed">
-                  Agar bu maydonlarni to'ldirsangiz, har safar admin panelga kirishda Telegramingizga 6 xonali tasdiqlash kodi yuboriladi. Hech kim parolni bilsa ham Telegramingizsiz kira olmaydi!
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                      Telegram Bot Token (@BotFather'dan olingan):
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.tgBotToken || ''}
-                      onChange={(e) => setSettings({ ...settings, tgBotToken: e.target.value })}
-                      placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                      className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-red-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                      Sizning Telegram Chat ID:
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.tgAdminChatId || ''}
-                      onChange={(e) => setSettings({ ...settings, tgAdminChatId: e.target.value })}
-                      placeholder="987654321"
-                      className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-red-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-white/10">
                 <label className="text-xs font-semibold text-gray-300 block mb-1">
-                  Yangi Murakkab Admin Paroli (harf, belgi va raqamlar aralashmasi):
+                  Admin Panel Paroli:
                 </label>
                 <input
                   type="text"
@@ -618,7 +918,7 @@ export const AdminPage = () => {
                   className="w-full px-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white font-mono focus:outline-none focus:border-red-500"
                 />
                 <span className="text-[11px] text-gray-400 mt-1 block">
-                  Masalan: <code className="text-emerald-400">JpilotAdmin#9988!</code>
+                  Standart: <code className="text-emerald-400">7777</code>. Xohlagan yangi parol qo'yishingiz mumkin.
                 </span>
               </div>
 
@@ -630,7 +930,7 @@ export const AdminPage = () => {
         </div>
       )}
 
-      {/* TAB 3: INVOICES & SMS PARSER TEST */}
+      {/* TAB 4: INVOICES & SMS PARSER TEST */}
       {activeTab === 'invoices' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* CardXabar / HumoCard Parser Tester */}
