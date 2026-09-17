@@ -384,4 +384,17 @@ router.post('/telegram-user/disconnect', async (req: Request, res: Response) => 
   res.json(result);
 });
 
+// Clear telegram logs
+router.post('/telegram-user/clear-logs', (req: Request, res: Response) => {
+  const result = telegramUserService.clearLogs();
+  res.json(result);
+});
+
+// Cleanup test and unnecessary data
+router.post('/cleanup-test-data', (req: Request, res: Response) => {
+  const result = paymentService.cleanupUnnecessaryData();
+  res.json(result);
+});
+
 export default router;
+

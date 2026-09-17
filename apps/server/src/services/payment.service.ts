@@ -107,10 +107,40 @@ export class PaymentService {
   }
 
   private saveInvoices(invoices: PaymentInvoice[]) {
-    // Keep last 500 invoices to prevent unbounded file growth
-    const trimmed = invoices.slice(-500);
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    // Keraksiz va muddati o'tgan to'lanmagan invoyslarni avtomatik tozalash:
+    const cleaned = invoices.filter((inv) => {
+      // Barcha haqiqiy to'langan invoyslar saqlanadi
+      if (inv.status === 'paid') return true;
+      // To'lanmagan yoki eskirgan bo'lsa, faqat oxirgi 24 soatdagilarini saqlash
+      return new Date(inv.createdAt).getTime() > oneDayAgo;
+    });
+
+    const trimmed = cleaned.slice(-100);
     fs.writeFileSync(this.invoicesFile, JSON.stringify(trimmed, null, 2));
   }
+
+  /**
+   * Keraksiz test ma'lumotlarini tozalash
+   */
+  cleanupUnnecessaryData() {
+    // 1. Invoyslardan testlarni tozalash
+    const invoices = this.getInvoices().filter((inv) => !inv.workspaceId.includes('test'));
+    this.saveInvoices(invoices);
+
+    // 2. Obunalardan testlarni tozalash
+    const subs = this.getSubscriptions();
+    for (const key of Object.keys(subs)) {
+      if (key.includes('test') || key.includes('demo')) {
+        delete subs[key];
+      }
+    }
+    this.saveSubscriptions(subs);
+    return { success: true, message: 'Keraksiz test ma\'lumotlari tozalandi' };
+  }
+
 
   private getSubscriptions(): Record<string, UserSubscription> {
     try {

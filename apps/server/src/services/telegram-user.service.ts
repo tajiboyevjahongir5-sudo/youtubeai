@@ -62,11 +62,22 @@ export class TelegramUserService {
 
   private saveLog(log: TelegramUserLog) {
     this.recentLogs.unshift(log);
-    if (this.recentLogs.length > 50) this.recentLogs.pop();
+    if (this.recentLogs.length > 20) this.recentLogs.pop();
     try {
       fs.writeFileSync(this.logsFilePath, JSON.stringify(this.recentLogs, null, 2));
     } catch (e) {}
   }
+
+  clearLogs() {
+    this.recentLogs = [];
+    try {
+      if (fs.existsSync(this.logsFilePath)) {
+        fs.writeFileSync(this.logsFilePath, '[]', 'utf-8');
+      }
+    } catch (e) {}
+    return { success: true, message: 'Barcha xabarlar va loglar tozalandi' };
+  }
+
 
   private getConfig(): { apiId: number; apiHash: string } {
     try {
@@ -267,15 +278,27 @@ export class TelegramUserService {
         } catch (e) {}
 
         const text = message.text;
-        console.log(`\n📩 [Telegram Xabar] ${senderTitle}: ${text.substring(0, 80)}...`);
 
-        // Check if message looks like a payment SMS from CardXabar / HumoCard / Bank
+        // XAVFSIZLIK VA TOZALIK: Faqat to'lov botlari yoki to'lov xabarlari ko'rib chiqiladi
+        // Shaxsiy yozishmalar, do'stlar, guruhlar va kanallar umuman o'qilmaydi va saqlanmaydi!
+        const isPaymentBot = /cardxabar|humocard|humo|uzcard|payme|click|kapital|anor|tbc|ipakyuli|ofb|sqb|agro|hamkor/i.test(senderTitle);
+        const isPaymentKeyword = /(?:➕|\bto[''`]?ldirish\b|\bperevod na kartu\b|\bpopolnenie\b|\bkirim\b|\bplatezh\b|\bspisanie\b)/i.test(text);
+
+        if (!isPaymentBot && !isPaymentKeyword) {
+          // Keraksiz shaxsiy xabarlarni mutlaqo saqlamaslik va e'tiborsiz qoldirish
+          return;
+        }
+
+        console.log(`\n📩 [To'lov Xabarnomasi] ${senderTitle}: ${text.substring(0, 80)}...`);
+
+        // To'lovni tekshirish
         const processResult = paymentService.parseAndProcessNotification(text);
 
+        // Faqat to'lov bilan bog'liq xabarlarni qisqa log sifatida saqlash (maksimal 20 ta)
         const logEntry: TelegramUserLog = {
           id: 'log_' + Date.now(),
           sender: senderTitle,
-          text,
+          text: text.length > 250 ? text.substring(0, 250) + '...' : text,
           date: new Date().toISOString(),
           matched: processResult.matched,
           extractedAmount: processResult.extractedAmount,
@@ -292,6 +315,7 @@ export class TelegramUserService {
       }
     }, new NewMessage({ incoming: true }));
   }
+
 
   /**
    * Get live status of Telegram user connection
