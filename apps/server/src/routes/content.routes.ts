@@ -106,16 +106,61 @@ router.get('/:contentId', async (req: Request, res: Response, next: NextFunction
     // Fallback
   }
 
-  res.json({
+  const itemsMap: Record<string, any> = {
+    item_1: {
+      id: 'item_1',
+      workspaceId: req.workspaceId || 'default',
+      title: 'Top 5 AI Tools That Work While You Sleep in 2026',
+      status: 'review',
+      videoFormat: 'shorts',
+      contentPillar: 'educational',
+      scheduledAt: new Date(Date.now() + 3600000).toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    item_2: {
+      id: 'item_2',
+      workspaceId: req.workspaceId || 'default',
+      title: 'The Complete Future of Autonomous Coding & Agents in 2026',
+      status: 'approved',
+      videoFormat: 'long_form',
+      contentPillar: 'educational',
+      scheduledAt: new Date(Date.now() + 28800000).toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    item_3: {
+      id: 'item_3',
+      workspaceId: req.workspaceId || 'default',
+      title: 'Why 90% of Developers Will Use AI by 2027 #Shorts',
+      status: 'published',
+      videoFormat: 'shorts',
+      contentPillar: 'entertaining',
+      publishedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    item_4: {
+      id: 'item_4',
+      workspaceId: req.workspaceId || 'default',
+      title: 'Building a Full Stack SaaS with AI: Step by Step Guide',
+      status: 'published',
+      videoFormat: 'long_form',
+      contentPillar: 'educational',
+      publishedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    }
+  };
+
+  const item = itemsMap[contentId] || {
     id: contentId,
     workspaceId: req.workspaceId || 'default',
-    title: 'Top 5 AI Tools That Work While You Sleep in 2026',
+    title: contentId.includes('2') || contentId.includes('long') ? 'The Complete Future of Autonomous Coding in 2026' : 'Top 5 AI Tools That Work While You Sleep in 2026',
     status: 'review',
-    videoFormat: 'shorts',
+    videoFormat: contentId.includes('2') || contentId.includes('long') ? 'long_form' : 'shorts',
     contentPillar: 'educational',
     scheduledAt: new Date(Date.now() + 3600000).toISOString(),
     createdAt: new Date().toISOString(),
-  });
+  };
+
+  res.json(item);
 });
 
 export default router;
