@@ -39,6 +39,8 @@ desktop.ini
 *.log
 logs/
 tsc_errors.txt
+__pycache__/
+*.pyc
 
 # Test coverage
 coverage/
@@ -64,4 +66,6 @@ packages/api-client/src/generated/
 !apps/server/public/assets/**/*
 !apps/web/public/assets/*
 !apps/web/public/assets/**/*
+!apps/web/public/media/*
+!apps/web/public/media/**/*
 !apps/web/public/favicon.ico
