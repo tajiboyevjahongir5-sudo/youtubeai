@@ -143,6 +143,42 @@ export const ContentDetailPage = () => {
   const [scheduledAtTime, setScheduledAtTime] = useState<string | null>(null);
   const [customScheduleInput, setCustomScheduleInput] = useState('');
 
+  // AI Smart Comment Reply Engine State
+  const [commentInput, setCommentInput] = useState('');
+  const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
+  const [generatedReplies, setGeneratedReplies] = useState<any[]>([]);
+  const [copiedReplyIdx, setCopiedReplyIdx] = useState<number | null>(null);
+
+  const handleGenerateCommentReplies = async (sampleComment?: string) => {
+    const textToReply = sampleComment || commentInput;
+    if (!textToReply.trim()) return;
+    if (sampleComment) setCommentInput(sampleComment);
+    setIsGeneratingReplies(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/community/comments/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          commentText: textToReply,
+          videoTopic: metaTitle || videoTitle,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.replies)) {
+        setGeneratedReplies(data.replies);
+        setToast("✅ 3 x Algoritmik izoh javoblari muvaffaqiyatli tayyorlandi!");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (err) {
+      console.error('Comment reply error:', err);
+    } finally {
+      setIsGeneratingReplies(false);
+    }
+  };
+
   useEffect(() => {
     if (itemData) {
       setScriptText(itemData.script || '');
@@ -692,6 +728,7 @@ export const ContentDetailPage = () => {
             { id: 'preview_canvas', label: '🎛️ 9:16 Jonli Simulyator' },
             { id: 'personaj', label: 'Personaj & Konsistentlik' },
             { id: 'metadata', label: 'SEO Metadata' },
+            { id: 'comments', label: '💬 Izohlar & Reply AI' },
             { id: 'sifat tekshiruvi', label: 'Sifat tekshiruvi' },
             { id: 'multi_export', label: '📱 Multi-Platform Eksport' },
             { id: 'tasdiqlash', label: 'Tasdiqlash & Video Studio' },
@@ -1212,6 +1249,198 @@ export const ContentDetailPage = () => {
                   {isSaving ? 'Saqlanmoqda...' : "SEO & O'sish Metadatasini saqlash"}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
+        {/* Comments & AI Smart Reply */}
+        <Tabs.Content value="comments" className="space-y-6 animate-fade-in">
+          {/* Pinned Comment Box */}
+          <Card className="liquid-glass border border-white/10">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                    <Pin size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Qadalgan Izoh (Pinned Comment Strategy)</h3>
+                    <p className="text-xs text-gray-400">Tomoshabinlarni munozaraga chorlovchi va obunani eslatuvchi asosiy izoh</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(pinnedCommentText);
+                    setCopiedField('pinnedComment');
+                    setToast("✅ Qadalgan izoh buferga nusxalandi!");
+                    setTimeout(() => setCopiedField(null), 2000);
+                  }}
+                  className="text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Copy size={14} />
+                  {copiedField === 'pinnedComment' ? 'Nusxalandi!' : 'Nusxa olish'}
+                </Button>
+              </div>
+
+              <Textarea
+                rows={3}
+                value={pinnedCommentText}
+                onChange={(e) => setPinnedCommentText(e.target.value)}
+                placeholder="Savol yoki obuna chaqirig'ini yozing..."
+                className="text-xs font-mono"
+              />
+
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed flex items-start gap-2.5">
+                <Zap size={16} className="mt-0.5 flex-shrink-0 text-amber-400" />
+                <span>
+                  <strong>Viral Algoritm Siri:</strong> Qadalgan izohda savol berish (Call-to-Comment) tomoshabinlarning 40% ko'proq izoh qoldirishiga sabab bo'ladi. YouTube tomoshabin izoh yozayotgan paytda orqa fonda video qayta aylanib tomosha vaqtini (watch time) 140% ga yetkazadi.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Smart Comment Reply Engine */}
+          <Card className="liquid-glass border border-cyan-500/30">
+            <CardContent className="p-6 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-cyan-600/20 text-cyan-400">
+                    <MessageSquare size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">AI Smart Izohlar Yordamchisi (Reply Engine)</h3>
+                    <p className="text-xs text-gray-400">Tomoshabinlar savollariga algoritmik 3 xil uslubda professional javoblar tayyorlang</p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
+                  2-Hour Comment Velocity
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-semibold text-gray-300 block">
+                  Tomoshabin qoldirgan izoh yoki savol matni:
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Tomoshabin izohini shu yerga yozing yoki namunani tanlang..."
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    className="text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isGeneratingReplies) {
+                        e.preventDefault();
+                        handleGenerateCommentReplies();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={isGeneratingReplies || !commentInput.trim()}
+                    onClick={() => handleGenerateCommentReplies()}
+                    className="whitespace-nowrap flex items-center gap-1.5 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 border-cyan-500 cursor-pointer"
+                  >
+                    <Sparkles size={14} className={isGeneratingReplies ? 'animate-spin' : ''} />
+                    {isGeneratingReplies ? 'Tayyorlanmoqda...' : 'Javob Yaratish'}
+                  </Button>
+                </div>
+
+                {/* Quick Sample Questions */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] text-gray-400 font-semibold block">Tezkor namunaviy savollar:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Does AutoFlow have a free tier or do I need API credits?",
+                      "How does this compare to Devin and Claude 3.5 Sonnet?",
+                      "Can you make a full tutorial on building autonomous agents?",
+                      "Which model was used for this voiceover?"
+                    ].map((sample, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleGenerateCommentReplies(sample)}
+                        className="text-[11px] px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-cyan-500/15 border border-white/10 hover:border-cyan-500/30 text-gray-300 hover:text-cyan-300 transition-all text-left cursor-pointer"
+                      >
+                        "{sample}"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Generated Replies Cards */}
+              {generatedReplies.length > 0 && (
+                <div className="space-y-4 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-amber-400" />
+                      Algoritmik Javob Variantlari (Tanlang va Nusxalang):
+                    </span>
+                    <span className="text-[10px] text-gray-400">1-bosishda nusxalash</span>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {generatedReplies.map((replyItem, idx) => {
+                      const isCopied = copiedReplyIdx === idx;
+                      const badgeColors: Record<string, string> = {
+                        insightful: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
+                        friendly_cta: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+                        debate: 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      };
+                      return (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badgeColors[replyItem.type] || 'bg-white/10 text-gray-300'}`}>
+                                {replyItem.badge || replyItem.type}
+                              </span>
+                              <span className="text-[10px] text-gray-400">{replyItem.title}</span>
+                            </div>
+                            <p className="text-xs text-white leading-relaxed font-sans bg-black/30 p-3 rounded-xl border border-white/5">
+                              "{replyItem.reply}"
+                            </p>
+                            <p className="text-[10px] text-gray-400 italic">
+                              💡 <strong>Algoritm:</strong> {replyItem.reason}
+                            </p>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(replyItem.reply);
+                              setCopiedReplyIdx(idx);
+                              setToast(`✅ ${replyItem.title} buferga nusxalandi!`);
+                              setTimeout(() => setCopiedReplyIdx(null), 2500);
+                            }}
+                            className={`w-full text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                              isCopied ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : ''
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check size={14} className="text-emerald-400" />
+                                Nusxalandi!
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} />
+                                Nusxa olish
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </Tabs.Content>

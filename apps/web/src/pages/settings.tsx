@@ -16,7 +16,9 @@ import {
   Globe,
   Bell,
   Mic,
-  Sparkles
+  Sparkles,
+  User,
+  Camera
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -40,6 +42,8 @@ const SettingsPage = () => {
   const [autoGenerateIfEmpty, setAutoGenerateIfEmpty] = useState(true);
   const [voiceModel, setVoiceModel] = useState("en-US-ChristopherNeural");
   const [autoTitleAbTest, setAutoTitleAbTest] = useState(true);
+  const [hostAvatar, setHostAvatar] = useState('alex');
+  const [customHostImage, setCustomHostImage] = useState('');
 
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
@@ -58,6 +62,8 @@ const SettingsPage = () => {
           if (s.autoGenerateIfEmpty !== undefined) setAutoGenerateIfEmpty(s.autoGenerateIfEmpty);
           if (s.voiceModel) setVoiceModel(s.voiceModel);
           if (s.autoTitleAbTest !== undefined) setAutoTitleAbTest(s.autoTitleAbTest);
+          if (s.hostAvatar) setHostAvatar(s.hostAvatar);
+          if (s.customHostImage) setCustomHostImage(s.customHostImage);
           if (Array.isArray(s.publishTimes)) {
             if (s.publishTimes[0]) setPublishTime1(s.publishTimes[0]);
             if (s.publishTimes[1]) setPublishTime2(s.publishTimes[1]);
@@ -89,6 +95,8 @@ const SettingsPage = () => {
             autoGenerateIfEmpty,
             voiceModel,
             autoTitleAbTest,
+            hostAvatar,
+            customHostImage,
             publishTimes: [publishTime1, publishTime2].filter(Boolean)
           }
         })
@@ -200,6 +208,131 @@ const SettingsPage = () => {
             </Select>
             <p className="text-[11px] text-gray-400 mt-1">
               * Tanlangan ovoz modeli video generatsiyasida nutq tezligi (+14%) va intonatsiyani avtomatik moslashtiradi.
+            </p>
+          </div>
+        </div>
+
+        {/* Multi-Host & Avatar Studio */}
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-3">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-cyan-600/20 text-cyan-400">
+                <User size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Multi-Host & Avatar Studiyasi (Virtual Boshlovchilar)</h3>
+                <p className="text-xs text-gray-400">Videolarda chiqadigan doimiy inson siymosi va xavfsiz yuz zonasi (100% Safe Zone)</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
+              Host: {hostAvatar.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                id: 'alex',
+                name: 'Alex',
+                badge: 'Standart',
+                role: 'AI & Tech Mutaxassisi',
+                desc: 'Neural Pulse AI ning rasmiy yuzi. Ishonchli, texnologik va nufuzli ko\'rinish.',
+                border: 'border-cyan-500/50',
+                activeBg: 'bg-cyan-500/10'
+              },
+              {
+                id: 'sarah',
+                name: 'Sarah',
+                badge: 'Futuristik',
+                role: 'AI Tadqiqotchi',
+                desc: 'Chuqur neyron tarmoqlar, yangi modellar va ilmiy kashfiyotlar uchun ideal.',
+                border: 'border-purple-500/50',
+                activeBg: 'bg-purple-500/10'
+              },
+              {
+                id: 'marcus',
+                name: 'Marcus',
+                badge: 'Kiberxavfsizlik',
+                role: 'DevOps & Kiber Ekspert',
+                desc: 'Xavfsizlik, Linux, dark web tahlillari va backend tizimlariga mos.',
+                border: 'border-emerald-500/50',
+                activeBg: 'bg-emerald-500/10'
+              },
+              {
+                id: 'elena',
+                name: 'Elena',
+                badge: 'SaaS Asoschisi',
+                role: 'Biznes & Monetizatsiya',
+                desc: 'Passiv daromad, AI bilan startap qurish va marketing strategiyalari.',
+                border: 'border-amber-500/50',
+                activeBg: 'bg-amber-500/10'
+              }
+            ].map((avatar) => {
+              const isSelected = hostAvatar === avatar.id;
+              return (
+                <div
+                  key={avatar.id}
+                  onClick={() => setHostAvatar(avatar.id)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                    isSelected 
+                      ? `${avatar.border} ${avatar.activeBg} shadow-lg ring-1 ring-white/20` 
+                      : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-white/10 to-white/20 flex items-center justify-center font-bold text-sm text-white">
+                      {avatar.name[0]}
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                      {avatar.badge}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      {avatar.name}
+                      {isSelected && <Check size={14} className="text-cyan-400" />}
+                    </h4>
+                    <p className="text-[11px] text-cyan-400/90 font-medium">{avatar.role}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 leading-snug">{avatar.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Custom Host / Face Zone Guarantee */}
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <Camera size={16} className="text-gray-400" />
+              <span className="text-xs font-bold text-white">Shaxsiy Avatar / Surat Yo'li (Ixtiyoriy)</span>
+            </div>
+            <div className="flex gap-3">
+              <Input
+                placeholder="Fayl yo'li yoki avatar identifikatori (masalan: custom_avatar.png)"
+                value={customHostImage}
+                onChange={(e) => {
+                  setCustomHostImage(e.target.value);
+                  if (e.target.value) setHostAvatar('custom');
+                }}
+                className="text-xs"
+              />
+              {customHostImage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCustomHostImage('');
+                    setHostAvatar('alex');
+                  }}
+                  className="whitespace-nowrap text-xs"
+                >
+                  Tozalash
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              * Neural Pulse AI standarti bo'yicha: Boshlovchining yuzi (y: 100-1240) hech qachon sarlavha yoki subtitr bilan to'silmaydi (100% Unobstructed Safe Zone).
             </p>
           </div>
         </div>

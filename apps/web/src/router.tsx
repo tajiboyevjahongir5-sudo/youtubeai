@@ -13,6 +13,7 @@ import IntegrationsPage from './pages/integrations';
 import SettingsPage from './pages/settings';
 import ActivityPage from './pages/activity';
 import AdminPage from './pages/admin';
+import TrendSpyPage from './pages/trend-spy';
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/content', element: <ContentListPage /> },
+      { path: '/trends', element: <TrendSpyPage /> },
       { path: '/content/new', element: <NewContentPage /> },
       { path: '/content/:id', element: <ContentDetailPage /> },
       { path: '/calendar', element: <CalendarPage /> },

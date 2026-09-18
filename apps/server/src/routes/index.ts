@@ -12,6 +12,8 @@ import telegramRoutes from './telegram.routes';
 import auditRoutes from './audit.routes';
 import adminRoutes from './admin.routes';
 import billingRoutes from './billing.routes';
+import trendSpyRoutes from './trend-spy.routes';
+import communityRoutes from './community.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -41,6 +43,8 @@ workspaceRouter.use('/content', publishingRoutes);
 workspaceRouter.use('/publishing-jobs', publishingRoutes);
 workspaceRouter.use('/approvals', approvalRoutes);
 workspaceRouter.use('/analytics', analyticsRoutes);
+workspaceRouter.use('/trends', trendSpyRoutes);
+workspaceRouter.use('/community', communityRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity

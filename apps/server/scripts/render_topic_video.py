@@ -659,7 +659,7 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     except Exception:
         pass
 
-def render_video(data: dict, output_mp4: str, voice_override: str = None):
+def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
     
@@ -760,11 +760,20 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None):
                 return c
         return None
 
-    host_path = find_file([
-        os.path.join(os.path.dirname(__file__), '../public/host_alex.jpg'),
-        r'C:\Users\user\Downloads\neural_pulse_host_alex.jpg',
-        r'C:\Users\user\Downloads\jpilot\apps\server\public\host_alex.jpg'
-    ])
+    host_name = (host_override or data.get('hostAvatar') or data.get('host') or 'alex').strip().lower()
+    host_candidates = []
+    if os.path.exists(host_name):
+        host_candidates.append(host_name)
+    else:
+        host_candidates.extend([
+            os.path.join(os.path.dirname(__file__), f'../public/hosts/{host_name}.jpg'),
+            os.path.join(os.path.dirname(__file__), f'../public/hosts/{host_name}.png'),
+            os.path.join(os.path.dirname(__file__), f'../public/host_{host_name}.jpg'),
+            os.path.join(os.path.dirname(__file__), '../public/host_alex.jpg'),
+            r'C:\Users\user\Downloads\neural_pulse_host_alex.jpg',
+            r'C:\Users\user\Downloads\jpilot\apps\server\public\host_alex.jpg'
+        ])
+    host_path = find_file(host_candidates)
     host_orig = cv2.imread(host_path) if host_path else np.zeros((H, W, 3), dtype=np.uint8)
     if host_orig is not None:
         h_orig, w_orig = host_orig.shape[:2]
@@ -1307,6 +1316,7 @@ def main():
     parser.add_argument('--item-id', type=str, help="Specific item ID if input contains multiple items")
     parser.add_argument('--output', type=str, required=True, help="Output MP4 path")
     parser.add_argument('--voice', type=str, default=None, help="Azure Neural Voice name")
+    parser.add_argument('--host', type=str, default=None, help="Host Avatar name or path")
     args = parser.parse_args()
 
     if args.json:
@@ -1327,7 +1337,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output, voice_override=args.voice)
+    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

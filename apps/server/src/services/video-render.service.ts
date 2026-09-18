@@ -73,13 +73,15 @@ export class VideoRenderService {
 
       const wsSettings = getWorkspaceSettings(item.workspaceId || 'default');
       const voiceModel = (item as any).voiceModel || wsSettings.voiceModel || 'en-US-ChristopherNeural';
+      const hostAvatar = (item as any).hostAvatar || wsSettings.hostAvatar || 'alex';
 
       // Execute python script
       const pythonProcess = spawn(pythonBin, [
         scriptPath,
         '--input', tempInputPath,
         '--output', outputPath,
-        '--voice', voiceModel
+        '--voice', voiceModel,
+        '--host', hostAvatar
       ]);
 
       let stdoutData = '';

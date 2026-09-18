@@ -16,7 +16,8 @@ import {
   Radio,
   RotateCcw,
   ShieldCheck,
-  Zap
+  Zap,
+  Flame
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getWorkspaceId, resetWorkspace } from '../lib/workspace';
@@ -58,6 +59,7 @@ const AppLayout = () => {
   const navItems = [
     { path: '/dashboard', label: 'Boshqaruv paneli', icon: LayoutDashboard },
     { path: '/content', label: 'Kontent', icon: FileText },
+    { path: '/trends', label: 'Trend Ovchisi', icon: Flame },
     { path: '/calendar', label: 'Taqvim', icon: Calendar },
     { path: '/analytics', label: 'Analitika', icon: BarChart3 },
     { path: '/strategy', label: 'Strategiya', icon: Lightbulb },
