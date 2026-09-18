@@ -34,6 +34,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     let generatedFromAi: any = null;
     try {
       generatedFromAi = await aiService.generateScript({
+        workspaceId,
         title: data.title,
         videoFormat: data.videoFormat,
         contentPillar: data.contentPillar

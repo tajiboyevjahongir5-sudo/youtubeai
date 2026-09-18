@@ -11,58 +11,23 @@ import { v4 as uuidv4 } from 'uuid';
 
 const videoRenderService = new VideoRenderService();
 
-export interface AutoPublishSettings {
-  enabled: boolean;
-  approvalMode: 'manual' | 'auto';
-  autoGenerateIfEmpty: boolean;
-  dailyTarget: number;
-  timezone: string;
-  publishTimes: string[]; // e.g. ["14:00", "20:00"]
-  videoFormat: 'shorts' | 'long_form';
-  niche: string;
-  subNiches?: string;
-  audience?: string;
-  englishVariant?: string;
-  tone?: string;
-}
+import {
+  AutoPublishSettings,
+  getWorkspaceSettings,
+  saveWorkspaceSettings
+} from './workspace-settings.service';
+
+export type { AutoPublishSettings };
+export {
+  getWorkspaceSettings,
+  saveWorkspaceSettings
+};
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const SETTINGS_DIR = path.join(DATA_DIR, 'settings');
 const LOGS_DIR = path.join(DATA_DIR, 'scheduler_logs');
-
 if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
-
-export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
-  const filePath = path.join(SETTINGS_DIR, `${workspaceId}.json`);
-  if (fs.existsSync(filePath)) {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) {}
-  }
-  return {
-    enabled: true,
-    approvalMode: 'auto',
-    autoGenerateIfEmpty: true,
-    dailyTarget: 2,
-    timezone: 'Asia/Tashkent',
-    publishTimes: ['14:00', '20:00'],
-    videoFormat: 'shorts',
-    niche: 'AI Tools & Tech 2026',
-    subNiches: 'Coding, SaaS, Productivity, Python',
-    audience: 'US, UK, Canada tech professionals',
-    englishVariant: 'us',
-    tone: 'professional'
-  };
-}
-
-export function saveWorkspaceSettings(workspaceId: string, settings: Partial<AutoPublishSettings>): AutoPublishSettings {
-  const current = getWorkspaceSettings(workspaceId);
-  const updated = { ...current, ...settings };
-  const filePath = path.join(SETTINGS_DIR, `${workspaceId}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), 'utf-8');
-  return updated;
-}
 
 export class SchedulerService {
   private timer: NodeJS.Timeout | null = null;
@@ -228,21 +193,15 @@ export class SchedulerService {
           if (!readyItem && settings.autoGenerateIfEmpty) {
             console.log(`✨ [Auto-Pilot] Navbatda yangi video yo'q. Gemini yangi viral mavzuni generatsiya qilmoqda...`);
             try {
-              const viralTopicPool = [
-                'Top 5 Autonomous Coding Agents in 2026',
-                'Claude 3.7 vs Gemini 2.0: Real World Coding Benchmark',
-                '5 AI Websites That Feel Completely Illegal to Know',
-                'How AI Agents Will Replace Traditional Software by 2027',
-                'The Secret AI Tool Every Solo Founder Uses in 2026',
-                'Why Most Developers Are Coding 10x Faster with AI Swarms',
-                'Stop Doing This Manually! Autonomous AI Automation Blueprint',
-                'Top 3 Open Source AI Models That Beat GPT-4 in 2026'
-              ];
-
-              let selectedTitle = viralTopicPool.find(t => {
-                const norm = t.toLowerCase().replace(/[^a-z0-9]/g, '');
-                return !uploadedTitles.has(norm);
-              }) || `AI Breakthrough 2026: ${dateKey} Automation Blueprint`;
+              let selectedTitle = '';
+              try {
+                selectedTitle = await aiService.generateDailyTopic(wsId, uploadedTitles);
+              } catch (topicErr) {
+                console.warn('AI generateDailyTopic error:', topicErr);
+              }
+              if (!selectedTitle) {
+                selectedTitle = `${settings.niche || 'AI Breakthrough'}: 2026 Strategy Blueprint`;
+              }
 
               const freshItem = contentStore.generateTailoredItem({
                 id: `item_auto_${Date.now()}`,
