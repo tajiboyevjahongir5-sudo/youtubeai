@@ -430,11 +430,19 @@ const ContentListPage = () => {
               </Link>
               {video.status === 'awaiting_approval' && (
                 <Link to={`/content/${video.id}`}>
-                  <Button variant="primary" size="sm">
-                    Tasdiqlash
+                  <Button variant="primary" size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,0,0,0.4)]">
+                    <CheckCircle2 size={13} /> Tasdiqlash
                   </Button>
                 </Link>
               )}
+              {video.status === 'scheduled' && (
+                <Link to={`/content/${video.id}`}>
+                  <Button variant="outline" size="sm" className="border-amber-500/40 text-amber-300 hover:bg-amber-500/20 bg-amber-500/10 flex items-center gap-1.5 text-xs font-semibold">
+                    <Clock size={13} /> Rejani boshqarish
+                  </Button>
+                </Link>
+              )}
+
             </div>
           </div>
         ))}
