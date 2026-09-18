@@ -31,29 +31,55 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
     const data = createContentSchema.parse(req.body);
 
+    let generatedFromAi: any = null;
+    try {
+      generatedFromAi = await aiService.generateScript({
+        title: data.title,
+        videoFormat: data.videoFormat,
+        contentPillar: data.contentPillar
+      });
+    } catch (e) {
+      console.warn('AI generateScript error on creation:', e);
+    }
+
     const newItem = contentStore.createItem({
       workspaceId,
       title: data.title,
       videoFormat: data.videoFormat,
       contentPillar: data.contentPillar,
-      status: data.status
+      status: 'idea'
     });
+
+    if (generatedFromAi) {
+      contentStore.updateItem(newItem.id, {
+        script: generatedFromAi.script || newItem.script,
+        scenes: (generatedFromAi.scenes && Array.isArray(generatedFromAi.scenes) && generatedFromAi.scenes.length > 0) ? generatedFromAi.scenes : newItem.scenes,
+        description: generatedFromAi.description || newItem.description,
+        tags: (generatedFromAi.tags && Array.isArray(generatedFromAi.tags)) ? generatedFromAi.tags : newItem.tags,
+        titleVariants: generatedFromAi.titleVariants || newItem.titleVariants,
+        pinnedComment: generatedFromAi.pinnedComment || newItem.pinnedComment,
+        loopTransition: generatedFromAi.loopTransition || newItem.loopTransition,
+        highCpmKeywords: generatedFromAi.highCpmKeywords || newItem.highCpmKeywords
+      });
+    }
+
+    const finalItem = contentStore.getById(newItem.id, workspaceId) || newItem;
 
     try {
       await db.insert(contentItems).values({
-        id: newItem.id,
+        id: finalItem.id,
         workspaceId,
-        title: newItem.title,
-        status: newItem.status,
-        videoFormat: newItem.videoFormat,
-        contentPillar: newItem.contentPillar,
-        description: newItem.description
+        title: finalItem.title,
+        status: finalItem.status,
+        videoFormat: finalItem.videoFormat,
+        contentPillar: finalItem.contentPillar,
+        description: finalItem.description
       });
     } catch (dbErr) {
       // Local or fallback mode
     }
 
-    res.status(201).json(newItem);
+    res.status(201).json(finalItem);
   } catch (error) {
     next(error);
   }
@@ -104,6 +130,17 @@ router.post('/:contentId/generate-script', async (req: Request, res: Response, n
     return res.status(404).json({ error: 'Content item not found' });
   }
 
+  let generatedFromAi: any = null;
+  try {
+    generatedFromAi = await aiService.generateScript({
+      title: item.title,
+      videoFormat: item.videoFormat,
+      contentPillar: item.contentPillar
+    });
+  } catch (err) {
+    console.warn('AI generateScript error on regeneration:', err);
+  }
+
   const regenerated = contentStore.generateTailoredItem({
     id: item.id,
     workspaceId: item.workspaceId,
@@ -114,10 +151,14 @@ router.post('/:contentId/generate-script', async (req: Request, res: Response, n
   });
 
   const updated = contentStore.updateItem(contentId, {
-    script: regenerated.script,
-    scenes: regenerated.scenes,
-    description: regenerated.description,
-    tags: regenerated.tags,
+    script: generatedFromAi?.script || regenerated.script,
+    scenes: (generatedFromAi?.scenes && Array.isArray(generatedFromAi.scenes) && generatedFromAi.scenes.length > 0) ? generatedFromAi.scenes : regenerated.scenes,
+    description: generatedFromAi?.description || regenerated.description,
+    tags: (generatedFromAi?.tags && Array.isArray(generatedFromAi.tags)) ? generatedFromAi.tags : regenerated.tags,
+    titleVariants: generatedFromAi?.titleVariants || regenerated.titleVariants,
+    pinnedComment: generatedFromAi?.pinnedComment || regenerated.pinnedComment,
+    loopTransition: generatedFromAi?.loopTransition || regenerated.loopTransition,
+    highCpmKeywords: generatedFromAi?.highCpmKeywords || regenerated.highCpmKeywords,
     brief: regenerated.brief
   });
 

@@ -565,15 +565,56 @@ def render_video(data: dict, output_mp4: str):
         img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(img_pil, 'RGBA')
 
+        # Safe topic-based scene metadata
+        scenes_data = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
+        high_cpm_keywords = data.get('highCpmKeywords', []) if isinstance(data.get('highCpmKeywords'), list) else []
+
+        def get_scene_title(idx, default):
+            if idx < len(scenes_data) and isinstance(scenes_data[idx], dict):
+                t = scenes_data[idx].get('title')
+                if t and isinstance(t, str) and len(t.strip()) > 0:
+                    return sanitize_text(t).upper()[:28]
+            return default.upper()
+
+        def get_scene_overlay(idx, default):
+            if idx < len(scenes_data) and isinstance(scenes_data[idx], dict):
+                ov = scenes_data[idx].get('overlayText')
+                if ov and isinstance(ov, str) and len(ov.strip()) > 0:
+                    return sanitize_text(ov)
+            return default
+
+        # Dynamic subcard labels for Scene 2
+        card_labels = []
+        if len(high_cpm_keywords) >= 4:
+            for kw in high_cpm_keywords[:4]:
+                card_labels.append((sanitize_text(str(kw))[:16], "Active Module"))
+        elif len(high_cpm_keywords) > 0:
+            for kw in high_cpm_keywords:
+                card_labels.append((sanitize_text(str(kw))[:16], "Verified Engine"))
+            defaults = [("Neural Pipeline", "100% Autonomous"), ("Data Stream", "Realtime Sync"), ("Core Optimizer", "Low Latency"), ("Agent Swarm", "Multi-Threaded")]
+            for d in defaults:
+                if len(card_labels) < 4:
+                    card_labels.append(d)
+        else:
+            card_labels = [
+                ("Core Architecture", "High Throughput"),
+                ("Data Pipeline", "Zero Latency"),
+                ("Neural Logic", "Production Ready"),
+                ("Cloud Dispatch", "Realtime Sync")
+            ]
+
         # Single cleanly rendered Brand/Alert Pill
         if t_sec < 3.5:
             pulse = math.sin(t_sec * 14.0) * 0.5 + 0.5
             r_val = int(220 + 35 * pulse)
-            draw.rounded_rectangle([W//2 - 280, 60, W//2 + 280, 126], radius=22, fill=(r_val, 25, 35, 245), outline=(255, 220, 50, 220), width=3)
-            paste_icon(img_pil, icon_alert_36, (W//2 - 260, 75))
-            paste_icon(img_pil, icon_alert_36, (W//2 + 224, 75))
-            w_txt = get_text_width(draw, "! 2026 AI BLUEPRINT !", font_brand_bold)
-            draw.text((W//2 - w_txt//2, 78), "! 2026 AI BLUEPRINT !", font=font_brand_bold, fill=(255, 255, 255))
+            alert_topic = clean_title.upper()[:20] if clean_title else "AI BLUEPRINT"
+            alert_text = f"! URGENT: {alert_topic} !"
+            w_txt = get_text_width(draw, alert_text, font_brand_bold)
+            pill_half = max(260, (w_txt + 100) // 2)
+            draw.rounded_rectangle([W//2 - pill_half, 60, W//2 + pill_half, 126], radius=22, fill=(r_val, 25, 35, 245), outline=(255, 220, 50, 220), width=3)
+            paste_icon(img_pil, icon_alert_36, (W//2 - pill_half + 20, 75))
+            paste_icon(img_pil, icon_alert_36, (W//2 + pill_half - 56, 75))
+            draw.text((W//2 - w_txt//2, 78), alert_text, font=font_brand_bold, fill=(255, 255, 255))
         else:
             draw.rounded_rectangle([W//2 - 190, 60, W//2 + 190, 120], radius=18, fill=(10, 12, 20, 200), outline=(255, 255, 255, 45), width=2)
             dot_col = (255, 40, 60) if int(t_sec * 4) % 2 == 0 else (180, 20, 35)
@@ -581,41 +622,50 @@ def render_video(data: dict, output_mp4: str):
             draw.text((W//2 - 120, 76), "NEURAL PULSE AI", font=font_brand, fill=(255, 255, 255))
 
         if sc1_end <= t_sec < sc2_end:
+            sc2_hdr = get_scene_title(1, "1. CORE ARCHITECTURE")
             draw.rounded_rectangle([70, 180, W - 70, 290], radius=24, fill=(15, 25, 45, 235), outline=(0, 240, 255, 180), width=3)
-            draw.text((110, 205), "1. AI WORKFLOW BRAIN", font=font_title, fill=(255, 255, 255))
+            draw.text((110, 205), sc2_hdr, font=font_title, fill=(255, 255, 255))
             paste_icon(img_pil, icon_zap_36, (W - 390, 215))
             draw.text((W - 345, 220), "24/7 AUTONOMOUS", font=font_brand, fill=(0, 255, 160))
 
-            draw.rounded_rectangle([W//2 - 230, 560, W//2 + 230, 720], radius=28, fill=(18, 42, 75, 245), outline=(0, 240, 255, 240), width=4)
-            paste_icon(img_pil, icon_zap_36, (W//2 - 200, 588))
-            draw.text((W//2 - 150, 590), "AUTONOMOUS CORE", font=font_card, fill=(255, 255, 255))
+            core_name = (clean_title.upper()[:16] + " CORE") if clean_title else "AUTONOMOUS CORE"
+            cw = max(460, get_text_width(draw, core_name, font_card) + 160)
+            draw.rounded_rectangle([W//2 - cw//2, 560, W//2 + cw//2, 720], radius=28, fill=(18, 42, 75, 245), outline=(0, 240, 255, 240), width=4)
+            paste_icon(img_pil, icon_zap_36, (W//2 - cw//2 + 30, 588))
+            draw.text((W//2 - cw//2 + 80, 590), core_name, font=font_card, fill=(255, 255, 255))
             prog = (t_sec - sc1_end) / max(0.1, sc2_end - sc1_end)
             tasks_done = int(prog * 48) + 12
-            draw.text((W//2 - 165, 655), f"Tasks Handled: {tasks_done} Done", font=font_brand, fill=(0, 240, 255))
+            status_txt = f"Status: {tasks_done} Ops Completed"
+            draw.text((W//2 - get_text_width(draw, status_txt, font_brand)//2, 655), status_txt, font=font_brand, fill=(0, 240, 255))
 
+            # Card 1 (top-left)
             draw.rounded_rectangle([80, 380, 440, 500], radius=20, fill=(18, 22, 38, 230), outline=(255, 70, 70, 160), width=2)
-            paste_icon(img_pil, icon_gmail, (105, 400))
-            draw.text((160, 405), "Gmail Inbox", font=font_card, fill=(255, 255, 255))
-            draw.text((105, 455), "42 Emails Filtered", font=font_brand, fill=(200, 210, 230))
+            paste_icon(img_pil, icon_code_36, (105, 400))
+            draw.text((160, 405), card_labels[0][0], font=font_card, fill=(255, 255, 255))
+            draw.text((105, 455), card_labels[0][1], font=font_brand, fill=(200, 210, 230))
 
+            # Card 2 (top-right)
             draw.rounded_rectangle([W - 440, 380, W - 80, 500], radius=20, fill=(18, 22, 38, 230), outline=(70, 140, 255, 160), width=2)
-            paste_icon(img_pil, icon_calendar, (W - 415, 400))
-            draw.text((W - 360, 405), "Calendar", font=font_card, fill=(255, 255, 255))
-            draw.text((W - 415, 455), "Schedule Optimized", font=font_brand, fill=(200, 210, 230))
+            paste_icon(img_pil, icon_zap_36, (W - 415, 400))
+            draw.text((W - 360, 405), card_labels[1][0], font=font_card, fill=(255, 255, 255))
+            draw.text((W - 415, 455), card_labels[1][1], font=font_brand, fill=(200, 210, 230))
 
+            # Card 3 (bottom-left)
             draw.rounded_rectangle([80, 780, 440, 900], radius=20, fill=(18, 22, 38, 230), outline=(255, 255, 255, 90), width=2)
-            paste_icon(img_pil, icon_notion, (105, 800))
-            draw.text((160, 805), "Notion DB", font=font_card, fill=(255, 255, 255))
-            draw.text((105, 855), "Daily Brief Saved", font=font_brand, fill=(200, 210, 230))
+            paste_icon(img_pil, icon_fire_36, (105, 800))
+            draw.text((160, 805), card_labels[2][0], font=font_card, fill=(255, 255, 255))
+            draw.text((105, 855), card_labels[2][1], font=font_brand, fill=(200, 210, 230))
 
+            # Card 4 (bottom-right)
             draw.rounded_rectangle([W - 440, 780, W - 80, 900], radius=20, fill=(18, 22, 38, 230), outline=(0, 210, 255, 160), width=2)
-            paste_icon(img_pil, icon_telegram, (W - 415, 800))
-            draw.text((W - 360, 805), "Telegram", font=font_card, fill=(255, 255, 255))
-            draw.text((W - 415, 855), "Alerts Dispatched", font=font_brand, fill=(0, 255, 160))
+            paste_icon(img_pil, icon_rocket_36, (W - 415, 800))
+            draw.text((W - 360, 805), card_labels[3][0], font=font_card, fill=(255, 255, 255))
+            draw.text((W - 415, 855), card_labels[3][1], font=font_brand, fill=(0, 255, 160))
 
         elif sc2_end <= t_sec < sc3_end:
+            sc3_hdr = get_scene_title(2, "2. DEEP BENCHMARK")
             draw.rounded_rectangle([70, 180, W - 70, 290], radius=24, fill=(35, 22, 16, 235), outline=(255, 180, 40, 180), width=3)
-            draw.text((110, 205), "2. VOICE TO CODE", font=font_title, fill=(255, 255, 255))
+            draw.text((110, 205), sc3_hdr, font=font_title, fill=(255, 255, 255))
             paste_icon(img_pil, icon_mic, (W - 400, 212))
             draw.text((W - 345, 220), "30s SPEED BENCH", font=font_brand, fill=(255, 200, 50))
 
@@ -635,41 +685,47 @@ def render_video(data: dict, output_mp4: str):
 
             draw.rounded_rectangle([80, 680, W - 80, 800], radius=22, fill=(18, 18, 30, 240), outline=(255, 255, 255, 60), width=2)
             paste_icon(img_pil, icon_mic, (105, 696))
-            draw.text((160, 702), "INPUT: 1-Minute Casual Voice Memo", font=font_brand, fill=(255, 180, 50))
-            draw.text((105, 745), '"Deploy autonomous AI coding agents for my stack..."', font=font_mono, fill=(230, 230, 230))
+            input_label = f"INPUT: {clean_title[:32]}"
+            draw.text((160, 702), input_label, font=font_brand, fill=(255, 180, 50))
+            sc3_snippet = get_scene_overlay(2, f"Analyzing {clean_title} performance and architecture...")
+            draw.text((105, 745), f'"{sc3_snippet[:46]}..."', font=font_mono, fill=(230, 230, 230))
 
-            draw.text((W//2 - 250, 820), ">>> CONVERSION TIME: 30 SECONDS <<<", font=font_brand, fill=(0, 240, 255))
+            bench_banner = f">>> BENCHMARK RUN: {clean_title.upper()[:24]} <<<"
+            bb_w = get_text_width(draw, bench_banner, font_brand)
+            draw.text((W//2 - bb_w//2, 820), bench_banner, font=font_brand, fill=(0, 240, 255))
 
             draw.rounded_rectangle([80, 870, W - 80, 1050], radius=22, fill=(15, 25, 38, 245), outline=(0, 255, 180, 180), width=3)
             paste_icon(img_pil, icon_code_36, (105, 888))
-            draw.text((155, 895), "OUTPUT: Production Pipeline Code & PRs", font=font_brand, fill=(0, 255, 180))
+            draw.text((155, 895), "OUTPUT: Production Pipeline & Results", font=font_brand, fill=(0, 255, 180))
             draw.line([(108, 960), (116, 968), (130, 950)], fill=(0, 255, 160), width=3)
-            draw.text((140, 945), "Autonomous Docker Setup & Scripts", font=font_mono, fill=(255, 255, 255))
+            draw.text((140, 945), "Zero-Latency Architecture Verified", font=font_mono, fill=(255, 255, 255))
             draw.line([(108, 1005), (116, 1013), (130, 995)], fill=(0, 255, 160), width=3)
-            draw.text((140, 990), "Auto-generated Test Suites (48 Passed)", font=font_mono, fill=(255, 255, 255))
+            draw.text((140, 990), "Auto-generated Test Suites (48 / 48 Passed)", font=font_mono, fill=(255, 255, 255))
 
         elif sc3_end <= t_sec < sc4_end:
+            sc4_hdr = get_scene_title(3, "3. AUTONOMOUS RUNNER")
             draw.rounded_rectangle([70, 180, W - 70, 290], radius=24, fill=(10, 32, 20, 235), outline=(0, 255, 120, 180), width=3)
-            draw.text((110, 205), "3. DEVENGINE RUNNER", font=font_title, fill=(255, 255, 255))
+            draw.text((110, 205), sc4_hdr, font=font_title, fill=(255, 255, 255))
             paste_icon(img_pil, icon_code_36, (W - 390, 215))
-            draw.text((W - 345, 220), "AI SOFTWARE ENG", font=font_brand, fill=(0, 255, 140))
+            draw.text((W - 345, 220), "AI PIPELINE RUN", font=font_brand, fill=(0, 255, 140))
 
             draw.rounded_rectangle([70, 330, W - 70, 1140], radius=26, fill=(6, 16, 10, 248), outline=(0, 255, 120, 120), width=2)
             draw.ellipse([100, 360, 120, 380], fill=(255, 70, 70))
             draw.ellipse([135, 360, 155, 380], fill=(255, 200, 50))
             draw.ellipse([170, 360, 190, 380], fill=(50, 220, 100))
-            draw.text((220, 358), "devengine-agent --autonomous", font=font_brand, fill=(120, 180, 140))
+            cmd_slug = re.sub(r'[^a-zA-Z0-9]', '_', clean_title.lower())[:16] or "system"
+            draw.text((220, 358), f"agent-engine --target {cmd_slug}", font=font_brand, fill=(120, 180, 140))
 
             terminal_lines = [
-                ("$ devengine --autonomous --target prod", (0, 255, 200)),
-                ("Scanning repo: 14,820 LOC in 42 modules...", (180, 180, 180)),
-                ("[BUG] Memory leak in auth_worker.py:42", (255, 100, 100)),
-                ("[PATCH] Generating zero-copy buffer fix...", (255, 200, 50)),
-                ("[OK] Applied PR #142 automatically", (0, 255, 120)),
-                ("Running 48 automated test suites...", (180, 180, 180)),
-                ("[OK] 48 / 48 TESTS PASSED in 240ms", (0, 255, 120)),
-                ("Deploying to AWS us-east-1 cluster...", (255, 200, 50)),
-                (">>> 100% DEPLOYED & LIVE <<<", (0, 255, 120))
+                (f"$ run-engine --analyze --target {cmd_slug}", (0, 255, 200)),
+                (f"Scanning target architecture: {clean_title[:28]}...", (180, 180, 180)),
+                ("[INIT] Neural weights & pipeline initialized", (0, 255, 120)),
+                ("[OPTIMIZE] Evaluating high-throughput performance...", (255, 200, 50)),
+                (f"[OK] Core pipeline validated successfully", (0, 255, 120)),
+                ("Executing 48 automated test suites & benchmarks...", (180, 180, 180)),
+                ("[OK] 48 / 48 BENCHMARKS PASSED in 240ms", (0, 255, 120)),
+                (f"Deploying production model to live cluster...", (255, 200, 50)),
+                (">>> 100% VERIFIED & PRODUCTION READY <<<", (0, 255, 120))
             ]
             prog_d = (t_sec - sc3_end) / max(0.1, sc4_end - sc3_end)
             num_visible = min(len(terminal_lines), int(prog_d * (len(terminal_lines) + 2)) + 1)
@@ -678,8 +734,9 @@ def render_video(data: dict, output_mp4: str):
                 draw.text((100, 420 + l_idx * 70), txt, font=font_mono, fill=col)
 
         elif sc4_end <= t_sec < sc5_end:
+            sc5_hdr = get_scene_title(4, "4. 10X IMPACT MATRIX")
             draw.rounded_rectangle([70, 180, W - 70, 290], radius=24, fill=(35, 15, 45, 235), outline=(255, 80, 240, 180), width=3)
-            draw.text((110, 205), "4. 10X MULTIPLIER", font=font_title, fill=(255, 255, 255))
+            draw.text((110, 205), sc5_hdr, font=font_title, fill=(255, 255, 255))
             paste_icon(img_pil, icon_rocket_36, (W - 390, 215))
             draw.text((W - 345, 220), "VIRAL SCALE", font=font_brand, fill=(255, 120, 255))
 
@@ -699,9 +756,9 @@ def render_video(data: dict, output_mp4: str):
 
             draw.rounded_rectangle([80, 860, W - 80, 970], radius=20, fill=(15, 10, 25, 240), outline=(0, 255, 180, 140), width=2)
             paste_icon(img_pil, icon_fire_36, (105, 875))
-            draw.text((155, 882), "Viral Hook Score: 98.4 / 100", font=font_brand, fill=(255, 180, 50))
+            draw.text((155, 882), "Viral Hook Retention Score: 98.4 / 100", font=font_brand, fill=(255, 180, 50))
             paste_icon(img_pil, icon_zap_36, (105, 920))
-            draw.text((155, 928), "10 Multi-Platform Clips Exported in 60s", font=font_brand, fill=(0, 255, 180))
+            draw.text((155, 928), f"High-Retention Target: {clean_title[:32]}", font=font_brand, fill=(0, 255, 180))
 
         cur_sub = None
         for (c_st, c_et, lines, colors) in subtitles:

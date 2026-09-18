@@ -10,10 +10,22 @@ export interface SceneItem {
   overlayText?: string;
 }
 
+export interface TitleVariant {
+  title: string;
+  hookType: 'curiosity' | 'urgency' | 'roi';
+  predictedCtr: string;
+  tagline: string;
+}
+
 export interface ContentItemRecord {
   id: string;
   workspaceId: string;
   title: string;
+  titleVariants?: TitleVariant[];
+  pinnedComment?: string;
+  relatedVideoId?: string;
+  loopTransition?: string;
+  highCpmKeywords?: string[];
   status: 'idea' | 'scripting' | 'storyboarding' | 'generating' | 'review' | 'approved' | 'scheduled' | 'published' | 'failed';
   videoFormat: 'shorts' | 'long_form';
   contentPillar: 'educational' | 'entertaining' | 'promotional';
@@ -407,10 +419,44 @@ In this video, we dissect the core mechanics, practical implementation, and futu
         'machine learning'
       ];
 
+      const titleVariants: TitleVariant[] = [
+        {
+          title: `${cleanTitle}: The Complete 2026 Masterclass`,
+          hookType: 'roi',
+          predictedCtr: '9.2%',
+          tagline: 'High-Authority Comprehensive Guide'
+        },
+        {
+          title: `The Shocking Truth About ${cleanTitle} in 2026`,
+          hookType: 'curiosity',
+          predictedCtr: '11.8%',
+          tagline: 'Maximum Curiosity & Click Appeal'
+        },
+        {
+          title: `Why Most Engineers Fail at ${cleanTitle} (Avoid This)`,
+          hookType: 'urgency',
+          predictedCtr: '10.1%',
+          tagline: 'Urgency & Mistake Prevention'
+        }
+      ];
+
+      const pinnedComment = `Which phase of ${cleanTitle} are you implementing first? Drop your questions below and we'll reply to every comment! 👇 (P.S. Code blueprint and resources linked in description)`;
+      const loopTransition = `And that brings us right back to why mastering this architecture is essential in 2026.`;
+      const highCpmKeywords = [
+        'Artificial Intelligence ($28.40 CPM)',
+        'Cloud Architecture ($32.10 CPM)',
+        'Software Engineering ($24.80 CPM)',
+        'DevOps Automation ($29.50 CPM)'
+      ];
+
       return {
         id: params.id,
         workspaceId: params.workspaceId,
         title: params.title,
+        titleVariants,
+        pinnedComment,
+        loopTransition,
+        highCpmKeywords,
         status: params.status,
         videoFormat: 'long_form',
         contentPillar: params.contentPillar,
@@ -433,7 +479,7 @@ In this video, we dissect the core mechanics, practical implementation, and futu
         { id: 'part1', title: '2. Muammo & Yechim', time: 10.5, tag: '⚡ Asosiy Yechim' },
         { id: 'part2', title: '3. Amaliy Foyda & Ishlash Usuli', time: 21.0, tag: '🛠️ Demo & Jarayon' },
         { id: 'part3', title: '4. Natija & Ko\'rsatkichlar', time: 33.0, tag: '📈 10x Samaradorlik' },
-        { id: 'outro', title: '5. Obuna & Fikrlar (CTA)', time: 45.0, tag: '🔔 Obuna & CTA' }
+        { id: 'outro', title: '5. Obuna & Fikrlar (CTA)', time: 45.0, tag: '🔔 Obuna & Loop' }
       ];
 
       const script = `[0:00 - 0:04] HOOK (Fast camera zoom in & pulse graphic):
@@ -448,8 +494,8 @@ In this video, we dissect the core mechanics, practical implementation, and futu
 [0:32 - 0:44] SCENE 3 (Real-World Results):
 "Top creators and engineers are using this exact blueprint to 10x their output without burning out."
 
-[0:45 - 0:56] OUTRO & CTA:
-"Have you tested ${cleanTitle} yet? Drop your opinion below and subscribe to Neural Pulse AI for daily breakthroughs!"`;
+[0:45 - 0:56] OUTRO & SEAMLESS LOOP:
+"Drop your thoughts below, subscribe for daily blueprints, and that is the exact reason why..."`;
 
       const description = `Here is everything you need to know about ${cleanTitle} in 2026.
 Watch until the end for the exact blueprint.
@@ -474,10 +520,43 @@ Watch until the end for the exact blueprint.
         'trends 2026'
       ];
 
+      const titleVariants: TitleVariant[] = [
+        {
+          title: `Stop Doing This Manually! Use ${cleanTitle} #Shorts`,
+          hookType: 'urgency',
+          predictedCtr: '12.4%',
+          tagline: 'Urgency / Stop Scrolling Hook'
+        },
+        {
+          title: `The Secret AI Breakthrough: ${cleanTitle} #Shorts`,
+          hookType: 'curiosity',
+          predictedCtr: '11.1%',
+          tagline: 'Pure Curiosity & High VVSA'
+        },
+        {
+          title: `How ${cleanTitle} 10x'd Our Workflow in 24 Hours #Shorts`,
+          hookType: 'roi',
+          predictedCtr: '9.8%',
+          tagline: 'Proof & Practical 10x Results'
+        }
+      ];
+
+      const pinnedComment = `Are you already testing ${cleanTitle}, or still doing it manually? Comment below and subscribe to Neural Pulse AI for daily breakthroughs! 👇 (Full 16:9 breakdown linked in related video)`;
+      const loopTransition = `...and that is the exact reason why... [Flows directly back into 0:00 Hook]`;
+      const highCpmKeywords = [
+        'AI Automation ($26.80 CPM)',
+        'Productivity Tech ($22.40 CPM)',
+        'Future of Work ($25.10 CPM)'
+      ];
+
       return {
         id: params.id,
         workspaceId: params.workspaceId,
         title: params.title,
+        titleVariants,
+        pinnedComment,
+        loopTransition,
+        highCpmKeywords,
         status: params.status,
         videoFormat: 'shorts',
         contentPillar: params.contentPillar,

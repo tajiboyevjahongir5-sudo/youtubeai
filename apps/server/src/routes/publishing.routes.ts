@@ -96,6 +96,9 @@ Which AI tool will you try first? Comment below and subscribe for daily blueprin
 
 #ai #automation #artificialintelligence #productivity #techtok #shorts`,
       tags: req.body.tags || ['AI tools', 'artificial intelligence', 'automation', 'productivity', 'ChatGPT', 'AI productivity', 'tech trends 2026', 'shorts'],
+      pinnedComment: req.body.pinnedComment,
+      relatedVideoId: req.body.relatedVideoId,
+      thumbnailPath: req.body.thumbnailPath || (fs.existsSync(videoPath.replace('.mp4', '_thumb.jpg')) ? videoPath.replace('.mp4', '_thumb.jpg') : undefined),
       privacyStatus: req.body.privacyStatus || 'public',
       categoryId: '28'
     };

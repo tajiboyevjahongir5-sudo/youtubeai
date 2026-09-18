@@ -351,7 +351,9 @@ export class YouTubeService implements IYouTubeService {
       requestBody: {
         snippet: { 
           title: metadata.title, 
-          description: metadata.description, 
+          description: metadata.relatedVideoId && !metadata.description.includes(metadata.relatedVideoId)
+            ? `${metadata.description}\n\n🔗 Watch full breakdown: https://youtu.be/${metadata.relatedVideoId}`
+            : metadata.description, 
           tags: metadata.tags || ['shorts', 'ai', 'neural pulse'],
           categoryId: metadata.categoryId || '28',
           defaultLanguage: 'en',
@@ -373,6 +375,54 @@ export class YouTubeService implements IYouTubeService {
     });
 
     console.log(`🎉 [YouTube API - ${workspaceId}] Muvaffaqiyatli yuklandi! Video ID: ${res.data.id}`);
+
+    // 1. Post automated Pinned Comment if provided
+    if (metadata.pinnedComment && res.data.id) {
+      let finalComment = metadata.pinnedComment;
+      if (metadata.relatedVideoId && !finalComment.includes(metadata.relatedVideoId)) {
+        finalComment += `\n\n👉 Full Master Breakdown: https://youtu.be/${metadata.relatedVideoId}`;
+      }
+      try {
+        await youtube.commentThreads.insert({
+          part: ['snippet'],
+          requestBody: {
+            snippet: {
+              videoId: res.data.id,
+              topLevelComment: {
+                snippet: {
+                  textOriginal: finalComment
+                }
+              }
+            }
+          }
+        });
+        console.log(`💬 [YouTube API - ${workspaceId}] Pinned Comment avtomatik qoldirildi!`);
+      } catch (commentErr: any) {
+        console.warn(`⚠️ [YouTube API - ${workspaceId}] Pinned comment qoldirishda xatolik:`, commentErr?.message || commentErr);
+      }
+    }
+
+    // 2. Set Custom High-CTR Thumbnail if available
+    const thumbCandidates = [
+      metadata.thumbnailPath,
+      videoPath.replace('.mp4', '_thumb.jpg'),
+      videoPath.replace('.mp4', '.jpg')
+    ];
+    const thumbPath = thumbCandidates.find(p => p && fs.existsSync(p));
+    if (thumbPath && res.data.id) {
+      try {
+        await youtube.thumbnails.set({
+          videoId: res.data.id,
+          media: {
+            body: fs.createReadStream(thumbPath)
+          }
+        });
+        console.log(`🖼️ [YouTube API - ${workspaceId}] Maxsus Thumbnail muvaffaqiyatli yuklandi: ${thumbPath}`);
+      } catch (thumbErr: any) {
+        console.warn(`⚠️ [YouTube API - ${workspaceId}] Thumbnail yuklashda xatolik:`, thumbErr?.message || thumbErr);
+      }
+    }
+
     return res.data;
   }
 
