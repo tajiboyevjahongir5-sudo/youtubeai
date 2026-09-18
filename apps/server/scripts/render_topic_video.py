@@ -783,12 +783,40 @@ def render_video(data: dict, output_mp4: str):
         '-preset', 'fast',
         '-crf', '22',
         '-pix_fmt', 'yuv420p',
+        '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11',
         '-c:a', 'aac',
         '-b:a', '192k',
         '-movflags', '+faststart',
         output_mp4
     ]
-    subprocess.run(mux_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    try:
+        subprocess.run(mux_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    except Exception:
+        # Fallback without loudnorm if audio filter fails
+        mux_fallback = [
+            ffmpeg_bin, '-y', '-i', raw_video, '-i', final_audio,
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '22',
+            '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k',
+            '-movflags', '+faststart', output_mp4
+        ]
+        subprocess.run(mux_fallback, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    # Automatic High-CTR Thumbnail generation
+    thumb_path = output_mp4.replace('.mp4', '_thumb.jpg')
+    try:
+        thumb_cmd = [
+            ffmpeg_bin, '-y',
+            '-ss', str(min(2.5, duration * 0.1)),
+            '-i', output_mp4,
+            '-vframes', '1',
+            '-q:v', '2',
+            thumb_path
+        ]
+        subprocess.run(thumb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(thumb_path):
+            print(f"📸 Thumbnail generated: {thumb_path}", flush=True)
+    except Exception:
+        pass
 
     try:
         shutil.rmtree(temp_dir)
