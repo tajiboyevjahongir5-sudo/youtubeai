@@ -3,6 +3,7 @@ import { db } from '../db';
 import { youtubeChannels } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { youtubeService } from '../services/youtube.service';
+import { analyticsService } from '../services/analytics.service';
 
 const router = Router({ mergeParams: true });
 
@@ -113,16 +114,70 @@ router.get('/videos/:videoId', async (req: Request, res: Response, next: NextFun
   }
 });
 
+router.get('/diagnostics', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+    const diagnostics = await analyticsService.getDiagnostics(workspaceId);
+    res.json(diagnostics);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/reanalyze', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+    const diagnostics = await analyticsService.analyzeChannelVideos(workspaceId, true);
+    res.json({
+      success: true,
+      message: 'Kanal videolari to\'liq algoritmik tahlil qilindi va o\'rganish xotirasi yangilandi',
+      diagnostics
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/learned-directives', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+    const directives = analyticsService.getLearnedDirectives(workspaceId);
+    res.json({ directives });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/insights', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    res.json([
-      {
+    const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+    const data = await analyticsService.getDiagnostics(workspaceId);
+    
+    const insights = [
+      ...(data.identifiedWeaknesses || []).map((w, idx) => ({
+        id: `weakness_${idx}`,
+        type: 'critical_bottleneck',
+        title: `Algoritmik Kamchilik: ${w}`,
+        confidence: 'high'
+      })),
+      ...(data.bestPerformingPatterns || []).map((p, idx) => ({
+        id: `pattern_${idx}`,
+        type: 'viral_pattern',
+        title: `Viral Imkoniyat: ${p}`,
+        confidence: 'high'
+      }))
+    ];
+
+    if (insights.length === 0) {
+      insights.push({
         id: '1',
         type: 'new_channel',
         title: 'Yangi kanal: Dastlabki 10 ta Shorts orqali auditoriya bazasini shakllantirish tavsiya etiladi',
         confidence: 'high'
-      }
-    ]);
+      });
+    }
+
+    res.json(insights);
   } catch (error) {
     next(error);
   }
@@ -130,14 +185,14 @@ router.get('/insights', async (req: Request, res: Response, next: NextFunction) 
 
 router.get('/strategy-memory', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    res.json([
-      {
-        id: '1',
-        lesson: 'Yangi kanallarda "5 AI Websites That Feel Illegal" mavzusi eng tez 0 dan 10K ko\'rish oladi',
-        confidenceLevel: 'high',
-        active: true
-      }
-    ]);
+    const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+    const directives = analyticsService.getLearnedDirectives(workspaceId);
+    res.json(directives.map((d, i) => ({
+      id: String(i + 1),
+      lesson: d,
+      confidenceLevel: 'high',
+      active: true
+    })));
   } catch (error) {
     next(error);
   }

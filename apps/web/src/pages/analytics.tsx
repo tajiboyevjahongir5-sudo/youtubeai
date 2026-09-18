@@ -30,7 +30,16 @@ import {
   Sparkles,
   Layers,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Brain,
+  CheckCircle2,
+  AlertTriangle,
+  TrendingDown,
+  Target,
+  MessageSquare,
+  HelpCircle,
+  Zap,
+  ShieldAlert
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -93,6 +102,9 @@ const AnalyticsPage = () => {
   const [mode, setMode] = useState<'real' | 'benchmark'>('real');
   const [channelInfo, setChannelInfo] = useState<any>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const wsId = getWorkspaceId();
 
   const fetchSummary = () => {
@@ -104,8 +116,23 @@ const AnalyticsPage = () => {
       .catch(() => {});
   };
 
+  const fetchDiagnostics = () => {
+    fetch(`/api/workspaces/${wsId}/analytics/diagnostics`, {
+      headers: { 'x-workspace-id': wsId }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setDiagnostics(data);
+        if (data?.videoDiagnostics && data.videoDiagnostics.length > 0) {
+          setSelectedVideoId(prev => prev || data.videoDiagnostics[0].id);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchSummary();
+    fetchDiagnostics();
   }, [wsId]);
 
   const handleSync = async () => {
@@ -116,10 +143,32 @@ const AnalyticsPage = () => {
         headers: { 'x-workspace-id': wsId }
       });
       fetchSummary();
+      fetchDiagnostics();
     } catch (e) {
       console.error('Sync error:', e);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleReanalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/analytics/reanalyze`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': wsId }
+      });
+      const data = await res.json();
+      if (data?.diagnostics) {
+        setDiagnostics(data.diagnostics);
+        if (data.diagnostics.videoDiagnostics?.length > 0) {
+          setSelectedVideoId(data.diagnostics.videoDiagnostics[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Re-analyze error:', e);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -296,6 +345,253 @@ const AnalyticsPage = () => {
                 />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Algorithmic Diagnostic & Self-Learning Center */}
+      <Card className="liquid-glass border border-red-500/30 bg-gradient-to-br from-red-500/[0.04] via-black/40 to-amber-500/[0.02] overflow-hidden shadow-[0_8px_32px_rgba(255,0,0,0.08)]">
+        <div className="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="p-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30">
+                <Brain size={18} className="animate-pulse" />
+              </span>
+              <h3 className="font-extrabold text-white text-lg tracking-tight">
+                AI Algoritmik Tahlil & O'zini-O'zi Rivojlantirish Markazi
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide">
+                Self-Learning Faol
+              </span>
+            </div>
+            <p className="text-xs text-gray-300 max-w-3xl leading-relaxed">
+              Yuklangan videolarni YouTube algoritmi (VVSA, Retensiya, Like va Obuna konversiyasi) asosida chuqur tahlil qiladi. Aniqlangan xatoliklar kanal xotirasida saqlanadi va <strong>keyingi barcha videolar yaratilishida AI tomonidan avtomatik tuzatiladi</strong>.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/10 text-right">
+              <span className="text-[10px] text-gray-400 block font-medium">Algoritmik Viral Salohiyat</span>
+              <span className="text-sm font-bold text-red-400">
+                {diagnostics?.channelViralScore || 45} <span className="text-[11px] text-gray-500 font-normal">/ 100</span>
+              </span>
+            </div>
+            <Button
+              onClick={handleReanalyze}
+              disabled={isAnalyzing}
+              variant="outline"
+              size="sm"
+              className="gap-2 border-red-500/40 hover:bg-red-500/20 text-xs font-semibold text-white bg-red-500/10 shadow-[0_0_12px_rgba(255,0,0,0.2)]"
+            >
+              <RefreshCw size={13} className={isAnalyzing ? "animate-spin text-red-400" : "text-red-400"} />
+              {isAnalyzing ? "AI Tahlil Qilmoqda..." : "Qayta Analiz Qilish"}
+            </Button>
+          </div>
+        </div>
+
+        <CardContent className="p-6 space-y-6">
+          {/* Video Selector Tabs */}
+          {diagnostics?.videoDiagnostics && diagnostics.videoDiagnostics.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                  <Play size={13} className="text-red-400" /> Tahlil Qilingan Videolar (Bosing):
+                </span>
+                <span className="text-xs text-gray-400">
+                  Jami tahlil qilingan: <strong>{diagnostics.totalVideosAnalyzed}</strong> ta video
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {diagnostics.videoDiagnostics.map((v: any) => {
+                  const isSelected = selectedVideoId === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setSelectedVideoId(v.id)}
+                      className={`text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 ${
+                        isSelected 
+                          ? 'border-red-500 bg-red-500/10 shadow-[0_0_16px_rgba(255,0,0,0.25)] ring-1 ring-red-500/50' 
+                          : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      }`}
+                    >
+                      {v.thumbnail && (
+                        <img 
+                          src={v.thumbnail} 
+                          alt={v.title} 
+                          className="w-16 h-11 object-cover rounded-lg border border-white/10 shrink-0" 
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-xs text-white line-clamp-1 mb-1">
+                          {v.title}
+                        </p>
+                        <div className="flex items-center gap-2 text-[11px] text-gray-400 mb-1.5">
+                          <span className="text-red-400 font-bold flex items-center gap-0.5">
+                            <Eye size={11} /> {v.views}
+                          </span>
+                          <span>•</span>
+                          <span className="text-amber-400 flex items-center gap-0.5">
+                            <ThumbsUp size={11} /> {v.likes}
+                          </span>
+                          <span>•</span>
+                          <span>{v.comments} izoh</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${
+                          v.status === 'viral' 
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : v.status === 'performing'
+                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {v.statusLabel}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Detailed 4-Pillar Algorithmic Breakdown for the Active Video */}
+              {(() => {
+                const active = diagnostics.videoDiagnostics.find((v: any) => v.id === selectedVideoId) || diagnostics.videoDiagnostics[0];
+                if (!active) return null;
+
+                return (
+                  <div className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                      <div>
+                        <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider block">
+                          Chuqur Algoritmik Ekspertiza (Post-Mortem):
+                        </span>
+                        <h4 className="text-sm font-bold text-white mt-0.5">
+                          "{active.title}"
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-400">Like nisbati: <strong className="text-white">{active.likeRatio}%</strong></span>
+                        <span className="text-gray-600">|</span>
+                        <span className="text-gray-400">Izoh faolligi: <strong className="text-white">{active.commentRatio}%</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Quadrant 1: Why Viral or Stalled */}
+                      <div className="p-4 rounded-xl bg-red-500/[0.04] border border-red-500/20 space-y-2">
+                        <div className="flex items-center gap-2 text-red-400 text-xs font-bold">
+                          <TrendingDown size={15} />
+                          Nega rekga to'liq chiqmadi (yoki to'xtadi)?
+                        </div>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                          {active.whyViralOrStalled}
+                        </p>
+                        <div className="text-[11px] text-gray-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                          💡 <strong>Algoritm siri:</strong> Shorts algoritmi dastlab 100-150 ta tomoshabinda sinov o'tkazadi. Agar 0-3 soniyada o'tkazib yuborish (Swiped Away) 35% dan oshsa, video tavsiyalardan darhol olib tashlanadi.
+                        </div>
+                      </div>
+
+                      {/* Quadrant 2: Why Low Likes */}
+                      <div className="p-4 rounded-xl bg-amber-500/[0.04] border border-amber-500/20 space-y-2">
+                        <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+                          <ThumbsUp size={15} />
+                          Nega layk kam ({active.likes} ta layk)?
+                        </div>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                          {active.whyLowLikes}
+                        </p>
+                        <div className="text-[11px] text-gray-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                          💡 <strong>Algoritm siri:</strong> Tomoshabin layk bosishi uchun unga aniq amaliy sabab berilishi shart: "Bu promptni yo'qotmaslik uchun layk bosib saqlab oling".
+                        </div>
+                      </div>
+
+                      {/* Quadrant 3: Why Low Subscribers */}
+                      <div className="p-4 rounded-xl bg-blue-500/[0.04] border border-blue-500/20 space-y-2">
+                        <div className="flex items-center gap-2 text-blue-400 text-xs font-bold">
+                          <UserPlus size={15} />
+                          Nega obuna kelmayapti?
+                        </div>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                          {active.whyLowSubscribers}
+                        </p>
+                        <div className="text-[11px] text-gray-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                          💡 <strong>Algoritm siri:</strong> Outroda shunchaki "obuna bo'ling" deyish samarasiz. "Ertangi 2-qismda yangi AI arxitekturani ko'rsatamiz" kabi aniq ertangi va'da bo'lishi kerak.
+                        </div>
+                      </div>
+
+                      {/* Quadrant 4: Key Corrective Directive */}
+                      <div className="p-4 rounded-xl bg-emerald-500/[0.04] border border-emerald-500/20 space-y-2">
+                        <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                          <Target size={15} />
+                          Keyingi Video Uchun AI Tuzatish Direktivasi:
+                        </div>
+                        <p className="text-xs text-gray-200 leading-relaxed font-medium">
+                          {active.keyCorrectiveDirective}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                          <CheckCircle2 size={13} /> Kelgusi video yaratilishida avtomatik qo'llaniladi
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="p-6 text-center border border-white/10 rounded-2xl bg-white/[0.02] space-y-2">
+              <p className="text-xs text-gray-300 font-semibold">
+                Kanalga birinchi video yuklangach, YouTube algoritmi reaksiyasi real vaqtda shu yerda tahlil qilinadi.
+              </p>
+              <p className="text-[11px] text-gray-500">
+                Hozirda tizim bazaviy 2026 YouTube Shorts retention qoidalari asosida ishlamoqda.
+              </p>
+            </div>
+          )}
+
+          {/* Channel Strategy Memory & Active Directives for Upcoming Videos */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded bg-amber-500/20 text-amber-400">
+                  <Zap size={15} />
+                </span>
+                <h4 className="text-sm font-bold text-white">
+                  Kanalning O'rganish Xotirasi (Keyingi Videolarga Biriktirilgan Qoidalar)
+                </h4>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                <CheckCircle2 size={12} /> Gemini & Render Dvigateliga Ulangan
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(diagnostics?.activeDirectivesForNextVideo || [
+                "HOOK (0-3s): 1.25x tezkor zoom, qizil/amber 'URGENT' ogohlantirish va sub-bass zarbasi bilan tomoshabin e'tiborini 1-sekundda ushlang.",
+                "LAYK TRIGGER (0:18s): Tomoshabinga 'Bu AI asbobni yo'qotib qo'ymaslik uchun layk bosib saqlab oling' deb vizual belgi bering.",
+                "OBUNA VA'DASI (0:46s): Outroda 'Har kuni yangi 2026 AI blueprintlar uchun hoziroq obuna bo'ling' deb baland chaqiriq va Subscribe Pill ko'rsating.",
+                "IZOHLAR VIRALLIGI: Pinned commentda tomoshabinlarni bahsga chorlaydigan 2 xil yechim o'rtasida tanlov savolini bering."
+              ]).map((directive: string, idx: number) => (
+                <div 
+                  key={idx} 
+                  className="flex items-start gap-2.5 p-3 rounded-xl bg-black/30 border border-white/5 hover:border-white/10 transition-colors"
+                >
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 border border-emerald-500/30">
+                    {idx + 1}
+                  </span>
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {directive}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex items-center justify-between text-[11px] text-gray-400 border-t border-white/5">
+              <span>
+                Oxirgi tahlil: {diagnostics?.lastAnalyzedAt ? new Date(diagnostics.lastAnalyzedAt).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Hozir'}
+              </span>
+              <span className="text-red-400 font-medium">
+                Kelgusi video yaratilganda ushbu qoidalar avtomatik tarzda stsenariyga kiritiladi
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>

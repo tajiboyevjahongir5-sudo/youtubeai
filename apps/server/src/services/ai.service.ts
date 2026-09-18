@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../env';
+import { analyticsService } from './analytics.service';
 
 export interface IAiService {
   generateIdea(context: any): Promise<any>;
@@ -48,10 +49,21 @@ Generate content in ENGLISH. Return JSON format with fields: title, contentPilla
   async generateScript(context: any) {
     const isLong = context.videoFormat === 'long_form' || context.format === 'long_form';
     const cleanTitle = (context.title || 'AI Breakthrough in 2026').replace(/#shorts/gi, '').trim();
+    const workspaceId = context.workspaceId || 'ws_j7ktjxw0';
+    const learnedDirectives = analyticsService.getLearnedDirectives(workspaceId);
+    const learnedSection = learnedDirectives.length > 0
+      ? `\n=== CRITICAL CHANNEL ALGORITHMIC DIRECTIVES (FROM PREVIOUS UPLOADED VIDEOS) ===
+Past uploaded videos on this channel were analyzed for drop-offs, low like-rates, and low subscriber conversion.
+You MUST strictly incorporate these corrective directives in this script:
+${learnedDirectives.map((d, i) => `${i + 1}. ${d}`).join('\n')}
+Make sure to include a clear mid-video Bookmark/Like Trigger ("Save this so you don't lose it") and a compelling Outro Subscribe Callout with an active community question in the pinned comment!\n`
+      : '';
 
     const prompt = isLong ? `You are the lead executive producer for Neural Pulse AI, a premier English technology documentary channel targeting Tier-1 software engineers and tech leaders.
 Write a MASTER-GRADE 16:9 Long-Form Documentary Script for: "${cleanTitle}".
 Language: Strictly ENGLISH (US, High Authority, Energetic, Precise).
+
+${learnedSection}
 
 Requirements:
 1. CHAPTER TIMESTAMPS: Generate exactly 5 structured chapters with minute markers:
@@ -86,14 +98,16 @@ Requirements:
 Write a VIRAL, MASTER-GRADE 9:16 YouTube Shorts Script for: "${cleanTitle}".
 Language: Strictly ENGLISH (US, Punchy, +14% pacing, crisp enunciation).
 
+${learnedSection}
+
 Requirements (2026 YouTube Shorts Retention Blueprint):
 1. 0-3s EXPLOSIVE HOOK: Urgent pattern interrupt with bold curiosity gap (e.g. "Stop scrolling! If you haven't seen ${cleanTitle} yet, your workflow is obsolete.").
 2. HIGH DENSITY VALUE: 5 micro-scenes timed perfectly for 50-56 seconds total duration.
    - [0:00 - 0:04] HOOK (Fast camera zoom in & pulse graphic)
    - [0:05 - 0:17] SCENE 1 (The Core Problem / Shocking Bottleneck)
-   - [0:18 - 0:31] SCENE 2 (The Secret Advantage & How It Works)
+   - [0:18 - 0:31] SCENE 2 (The Secret Advantage, Like/Bookmark Trigger & How It Works)
    - [0:32 - 0:44] SCENE 3 (Real-World Results & 10x Performance Metrics)
-   - [0:45 - 0:56] OUTRO & SEAMLESS LOOP (Comment Question + Channel CTA + seamless loop phrase)
+   - [0:45 - 0:56] OUTRO & SEAMLESS LOOP (Community Question + Animated Subscribe CTA + seamless loop phrase)
 3. SEAMLESS LOOP: The last sentence must end with an incomplete phrase that grammatically and logically flows right back into the 0:00 opening sentence! (e.g., "...and that is the exact reason why...")
 4. TOPIC SPECIFICITY: Deep technical facts, metrics, and tools relevant to "${cleanTitle}".
 5. ZERO UNICODE EMOJIS in overlay text (use standard ASCII tags like [OK], >>>, [METRIC]).
@@ -116,7 +130,6 @@ Requirements (2026 YouTube Shorts Retention Blueprint):
   ],
   "pinnedComment": string,
   "loopTransition": string,
-  "highCpmKeywords": array of strings
 }`;
 
     try {

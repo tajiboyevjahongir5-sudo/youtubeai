@@ -482,25 +482,25 @@ In this video, we dissect the core mechanics, practical implementation, and futu
       const scenes: SceneItem[] = [
         { id: 'hook', title: `1. Explosive Hook: ${cleanTitle}`, time: 0, tag: '🚨 Alex Hook' },
         { id: 'part1', title: '2. Muammo & Yechim', time: 10.5, tag: '⚡ Asosiy Yechim' },
-        { id: 'part2', title: '3. Amaliy Foyda & Ishlash Usuli', time: 21.0, tag: '🛠️ Demo & Jarayon' },
+        { id: 'part2', title: '3. Demo & Saqlash Triggeri', time: 21.0, tag: '💾 Like & Save' },
         { id: 'part3', title: '4. Natija & Ko\'rsatkichlar', time: 33.0, tag: '📈 10x Samaradorlik' },
         { id: 'outro', title: '5. Obuna & Fikrlar (CTA)', time: 45.0, tag: '🔔 Obuna & Loop' }
       ];
 
       const script = `[0:00 - 0:04] HOOK (Fast camera zoom in & pulse graphic):
-"Stop what you're doing. If you're not using ${cleanTitle} yet, you are falling behind fast."
+"Stop what you're doing! If you haven't seen ${cleanTitle} yet, your entire workflow is obsolete."
 
 [0:05 - 0:17] SCENE 1 (The Core Problem):
-"Most people waste hours doing this the traditional way. But with ${cleanTitle}, the entire process is automated in seconds."
+"Most creators and engineers waste 10 hours a week doing this manually. But with ${cleanTitle}, the entire pipeline runs autonomously."
 
-[0:18 - 0:31] SCENE 2 (The Secret Advantage):
-"Here is how it works: it leverages advanced AI models to execute high-value tasks with zero friction, running 24/7 in the background."
+[0:18 - 0:31] SCENE 2 (The Secret Advantage & Like Trigger):
+"Here is how it works: it automates complex reasoning with zero latency. Hit like and save this video right now before it gets lost in your feed!"
 
 [0:32 - 0:44] SCENE 3 (Real-World Results):
-"Top creators and engineers are using this exact blueprint to 10x their output without burning out."
+"Top 1% founders are using this exact blueprint to 10x their output with zero burnout."
 
 [0:45 - 0:56] OUTRO & SEAMLESS LOOP:
-"Drop your thoughts below, subscribe for daily blueprints, and that is the exact reason why..."`;
+"Are you testing this today? Comment below, subscribe to Neural Pulse AI for daily blueprints, and that is the exact reason why..."`;
 
       const description = `Here is everything you need to know about ${cleanTitle} in 2026.
 Watch until the end for the exact blueprint.
