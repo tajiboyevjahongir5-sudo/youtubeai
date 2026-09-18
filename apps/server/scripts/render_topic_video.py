@@ -372,6 +372,177 @@ def apply_ken_burns(img_bgr: np.ndarray, progress: float, motion_type: int) -> n
         crop = cv2.resize(crop, (target_w, target_h))
     return crop
 
+def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list, high_cpm_keywords: list, save_dirs: list) -> dict:
+    palettes = [
+        ('cyber_amber', (255, 185, 40), (190, 60, 255), (16, 12, 26), (6, 8, 14), (0, 240, 255)),
+        ('quantum_cyan', (0, 235, 255), (40, 120, 255), (8, 16, 32), (4, 8, 16), (255, 200, 40)),
+        ('matrix_emerald', (0, 255, 140), (0, 210, 240), (6, 24, 16), (3, 10, 8), (255, 180, 50)),
+        ('crimson_alert', (255, 60, 80), (255, 160, 40), (26, 10, 14), (10, 6, 8), (0, 240, 220)),
+        ('ultraviolet', (240, 80, 255), (90, 140, 255), (24, 10, 34), (10, 6, 18), (0, 255, 200))
+    ]
+    seed_val = 0
+    for ch in f"{item_id}_{title}":
+        seed_val = (seed_val * 31 + ord(ch)) & 0xFFFFFFFF
+    
+    pal = palettes[seed_val % len(palettes)]
+    primary = pal[1]
+    secondary = pal[2]
+    bg_top = pal[3]
+    bg_bot = pal[4]
+    accent = pal[5]
+
+    font_hero = get_font(52, bold=True)
+    font_sub = get_font(28, bold=False)
+    font_mono = get_mono_font(24)
+    font_title = get_font(36, bold=True)
+    font_badge = get_font(22, bold=True)
+
+    scenes_res = {}
+
+    for s_idx in range(1, 6):
+        canvas = np.zeros((H, W, 3), dtype=np.uint8)
+        for y in range(H):
+            ratio = y / float(H)
+            r = int(bg_top[0] * (1 - ratio) + bg_bot[0] * ratio)
+            g = int(bg_top[1] * (1 - ratio) + bg_bot[1] * ratio)
+            b = int(bg_top[2] * (1 - ratio) + bg_bot[2] * ratio)
+            canvas[y, :] = (r, g, b)
+
+        for gy in range(800, H, 60):
+            p_val = (gy - 800) / float(H - 800)
+            col_grid = (int(secondary[0] * 0.25 * p_val), int(secondary[1] * 0.25 * p_val), int(secondary[2] * 0.25 * p_val))
+            cv2.line(canvas, (0, gy), (W, gy), col_grid, 1)
+        for gx in range(0, W + 1, 90):
+            vanish_x = W // 2
+            vanish_y = 750
+            col_grid = (int(primary[0] * 0.18), int(primary[1] * 0.18), int(primary[2] * 0.18))
+            cv2.line(canvas, (vanish_x, vanish_y), (gx, H), col_grid, 1)
+
+        img_pil = Image.fromarray(canvas)
+        draw = ImageDraw.Draw(img_pil, 'RGBA')
+
+        if s_idx == 1:
+            cx, cy = W // 2, 600
+            for radius in [260, 220, 180, 140]:
+                draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], outline=(*primary, 80), width=2)
+            draw.ellipse([cx - 90, cy - 90, cx + 90, cy + 90], fill=(*bg_top, 220), outline=(*accent, 220), width=3)
+            
+            draw.line([(cx - 300, cy), (cx + 300, cy)], fill=(*primary, 90), width=2)
+            draw.line([(cx, cy - 300), (cx, cy + 300)], fill=(*primary, 90), width=2)
+
+            draw.rounded_rectangle([cx - 240, cy - 35, cx + 240, cy + 35], radius=18, fill=(10, 12, 20, 230), outline=(*primary, 240), width=2)
+            draw.text((cx - 180, cy - 14), "! RESTRICTED INTEL 2026 !", font=font_badge, fill=(*primary, 255))
+
+            draw.rounded_rectangle([70, 920, W - 70, 1220], radius=24, fill=(12, 16, 26, 230), outline=(*primary, 160), width=2)
+            draw.rounded_rectangle([95, 945, 340, 990], radius=12, fill=(*primary, 40), outline=(*primary, 200), width=1)
+            draw.text((115, 955), "TARGET TOPIC", font=font_badge, fill=(*primary, 255))
+            
+            clean_t = sanitize_text(title).upper()
+            w_words = clean_t.split()
+            lines = []
+            cur_line = ""
+            for word in w_words:
+                test = f"{cur_line} {word}".strip()
+                if get_text_width(draw, test, font_title) < (W - 200):
+                    cur_line = test
+                else:
+                    if cur_line: lines.append(cur_line)
+                    cur_line = word
+            if cur_line: lines.append(cur_line)
+            lines = lines[:3]
+            for li, line_str in enumerate(lines):
+                draw.text((95, 1015 + li * 48), line_str, font=font_title, fill=(255, 255, 255))
+
+        elif s_idx == 2:
+            draw.rounded_rectangle([70, 260, W - 70, 580], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
+            draw.text((105, 290), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
+            cx, cy = W // 2, 440
+            for r in [110, 80, 50]:
+                draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
+            draw.line([(cx - 130, cy), (cx + 130, cy)], fill=(*secondary, 100), width=1)
+            draw.line([(cx, cy - 130), (cx, cy + 130)], fill=(*secondary, 100), width=1)
+            draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
+
+            kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
+            kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
+            draw.rounded_rectangle([70, 630, W - 70, 800], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
+            draw.text((105, 655), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
+            draw.text((105, 715), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
+            draw.text((W - 240, 680), "99.4%", font=font_hero, fill=(*primary, 255))
+
+            draw.rounded_rectangle([70, 840, W - 70, 1010], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
+            draw.text((105, 865), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
+            draw.text((105, 925), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
+            draw.text((W - 240, 890), "100%", font=font_hero, fill=(*secondary, 255))
+
+        elif s_idx == 3:
+            draw.rounded_rectangle([70, 260, W - 70, 1100], radius=26, fill=(10, 14, 24, 235), outline=(*primary, 160), width=2)
+            draw.text((105, 290), "NEURAL REASONING ARCHITECTURE", font=font_title, fill=(*primary, 255))
+            draw.text((105, 345), "Real-time Multi-agent Cognitive Core", font=font_sub, fill=(180, 200, 220))
+
+            nodes = [
+                (200, 480), (200, 620), (200, 760), (200, 900),
+                (540, 420), (540, 560), (540, 700), (540, 840), (540, 980),
+                (880, 520), (880, 680), (880, 840)
+            ]
+            for n1 in nodes[:4]:
+                for n2 in nodes[4:9]:
+                    draw.line([n1, n2], fill=(*secondary, 60), width=2)
+            for n1 in nodes[4:9]:
+                for n2 in nodes[9:]:
+                    draw.line([n1, n2], fill=(*primary, 60), width=2)
+            for (nx, ny) in nodes:
+                draw.ellipse([nx - 22, ny - 22, nx + 22, ny + 22], fill=(*bg_top, 240), outline=(*accent, 230), width=3)
+                draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
+
+        elif s_idx == 4:
+            draw.rounded_rectangle([70, 260, W - 70, 1140], radius=24, fill=(6, 12, 10, 245), outline=(*accent, 160), width=2)
+            draw.ellipse([105, 290, 125, 310], fill=(255, 70, 70))
+            draw.ellipse([140, 290, 160, 310], fill=(255, 200, 50))
+            draw.ellipse([175, 290, 195, 310], fill=(50, 220, 100))
+            draw.text((220, 288), "terminal://neuralpulse/benchmark", font=font_mono, fill=(120, 180, 140))
+            draw.line([(70, 330), (W - 70, 330)], fill=(*accent, 80), width=1)
+
+            t_lines = [
+                (f"$ run-engine --topic \"{sanitize_text(title)[:22]}\"", (*primary, 255)),
+                ("[INIT] Loading neural weights & models...", (180, 190, 200)),
+                ("[BENCHMARK] Executing throughput test...", (*secondary, 255)),
+                ("[PASSED] 128 / 128 Test Suites Succeeded", (50, 255, 120)),
+                ("[STATUS] Zero-latency inference active", (50, 255, 120)),
+                ("[DEPLOY] Live production cluster ready", (*accent, 255)),
+                (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
+            ]
+            for li, (txt, col) in enumerate(t_lines):
+                draw.text((105, 380 + li * 95), txt, font=font_mono, fill=col)
+
+        else:
+            cx, cy = W // 2, 540
+            draw.rounded_rectangle([cx - 240, cy - 180, cx + 240, cy + 180], radius=32, fill=(16, 12, 24, 235), outline=(255, 50, 70, 200), width=3)
+            draw.polygon([(cx - 40, cy - 55), (cx - 40, cy + 55), (cx + 55, cy)], fill=(255, 50, 70))
+            
+            draw.rounded_rectangle([100, 800, W - 100, 930], radius=22, fill=(14, 18, 30, 240), outline=(*primary, 180), width=2)
+            draw.text((140, 835), "WHICH TOOL WILL YOU TEST FIRST?", font=font_title, fill=(255, 255, 255))
+            draw.text((140, 880), "Comment your favorite below!", font=font_sub, fill=(*accent, 240))
+
+            draw.rounded_rectangle([140, 980, W - 140, 1080], radius=24, fill=(255, 40, 60, 240))
+            draw.text((W // 2 - 130, 1005), "SUBSCRIBE NOW", font=font_title, fill=(255, 255, 255))
+
+        out_rgb = img_pil.convert('RGB')
+        out_bgr = cv2.cvtColor(np.array(out_rgb), cv2.COLOR_RGB2BGR)
+
+        for sd in save_dirs:
+            try:
+                os.makedirs(sd, exist_ok=True)
+                out_path = os.path.join(sd, f"scene_{s_idx}.jpg")
+                cv2.imwrite(out_path, out_bgr, [cv2.IMWRITE_JPEG_QUALITY, 92])
+            except Exception as e:
+                pass
+
+        scenes_res[s_idx] = out_bgr
+
+    print(f"✨ Automatically generated 5 unique topic-isolated procedural scenes for [{item_id}] (Palette: {pal[0]})!", flush=True)
+    return scenes_res
+
 def render_video(data: dict, output_mp4: str):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
@@ -531,6 +702,11 @@ def render_video(data: dict, output_mp4: str):
                             topic_scenes[s_idx] = img
             if len(topic_scenes) >= 3:
                 break
+
+    if len(topic_scenes) < 3 and not is_long:
+        scenes_data_init = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
+        high_cpm_init = data.get('highCpmKeywords', []) if isinstance(data.get('highCpmKeywords'), list) else []
+        topic_scenes = generate_topic_procedural_scenes(item_id, clean_title, scenes_data_init, high_cpm_init, topic_scenes_dirs[:3])
 
     has_topic_scenes = len(topic_scenes) >= 3
     if has_topic_scenes:
