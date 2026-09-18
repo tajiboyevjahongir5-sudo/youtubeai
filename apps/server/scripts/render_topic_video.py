@@ -548,6 +548,117 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
     print(f"✨ Automatically generated 5 unique topic-isolated procedural scenes for [{item_id}] (Palette: {pal[0]})!", flush=True)
     return scenes_res
 
+def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str = None, palette_info=None):
+    """
+    Creates Ultra-High CTR 1080x1920 (Vertical Shorts) & 1280x720 (YouTube Landscape) thumbnails:
+    - Bold 3D Kinetic Hook typography with thick stroke & shadow
+    - Glowing neon alert pill at the top
+    - High-contrast background with radial vignette & topic visual accents
+    - Prominent Host Alex placement with edge lighting
+    - High-CTR ROI badge
+    """
+    W_T, H_T = 1080, 1920
+    canvas = Image.new('RGB', (W_T, H_T), (10, 12, 20))
+    draw = ImageDraw.Draw(canvas, 'RGBA')
+
+    pri = (0, 240, 255)
+    sec = (255, 60, 100)
+    acc = (255, 215, 0)
+    if palette_info and len(palette_info) >= 5:
+        pri = palette_info[1]
+        sec = palette_info[2]
+        acc = palette_info[3]
+
+    for y in range(H_T):
+        prog = y / H_T
+        r = int(12 + prog * 18)
+        g = int(14 + prog * 10)
+        b = int(24 + prog * 28)
+        draw.line([(0, y), (W_T, y)], fill=(r, g, b))
+
+    cx, cy = W_T // 2, 680
+    for rad in range(380, 40, -25):
+        alpha = int(35 * (1.0 - rad / 380))
+        draw.ellipse([cx - rad, cy - rad, cx + rad, cy + rad], fill=(*pri, alpha))
+
+    if host_path and os.path.exists(host_path):
+        try:
+            h_img = Image.open(host_path).convert('RGBA')
+            target_h = int(H_T * 0.58)
+            ratio = target_h / h_img.height
+            target_w = int(h_img.width * ratio)
+            h_resized = h_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+            pos_x = (W_T - target_w) // 2
+            pos_y = H_T - target_h
+            canvas.paste(h_resized, (pos_x, pos_y), h_resized if h_resized.mode == 'RGBA' else None)
+        except Exception:
+            pass
+
+    draw = ImageDraw.Draw(canvas, 'RGBA')
+
+    for y in range(0, 580):
+        alpha = int(230 * (1.0 - y / 580))
+        draw.line([(0, y), (W_T, y)], fill=(8, 10, 16, alpha))
+
+    for y in range(1380, H_T):
+        alpha = int(240 * ((y - 1380) / (H_T - 1380)))
+        draw.line([(0, y), (W_T, y)], fill=(8, 10, 16, alpha))
+
+    pill_text = "! 2026 AI BLUEPRINT !"
+    f_badge = get_font(34, bold=True)
+    tw = draw.textlength(pill_text, font=f_badge) if hasattr(draw, 'textlength') else 380
+    px = W_T // 2 - int(tw) // 2
+    draw.rounded_rectangle([px - 40, 120, px + int(tw) + 40, 190], radius=24, fill=(230, 25, 45, 240), outline=(255, 220, 50, 240), width=3)
+    draw.text((px, 134), pill_text, font=f_badge, fill=(255, 255, 255))
+
+    raw_title = sanitize_text(data.get('title', 'Top AI Tools That Work While You Sleep'))
+    clean_title_no_tags = re.sub(r'#\w+', '', raw_title).strip()
+    words = clean_title_no_tags.split()
+
+    lines = []
+    if len(words) <= 4:
+        lines = [" ".join(words[:2]).upper(), " ".join(words[2:]).upper()]
+    elif len(words) <= 7:
+        lines = [" ".join(words[:2]).upper(), " ".join(words[2:5]).upper(), " ".join(words[5:]).upper()]
+    else:
+        lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper(), " ".join(words[6:9]).upper()]
+    lines = [l for l in lines if l.strip()]
+
+    f_huge = get_font(74, bold=True)
+    y_start = 240
+    for i, line in enumerate(lines[:3]):
+        lw = draw.textlength(line, font=f_huge) if hasattr(draw, 'textlength') else 500
+        curr_f = f_huge
+        if lw > W_T - 140:
+            scale_f_size = int(74 * (W_T - 140) / max(1, lw))
+            curr_f = get_font(max(44, scale_f_size), bold=True)
+            lw = draw.textlength(line, font=curr_f) if hasattr(draw, 'textlength') else (W_T - 140)
+
+        lx = (W_T - int(lw)) // 2
+        ly = y_start + i * 105
+
+        for off in range(6, 0, -1):
+            draw.text((lx + off, ly + off), line, font=curr_f, fill=(0, 0, 0, 240))
+        fill_color = (255, 255, 255) if i == 0 else ((*pri, 255) if i == 1 else (255, 225, 40))
+        draw.text((lx, ly), line, font=curr_f, fill=fill_color, stroke_width=4, stroke_fill=(10, 10, 15))
+
+    proof_text = ">>> 100% AUTONOMOUS <<<"
+    f_proof = get_font(32, bold=True)
+    pw = draw.textlength(proof_text, font=f_proof) if hasattr(draw, 'textlength') else 360
+    draw.rounded_rectangle([W_T // 2 - int(pw)//2 - 35, 1720, W_T // 2 + int(pw)//2 + 35, 1795], radius=20, fill=(15, 25, 45, 230), outline=(*pri, 220), width=3)
+    draw.text((W_T // 2 - int(pw)//2, 1738), proof_text, font=f_proof, fill=(*pri, 255))
+
+    os.makedirs(os.path.dirname(output_thumb_path), exist_ok=True)
+    canvas.save(output_thumb_path, format='JPEG', quality=95)
+    print(f"🖼️ [Smart Thumbnail] 1080x1920 High-CTR Thumbnail saqlandi: {output_thumb_path}", flush=True)
+
+    landscape_path = output_thumb_path.replace('_thumb.jpg', '_thumb_landscape.jpg')
+    try:
+        crop_area = canvas.crop((0, 140, 1080, 1080 + 140)).resize((1280, 720), Image.Resampling.LANCZOS)
+        crop_area.save(landscape_path, format='JPEG', quality=92)
+    except Exception:
+        pass
+
 def render_video(data: dict, output_mp4: str, voice_override: str = None):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
@@ -607,16 +718,6 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None):
     add_sfx(sfx_track, sfx_whoosh, 0.15, vol=0.45)
     add_sfx(sfx_track, sfx_bell, max(0.0, duration - 4.5), vol=0.55)
 
-    mixed_audio = speech * 0.90 + beat * 0.12 + sfx_track * 0.40
-    mixed_audio = np.clip(mixed_audio, -0.98, 0.98)
-    mixed_int16 = (mixed_audio * 32767.0).astype(np.int16)
-
-    with wave.open(final_audio, 'wb') as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(sr)
-        w.writeframes(mixed_int16.tobytes())
-
     subtitles = parse_timed_subtitles(script, duration)
 
     # 6 scene boundaries proportionally
@@ -630,6 +731,28 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None):
     scene_cuts = [sc1_end, sc2_end, sc3_end, sc4_end, sc5_end]
     for cut in scene_cuts:
         add_sfx(sfx_track, sfx_whoosh, cut, vol=0.35)
+
+    # Dynamic Audio Auto-Ducking:
+    # Compute vocal energy envelope and smoothly duck background beat by ~10dB during active speech
+    speech_env = np.abs(speech)
+    win_samples = int(0.12 * sr)
+    if win_samples > 1:
+        kernel = np.ones(win_samples, dtype=np.float32) / win_samples
+        speech_env = np.convolve(speech_env, kernel, mode='same')
+
+    # duck_gain drops down to 0.32 when speech is active, rises to 1.0 during natural pauses
+    duck_gain = np.clip(1.0 - (speech_env * 12.0), 0.32, 1.0)
+    ducked_beat = beat * 0.16 * duck_gain
+
+    mixed_audio = speech * 0.92 + ducked_beat + sfx_track * 0.45
+    mixed_audio = np.clip(mixed_audio, -0.98, 0.98)
+    mixed_int16 = (mixed_audio * 32767.0).astype(np.int16)
+
+    with wave.open(final_audio, 'wb') as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(mixed_int16.tobytes())
 
     def find_file(candidates):
         for c in candidates:
@@ -1149,22 +1272,25 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None):
         ]
         subprocess.run(mux_fallback, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
-    # Automatic High-CTR Thumbnail generation
+    # Automatic High-CTR Smart Thumbnail generation (Vertical 1080x1920 & Landscape 1280x720)
     thumb_path = output_mp4.replace('.mp4', '_thumb.jpg')
     try:
-        thumb_cmd = [
-            ffmpeg_bin, '-y',
-            '-ss', str(min(2.5, duration * 0.1)),
-            '-i', output_mp4,
-            '-vframes', '1',
-            '-q:v', '2',
-            thumb_path
-        ]
-        subprocess.run(thumb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if os.path.exists(thumb_path):
-            print(f"📸 Thumbnail generated: {thumb_path}", flush=True)
-    except Exception:
-        pass
+        generate_smart_thumbnail(data, thumb_path, host_path=host_path)
+        print(f"📸 Smart High-CTR Thumbnail generated: {thumb_path}", flush=True)
+    except Exception as thumb_err:
+        print(f"⚠️ Smart Thumbnail generation error, falling back to frame extraction: {thumb_err}", flush=True)
+        try:
+            thumb_cmd = [
+                ffmpeg_bin, '-y',
+                '-ss', str(min(2.5, duration * 0.1)),
+                '-i', output_mp4,
+                '-vframes', '1',
+                '-q:v', '2',
+                thumb_path
+            ]
+            subprocess.run(thumb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
 
     try:
         shutil.rmtree(temp_dir)

@@ -105,17 +105,29 @@ export class VideoRenderService {
         if (code === 0 && fs.existsSync(outputPath)) {
           console.log(`✅ Video rendered successfully: ${outputPath}`);
 
+          const thumbFileName = `${item.id}_thumb.jpg`;
+          const thumbPath = path.join(publicVideosDir, thumbFileName);
+          const thumbUrl = fs.existsSync(thumbPath) ? `/media/videos/${thumbFileName}` : undefined;
+
           // Also copy to apps/web if directory exists
           if (webVideosDir) {
             try {
               const webTarget = path.join(webVideosDir, videoFileName);
               fs.copyFileSync(outputPath, webTarget);
+              if (fs.existsSync(thumbPath)) {
+                fs.copyFileSync(thumbPath, path.join(webVideosDir, thumbFileName));
+              }
+              const landscapeThumb = path.join(publicVideosDir, `${item.id}_thumb_landscape.jpg`);
+              if (fs.existsSync(landscapeThumb)) {
+                fs.copyFileSync(landscapeThumb, path.join(webVideosDir, `${item.id}_thumb_landscape.jpg`));
+              }
             } catch (e) {}
           }
 
           // Update store
           contentStore.updateItem(item.id, {
             videoUrl,
+            thumbnailUrl: thumbUrl,
             status: 'review'
           });
 

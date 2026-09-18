@@ -44,6 +44,7 @@ export interface ContentItemRecord {
   youtubeVideoId?: string;
   youtubeUrl?: string;
   videoUrl?: string;
+  thumbnailUrl?: string;
   voiceModel?: string;
   targetLanguage?: string;
   parentContentId?: string;

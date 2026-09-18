@@ -37,7 +37,11 @@ import {
   CheckCircle2,
   Calendar,
   CalendarCheck,
-  Video
+  Video,
+  Copy,
+  Download,
+  Share2,
+  Sliders
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -86,6 +90,8 @@ export const ContentDetailPage = () => {
   const [duration, setDuration] = useState(videoFormat === 'long_form' ? 615 : 55.63);
   const [videoVersion, setVideoVersion] = useState(Date.now());
   const [toast, setToast] = useState<string | null>(null);
+  const [previewSceneIndex, setPreviewSceneIndex] = useState(0);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Dynamic titles and metadata based on format and item
@@ -683,9 +689,11 @@ export const ContentDetailPage = () => {
           {[
             { id: 'brief', label: 'Brief' },
             { id: 'skript', label: 'Skript' },
+            { id: 'preview_canvas', label: '🎛️ 9:16 Jonli Simulyator' },
             { id: 'personaj', label: 'Personaj & Konsistentlik' },
             { id: 'metadata', label: 'SEO Metadata' },
             { id: 'sifat tekshiruvi', label: 'Sifat tekshiruvi' },
+            { id: 'multi_export', label: '📱 Multi-Platform Eksport' },
             { id: 'tasdiqlash', label: 'Tasdiqlash & Video Studio' },
           ].map(tab => (
             <Tabs.Trigger 
@@ -780,6 +788,137 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+        </Tabs.Content>
+
+        {/* 9:16 Jonli Simulyator & Visual Inspector */}
+        <Tabs.Content value="preview_canvas" className="space-y-6 animate-fade-in">
+          <div className="grid lg:grid-cols-12 gap-6 items-start">
+            {/* Phone 9:16 Canvas Simulator */}
+            <div className="lg:col-span-6 flex justify-center">
+              <div className="w-[330px] h-[590px] rounded-[38px] bg-black border-[4px] border-slate-700 shadow-2xl relative overflow-hidden flex flex-col justify-between p-4">
+                {/* Phone Speaker Notch */}
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-800 rounded-full z-30" />
+
+                {/* Simulated Visual Content */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c14] via-[#101524] to-[#0a0c14] flex flex-col justify-between p-4 pt-8">
+                  {/* Top Alert Pill */}
+                  <div className="flex justify-center z-10">
+                    <div className="px-3.5 py-1 rounded-full bg-red-600/90 border border-amber-400 text-white text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+                      <span>! URGENT: 2026 AI BLUEPRINT !</span>
+                    </div>
+                  </div>
+
+                  {/* Center Visual Mockup & Host Alex Safe Zone */}
+                  <div className="relative my-auto flex flex-col items-center justify-center text-center space-y-3">
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_25px_rgba(0,240,255,0.2)]">
+                      <Sparkles size={36} />
+                    </div>
+                    <div className="px-3 py-1 rounded-lg bg-black/60 border border-white/10 text-[11px] text-gray-300 font-mono">
+                      {scenes[previewSceneIndex]?.title || '1. Hook & Introduction'}
+                    </div>
+                    {/* Safe Zone Box Indicator */}
+                    <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-xl px-3 py-1.5 text-[9px] text-emerald-400 font-mono">
+                      [OK] Host Alex Safe Zone (y=100..1240 ochiq)
+                    </div>
+                  </div>
+
+                  {/* Lower Third: Dynamic Subtitle Overlay */}
+                  <div className="space-y-3 z-10">
+                    <div className="p-3 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 text-center shadow-xl">
+                      <span className="text-[10px] font-mono text-cyan-400 block pb-0.5">
+                        Sahna {previewSceneIndex + 1} Titri (Subtitle):
+                      </span>
+                      <p className="text-xs font-black text-white leading-snug">
+                        {scenes[previewSceneIndex]?.overlayText || scenes[previewSceneIndex]?.title || 'STOP TRADING TIME FOR MONEY'}
+                      </p>
+                    </div>
+
+                    {/* Equalizer Waveform Simulator */}
+                    <div className="flex items-end justify-center gap-1 h-6">
+                      {[18, 28, 14, 34, 22, 38, 12, 30, 26, 36, 16, 24, 32, 20].map((h, i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 rounded-full bg-gradient-to-t from-cyan-500 to-amber-400 animate-pulse"
+                          style={{ height: `${h}px`, animationDelay: `${i * 80}ms` }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Outro Subscribe Pill (simulated on last scene) */}
+                    {previewSceneIndex >= scenes.length - 1 && (
+                      <div className="py-1.5 px-3 rounded-full bg-red-600 text-white text-[10px] font-bold text-center flex items-center justify-center gap-1 shadow-lg">
+                        <CheckCircle2 size={12} /> SUBSCRIBED
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Scene Stepper & Controls */}
+            <div className="lg:col-span-6 space-y-4">
+              <Card className="liquid-glass border border-white/10">
+                <CardContent className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Sliders size={18} className="text-red-400" /> Sahnalar Bo'yicha Jonli Simulyator
+                    </h3>
+                    <span className="text-xs font-mono text-gray-400">
+                      {previewSceneIndex + 1} / {scenes.length}
+                    </span>
+                  </div>
+
+                  {/* Scene Selector Buttons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {scenes.map((sc: any, idx: number) => (
+                      <button
+                        key={sc.id || idx}
+                        type="button"
+                        onClick={() => setPreviewSceneIndex(idx)}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          previewSceneIndex === idx
+                            ? 'bg-red-600/20 border-red-500/60 text-white shadow-md'
+                            : 'bg-white/[0.03] border-white/5 text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <span className="text-[10px] font-mono text-red-400 block">Sahna {idx + 1}</span>
+                        <span className="text-xs font-semibold truncate block">{sc.title || `Sahna ${idx + 1}`}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Scene Details */}
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 text-xs">
+                    <div className="flex justify-between text-gray-400">
+                      <span>Vaqt kodi (Timestamp):</span>
+                      <span className="font-mono text-white">{scenes[previewSceneIndex]?.time ?? (previewSceneIndex * 10)}s</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>Sahna Tegi:</span>
+                      <span className="font-bold text-cyan-400">{scenes[previewSceneIndex]?.tag || '#visual'}</span>
+                    </div>
+                    <div className="pt-2 border-t border-white/5 space-y-1">
+                      <span className="text-gray-400 block font-semibold">Titr yozuvi (Overlay):</span>
+                      <p className="text-white font-mono bg-black/40 p-2 rounded-lg border border-white/5">
+                        {scenes[previewSceneIndex]?.overlayText || 'Avtomatik ravishda ssenariydan tanlanadi'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => setActiveTab('tasdiqlash')}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Film size={16} /> Video Studiyada Render Qilish
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </Tabs.Content>
 
         {/* Character & Visual Consistency Anchor */}
@@ -1106,6 +1245,150 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+        </Tabs.Content>
+
+        {/* Multi-Platform Reels & TikTok Export Package */}
+        <Tabs.Content value="multi_export" className="space-y-6 animate-fade-in">
+          <div className="grid md:grid-cols-3 gap-5">
+            {/* YouTube Shorts Card */}
+            <Card className="liquid-glass border border-red-500/30">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-white/10">
+                  <div className="p-2 rounded-xl bg-red-600/20 text-red-400">
+                    <Youtube size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">YouTube Shorts</h4>
+                    <span className="text-[10px] text-gray-400">1080x1920 • Yuqori CTR</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-gray-400 block">Sarlavha (#Shorts bilan):</span>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white font-mono flex justify-between items-center">
+                    <span className="truncate mr-2">{videoTitle} #Shorts</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${videoTitle} #Shorts`);
+                        setCopiedField('yt_title');
+                        setTimeout(() => setCopiedField(null), 2000);
+                      }}
+                      className="text-gray-400 hover:text-white flex-shrink-0 cursor-pointer"
+                    >
+                      <Copy size={14} className={copiedField === 'yt_title' ? 'text-emerald-400' : ''} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-gray-400 block">Pinned Comment:</span>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-gray-300 flex justify-between items-center">
+                    <span className="line-clamp-2 mr-2">{pinnedCommentText || 'Which tool will you test first?'}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(pinnedCommentText || '');
+                        setCopiedField('yt_pin');
+                        setTimeout(() => setCopiedField(null), 2000);
+                      }}
+                      className="text-gray-400 hover:text-white flex-shrink-0 cursor-pointer"
+                    >
+                      <Copy size={14} className={copiedField === 'yt_pin' ? 'text-emerald-400' : ''} />
+                    </button>
+                  </div>
+                </div>
+
+                {activeVideoSrc && (
+                  <div className="pt-2">
+                    <a
+                      href={activeVideoSrc}
+                      download={`${contentId}.mp4`}
+                      className="w-full py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-red-500/30 transition-all cursor-pointer block text-center"
+                    >
+                      <Download size={14} /> MP4 Yuklab Olish
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* TikTok Card */}
+            <Card className="liquid-glass border border-cyan-500/30">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-white/10">
+                  <div className="p-2 rounded-xl bg-cyan-600/20 text-cyan-400">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">TikTok Format</h4>
+                    <span className="text-[10px] text-gray-400">Virallik va FYP algoritmi</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-gray-400 block">TikTok Caption & Heshteglar:</span>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white space-y-2">
+                    <p className="text-gray-200 line-clamp-3">
+                      {videoTitle.replace(/#\w+/g, '')} ⚡ Test these AI tools before everyone else!
+                    </p>
+                    <p className="text-[10px] text-cyan-400 font-mono">
+                      #fyp #ai #techtok #coding #developer #software #aitools #automation
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${videoTitle.replace(/#\w+/g, '')}\n\n#fyp #ai #techtok #coding #developer #software #aitools #automation`);
+                        setCopiedField('tt_caption');
+                        setTimeout(() => setCopiedField(null), 2000);
+                      }}
+                      className="w-full py-2 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Copy size={13} /> {copiedField === 'tt_caption' ? 'Nusxalandi!' : 'TikTok Paketini Nusxalash'}
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Instagram Reels Card */}
+            <Card className="liquid-glass border border-pink-500/30">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-white/10">
+                  <div className="p-2 rounded-xl bg-pink-600/20 text-pink-400">
+                    <Share2 size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Instagram Reels</h4>
+                    <span className="text-[10px] text-gray-400">Explore va Save konversiyasi</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-gray-400 block">Reels Caption & Call-To-Action:</span>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white space-y-2">
+                    <p className="text-gray-200 line-clamp-3">
+                      Save this for later! 📌 Here is the 2026 blueprint: {videoTitle.replace(/#\w+/g, '')}
+                    </p>
+                    <p className="text-[10px] text-pink-400 font-mono">
+                      #reels #techreels #ainews #softwareengineer #productivity #python
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`Save this for later! 📌\n\n${videoTitle.replace(/#\w+/g, '')}\n\nWhich tool would you test first? Let us know in the comments! 👇\n\n#reels #techreels #ainews #softwareengineer #productivity #python`);
+                        setCopiedField('ig_caption');
+                        setTimeout(() => setCopiedField(null), 2000);
+                      }}
+                      className="w-full py-2 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Copy size={13} /> {copiedField === 'ig_caption' ? 'Nusxalandi!' : 'Reels Paketini Nusxalash'}
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </Tabs.Content>
 
         {/* Tasdiqlash & Video Studio */}
