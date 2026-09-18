@@ -42,83 +42,83 @@ interface VideoItem {
 
 const fallbackVideos: VideoItem[] = [
   {
-    id: 'item_1',
-    title: 'Top 5 AI Tools That Work While You Sleep in 2026',
+    id: 'item_coding_agents',
+    title: 'Top 5 Autonomous Coding Agents in 2026 #Shorts',
     format: 'shorts',
-    duration: '0:58',
+    duration: '0:56',
     status: 'awaiting_approval',
     scheduledAt: 'Bugun, 14:00 UTC',
     contentPillar: "Ta'limiy",
-    viewsPrediction: '15K - 35K',
-    seoScore: 94,
-    tags: ['ai tools', 'productivity', 'automation', 'chatgpt']
+    viewsPrediction: '45K - 95K',
+    seoScore: 98,
+    tags: ['ai coding', 'devin', 'cursor', 'software engineering']
   },
   {
-    id: 'item_2',
-    title: 'The Complete Future of Autonomous Coding & Agents',
-    format: 'long_form',
-    duration: '8:42',
-    status: 'scheduled',
-    scheduledAt: 'Bugun, 21:00 UTC',
-    contentPillar: 'Hujjatli',
-    viewsPrediction: '8K - 18K',
-    seoScore: 91,
-    tags: ['software engineering', 'ai coding', 'future tech']
-  },
-  {
-    id: 'item_3',
-    title: 'Why 90% of Developers Will Use AI by 2027 #Shorts',
-    format: 'shorts',
-    duration: '0:45',
-    status: 'published',
-    scheduledAt: 'Kecha, 14:00 UTC',
-    contentPillar: 'Yangiliklar',
-    viewsPrediction: '45.2K ko\'rildi',
-    seoScore: 96,
-    tags: ['developers', 'trends', 'tech']
-  },
-  {
-    id: 'item_4',
-    title: 'Building a Full Stack SaaS with AI: Step by Step Guide',
-    format: 'long_form',
-    duration: '14:20',
-    status: 'published',
-    scheduledAt: '12 Oktabr 2026',
-    contentPillar: "Qo'llanma",
-    viewsPrediction: '12.4K ko\'rildi',
-    seoScore: 89,
-    tags: ['saas', 'startup', 'web development']
-  },
-  {
-    id: 'item_5',
+    id: 'item_illegal_websites',
     title: '5 AI Websites That Feel Illegal to Know in 2026 #Shorts',
     format: 'shorts',
     duration: '0:52',
     status: 'awaiting_approval',
-    scheduledAt: 'Ertaga, 14:00 UTC',
+    scheduledAt: 'Bugun, 20:00 UTC',
     contentPillar: "Ta'limiy",
-    viewsPrediction: '40K - 120K',
+    viewsPrediction: '60K - 140K',
     seoScore: 98,
     tags: ['ai websites', 'productivity', 'free tools', 'viral']
   },
   {
-    id: 'item_6',
-    title: 'The Death of Traditional Coding: Autonomous AI Agents Deep Dive',
+    id: 'item_claude_vs_gemini',
+    title: 'Claude 3.7 vs Gemini 2.0: The Ultimate Coding Test #Shorts',
+    format: 'shorts',
+    duration: '0:54',
+    status: 'scheduled',
+    scheduledAt: 'Ertaga, 14:00 UTC',
+    contentPillar: 'Tahliliy',
+    viewsPrediction: '50K - 120K',
+    seoScore: 96,
+    tags: ['claude 3.7', 'gemini 2.0', 'ai benchmark', 'coding']
+  },
+  {
+    id: 'item_2',
+    title: 'The Complete Future of Autonomous Coding & Agents in 2026',
     format: 'long_form',
-    duration: '11:15',
+    duration: '10:15',
     status: 'scheduled',
     scheduledAt: 'Ertaga, 21:00 UTC',
-    contentPillar: 'Tahliliy',
+    contentPillar: 'Hujjatli',
     viewsPrediction: '25K - 60K',
     seoScore: 95,
-    tags: ['ai agents', 'future of work', 'software engineering', 'anthropic']
+    tags: ['software engineering', 'ai coding', 'future tech']
+  },
+  {
+    id: 'item_swarms',
+    title: 'Why Most Developers Are Coding 10x Faster with AI Swarms #Shorts',
+    format: 'shorts',
+    duration: '0:50',
+    status: 'awaiting_approval',
+    scheduledAt: 'Indinga, 14:00 UTC',
+    contentPillar: "Ta'limiy",
+    viewsPrediction: '40K - 80K',
+    seoScore: 95,
+    tags: ['ai agents', 'productivity', 'swarms', 'tech']
+  },
+  {
+    id: 'item_saas',
+    title: 'Building an Autonomous Full Stack SaaS with AI: 2026 Guide',
+    format: 'long_form',
+    duration: '14:20',
+    status: 'scheduled',
+    scheduledAt: 'Indinga, 21:00 UTC',
+    contentPillar: "Qo'llanma",
+    viewsPrediction: '20K - 45K',
+    seoScore: 93,
+    tags: ['saas', 'startup', 'web development', 'ai']
   }
 ];
 
 const ContentListPage = () => {
   const workspaceId = getWorkspaceId();
   const queryClient = useQueryClient();
-  const [filterTab, setFilterTab] = useState<'all' | 'approval' | 'scheduled' | 'published'>('all');
+  const [filterTab, setFilterTab] = useState<'pipeline' | 'approval' | 'scheduled' | 'published'>('pipeline');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -221,8 +221,14 @@ const ContentListPage = () => {
     });
   }
 
-  // Filter logic
+  // Filter logic: Default 'pipeline' tab hides published videos to focus on NEW content
+  const countPipeline = allVideos.filter(v => v.status !== 'published').length;
+  const countApproval = allVideos.filter(v => v.status === 'awaiting_approval').length;
+  const countScheduled = allVideos.filter(v => v.status === 'scheduled').length;
+  const countPublished = allVideos.filter(v => v.status === 'published').length;
+
   const filteredVideos = allVideos.filter(video => {
+    if (filterTab === 'pipeline' && video.status === 'published') return false;
     if (filterTab === 'approval' && video.status !== 'awaiting_approval') return false;
     if (filterTab === 'scheduled' && video.status !== 'scheduled') return false;
     if (filterTab === 'published' && video.status !== 'published') return false;
@@ -230,15 +236,11 @@ const ContentListPage = () => {
     return true;
   });
 
-  const countApproval = allVideos.filter(v => v.status === 'awaiting_approval').length;
-  const countScheduled = allVideos.filter(v => v.status === 'scheduled').length;
-  const countPublished = allVideos.filter(v => v.status === 'published').length;
-
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Kontent boshqaruvi" 
-        description="Barcha video loyihalari, qoralamalar va YouTube'dagi jonli videolar."
+        description="Yangi video loyihalari, tasdiqlash navbati va ishlab chiqarish quvuri (Pipeline)."
         actions={
           <div className="flex items-center gap-3">
             <Button 
@@ -286,10 +288,10 @@ const ContentListPage = () => {
         {/* Tabs */}
         <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10 w-full sm:w-auto overflow-x-auto">
           <button 
-            onClick={() => setFilterTab('all')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'all' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setFilterTab('pipeline')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'pipeline' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Barchasi ({allVideos.length})
+            Yangi Kontentlar ({countPipeline})
           </button>
           <button 
             onClick={() => setFilterTab('approval')}

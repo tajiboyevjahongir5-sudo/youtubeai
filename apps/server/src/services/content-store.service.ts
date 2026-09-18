@@ -60,41 +60,16 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     contentPillar: 'educational',
     duration: '0:56',
     durationSeconds: 55.6,
-    brief: "Ushbu video 2026-yilgi eng so'nggi AI avtomatlashtirish vositalarini qisqa va ta'sirchan uslubda yoritadi. Dastlabki 3 sekundda kuchli Hook orqali tomoshabin e'tibori jalb qilinadi.",
+    brief: "Ushbu video 2026-yilgi eng so'nggi AI avtomatlashtirish vositalarini qisqa va ta'sirchan uslubda yoritadi.",
     targetAudience: 'AQSH, Buyuk Britaniya, Kanada (Tier-1 High CPM)',
-    script: `[0:00 - 0:03] HOOK (Explosive camera zoom):
-"Stop trading your time for money. These 5 AI tools run 24/7 so you don't have to."
-
-[0:04 - 0:15] TOOL 1 (AutoFlow 2.0):
-"First: AutoFlow 2.0. It connects your email, calendar, and Notion to execute client onboarding automatically while you sleep."
-
-[0:16 - 0:28] TOOL 2 (VoicePilot AI):
-"Second: VoicePilot. Turn any 1-minute voice memo into production-ready articles, tweets, and scripts in 30 seconds."
-
-[0:29 - 0:42] TOOLS 3 & 4 (DevEngine & Synthetix):
-"Third: DevEngine for autonomous code debugging. Fourth: Synthetix for multi-platform video repurposing."
-
-[0:43 - 0:56] OUTRO & CTA:
-"Which one are you deploying first? Comment below and subscribe to Neural Pulse AI for daily automation blueprints!"`,
+    script: `[0:00 - 0:03] HOOK: "Stop trading your time for money. These 5 AI tools run 24/7 so you don't have to."`,
     scenes: [
       { id: 'hook', title: '1. Hook (Kirish)', time: 0, tag: '🚨 Alex Hook' },
       { id: 'tool1', title: '2. AutoFlow 2.0', time: 10.6, tag: '🤖 AutoFlow' },
-      { id: 'tool2', title: '3. VoicePilot', time: 19.5, tag: '🎙️ VoicePilot' },
-      { id: 'tool3', title: '4. DevEngine', time: 28.1, tag: '💻 DevEngine' },
-      { id: 'tool4', title: '5. Synthetix', time: 37.3, tag: '🚀 Synthetix' },
-      { id: 'outro', title: '6. Obuna (CTA)', time: 46.8, tag: '🔔 Obuna CTA' }
+      { id: 'outro', title: '3. Obuna (CTA)', time: 46.8, tag: '🔔 Obuna CTA' }
     ],
-    description: `Here are the top 5 AI tools that will automate your business, coding, and content workflow in 2026.
-
-⏰ Timestamps:
-0:00 - Introduction & Hook
-0:04 - Tool 1: AutoFlow 2.0
-0:16 - Tool 2: VoicePilot
-0:29 - Tool 3 & 4: DevEngine & Synthetix
-0:46 - Summary & Next Steps
-
-#AITools #Automation #ArtificialIntelligence #Tech2026 #Productivity`,
-    tags: ['ai tools', 'automation', 'chatgpt', 'productivity', 'neural pulse ai', 'make money online', 'coding agents'],
+    description: `Here are the top 5 AI tools in 2026.`,
+    tags: ['ai tools', 'automation', 'productivity'],
     seoScore: 95,
     scheduledAt: '2026-09-17T08:46:51Z',
     createdAt: '2026-09-17T07:01:00Z',
@@ -102,6 +77,84 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     youtubeVideoId: 'y2uIY0kprx0',
     youtubeUrl: 'https://youtube.com/shorts/y2uIY0kprx0',
     videoUrl: '/neural_pulse_short.mp4'
+  },
+  item_coding_agents: {
+    id: 'item_coding_agents',
+    workspaceId: 'ws_j7ktjxw0',
+    title: 'Top 5 Autonomous Coding Agents in 2026 #Shorts',
+    status: 'review',
+    videoFormat: 'shorts',
+    contentPillar: 'educational',
+    duration: '0:56',
+    durationSeconds: 56,
+    brief: "2026-yilning eng tezkor 5 ta avtonom AI dasturlash agentlari (Cursor, Devin, Claude 3.7, Aider, Cline) tahlili.",
+    targetAudience: 'Global Software Developers, Tech Leaders',
+    script: `[0:00 - 0:04] HOOK (Explosive camera zoom in):
+"Stop writing boilerplate code by hand! These 5 autonomous AI coding agents build full-stack apps in minutes."
+
+[0:05 - 0:17] AGENT 1 (Devin 2.0 & Cursor):
+"First: Cursor and Devin 2.0. They don't just autocomplete—they resolve Github issues, test edge cases, and deploy pull requests while you sleep."
+
+[0:18 - 0:31] AGENT 2 & 3 (Claude 3.7 & Cline):
+"Second: Claude 3.7 hybrid reasoning. It maps your entire repo architecture. Hit like and save this video right now so you don't lose the setup!"
+
+[0:32 - 0:44] AGENT 4 & 5 (Aider & Sweep):
+"Third: Aider for instant terminal workflows. Senior engineers using this stack are outputting 10x more code with zero burnout."
+
+[0:45 - 0:56] OUTRO & CTA:
+"Which coding agent are you using today? Comment below, subscribe for daily blueprints, and that is the exact reason why..."`,
+    scenes: [
+      { id: 'hook', title: '1. Explosive Hook: Coding Agents', time: 0, tag: '🚨 Alex Hook' },
+      { id: 'part1', title: '2. Devin & Cursor Swarms', time: 10.5, tag: '🤖 Devin & Cursor' },
+      { id: 'part2', title: '3. Claude 3.7 & Save Trigger', time: 21.0, tag: '💾 Like & Save' },
+      { id: 'part3', title: '4. Aider & 10x Output', time: 33.0, tag: '⚡ 10x Muhandis' },
+      { id: 'outro', title: '5. Obuna & Loop (CTA)', time: 45.0, tag: '🔔 Obuna & Loop' }
+    ],
+    description: `Top 5 Autonomous Coding Agents in 2026 that build production software while you sleep.\n\n#aicoding #devin #cursor #softwareengineering #shorts #neuralpulseai`,
+    tags: ['ai coding', 'autonomous agents', 'cursor ai', 'claude 3.7', 'devin', 'programming', 'shorts'],
+    seoScore: 98,
+    scheduledAt: new Date(Date.now() + 3600000).toISOString(),
+    createdAt: new Date().toISOString(),
+    videoUrl: ''
+  },
+  item_illegal_websites: {
+    id: 'item_illegal_websites',
+    workspaceId: 'ws_j7ktjxw0',
+    title: '5 AI Websites That Feel Illegal to Know in 2026 #Shorts',
+    status: 'review',
+    videoFormat: 'shorts',
+    contentPillar: 'educational',
+    duration: '0:54',
+    durationSeconds: 54,
+    brief: "Kunlik ishlarni 10x tezlashtiradigan 5 ta sirli va bepul AI veb-saytlar tahlili.",
+    targetAudience: 'Creators, Founders, Productivity Seekers',
+    script: `[0:00 - 0:04] HOOK:
+"These 5 AI websites feel completely illegal to know, but they are 100% free right now."
+
+[0:05 - 0:17] WEBSITE 1 & 2:
+"Number 1: Gamma AI for instant investor pitch decks. Number 2: Perplexity Pro for zero-hallucination web research."
+
+[0:18 - 0:31] WEBSITE 3:
+"Number 3: Phind for instant technical debugging. Save this video before it gets taken down!"
+
+[0:32 - 0:44] WEBSITE 4 & 5:
+"Number 4: Synthesia for avatar synthesis. Number 5: ElevenLabs for voice cloning."
+
+[0:45 - 0:54] OUTRO:
+"Which website are you trying first? Drop a comment, subscribe to Neural Pulse AI, and that is why..."`,
+    scenes: [
+      { id: 'hook', title: '1. Illegal AI Websites Hook', time: 0, tag: '🚨 Alex Hook' },
+      { id: 'part1', title: '2. Gamma & Perplexity', time: 10.5, tag: '⚡ Top Saytlar' },
+      { id: 'part2', title: '3. Phind & Save Trigger', time: 21.0, tag: '💾 Like Trigger' },
+      { id: 'part3', title: '4. Voice & Avatars', time: 33.0, tag: '🎙️ AI Vositalar' },
+      { id: 'outro', title: '5. Obuna & Loop', time: 45.0, tag: '🔔 Obuna CTA' }
+    ],
+    description: `5 AI websites that feel illegal to know in 2026.\n\n#aiwebsites #productivity #freetools #shorts #neuralpulseai`,
+    tags: ['ai websites', 'productivity', 'free tools', 'automation', 'shorts'],
+    seoScore: 97,
+    scheduledAt: new Date(Date.now() + 7200000).toISOString(),
+    createdAt: new Date().toISOString(),
+    videoUrl: ''
   },
   item_2: {
     id: 'item_2',
