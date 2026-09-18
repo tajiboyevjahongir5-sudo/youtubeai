@@ -299,11 +299,16 @@ def load_sfx_sample(name: str, target_sr=24000) -> np.ndarray:
                 pass
     return np.zeros(0, dtype=np.float32)
 
-async def synthesize_speech(text: str, output_wav: str, ffmpeg_bin: str) -> float:
+async def synthesize_speech(text: str, output_wav: str, ffmpeg_bin: str, voice_name: str = "en-US-ChristopherNeural") -> float:
     temp_mp3 = output_wav.replace('.wav', '_temp.mp3')
     try:
         import edge_tts
-        communicate = edge_tts.Communicate(text, "en-US-ChristopherNeural", rate="+14%", pitch="+1Hz")
+        rate = "+14%"
+        pitch = "+1Hz"
+        if voice_name.startswith("uz-") or voice_name.startswith("es-"):
+            rate = "+6%"
+            pitch = "+0Hz"
+        communicate = edge_tts.Communicate(text, voice_name, rate=rate, pitch=pitch)
         await communicate.save(temp_mp3)
 
         cmd = [
@@ -543,13 +548,15 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
     print(f"✨ Automatically generated 5 unique topic-isolated procedural scenes for [{item_id}] (Palette: {pal[0]})!", flush=True)
     return scenes_res
 
-def render_video(data: dict, output_mp4: str):
+def render_video(data: dict, output_mp4: str, voice_override: str = None):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
     
     title = data.get('title', 'Neural Pulse AI')
     clean_title = sanitize_text(title)
     script = data.get('script', '')
+
+    voice_name = voice_override or data.get('voiceModel') or data.get('voice') or "en-US-ChristopherNeural"
 
     temp_dir = os.path.join(os.path.dirname(output_mp4), f"tmp_{data.get('id', 'render')}")
     os.makedirs(temp_dir, exist_ok=True)
@@ -558,12 +565,12 @@ def render_video(data: dict, output_mp4: str):
     final_audio = os.path.join(temp_dir, 'final_audio.wav')
     raw_video = os.path.join(temp_dir, 'raw_video.mp4')
 
-    print(f"🎙️ Step 1/3: Synthesizing Azure Neural Voice for '{clean_title}'...", flush=True)
+    print(f"🎙️ Step 1/3: Synthesizing Azure Neural Voice [{voice_name}] for '{clean_title}'...", flush=True)
     tts_text = clean_script_for_tts(script)
     if not tts_text:
         tts_text = f"Welcome to Neural Pulse AI. Today we analyze: {clean_title}."
 
-    duration = asyncio.run(synthesize_speech(tts_text, voice_wav, ffmpeg_bin))
+    duration = asyncio.run(synthesize_speech(tts_text, voice_wav, ffmpeg_bin, voice_name=voice_name))
     if not is_long and duration > 58.0:
         duration = 58.0
     elif not is_long and duration < 24.0:
@@ -1173,6 +1180,7 @@ def main():
     parser.add_argument('--json', type=str, help="Raw JSON string input")
     parser.add_argument('--item-id', type=str, help="Specific item ID if input contains multiple items")
     parser.add_argument('--output', type=str, required=True, help="Output MP4 path")
+    parser.add_argument('--voice', type=str, default=None, help="Azure Neural Voice name")
     args = parser.parse_args()
 
     if args.json:
@@ -1193,7 +1201,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output)
+    dur = render_video(data, args.output, voice_override=args.voice)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

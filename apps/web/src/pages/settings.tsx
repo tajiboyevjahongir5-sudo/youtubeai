@@ -14,7 +14,9 @@ import {
   Save, 
   Sliders,
   Globe,
-  Bell
+  Bell,
+  Mic,
+  Sparkles
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -36,6 +38,8 @@ const SettingsPage = () => {
   const [publishTime1, setPublishTime1] = useState("14:00");
   const [publishTime2, setPublishTime2] = useState("20:00");
   const [autoGenerateIfEmpty, setAutoGenerateIfEmpty] = useState(true);
+  const [voiceModel, setVoiceModel] = useState("en-US-ChristopherNeural");
+  const [autoTitleAbTest, setAutoTitleAbTest] = useState(true);
 
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
@@ -52,6 +56,8 @@ const SettingsPage = () => {
           if (s.approvalMode) setApprovalMode(s.approvalMode);
           if (s.autoPilotEnabled !== undefined) setAutoPilotEnabled(s.autoPilotEnabled);
           if (s.autoGenerateIfEmpty !== undefined) setAutoGenerateIfEmpty(s.autoGenerateIfEmpty);
+          if (s.voiceModel) setVoiceModel(s.voiceModel);
+          if (s.autoTitleAbTest !== undefined) setAutoTitleAbTest(s.autoTitleAbTest);
           if (Array.isArray(s.publishTimes)) {
             if (s.publishTimes[0]) setPublishTime1(s.publishTimes[0]);
             if (s.publishTimes[1]) setPublishTime2(s.publishTimes[1]);
@@ -81,6 +87,8 @@ const SettingsPage = () => {
             approvalMode,
             autoPilotEnabled,
             autoGenerateIfEmpty,
+            voiceModel,
+            autoTitleAbTest,
             publishTimes: [publishTime1, publishTime2].filter(Boolean)
           }
         })
@@ -167,8 +175,37 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Multi-Voice Studio & Sound Architecture */}
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-5 shadow-xl animate-fade-in-up stagger-2">
+          <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+            <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400">
+              <Mic size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-base">Multi-Voice Studio (AI Ovoz Studiyasi)</h3>
+              <p className="text-xs text-gray-400">Microsoft Azure Neural Speech asosidagi yuqori sifatli ovoz modellari</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Standart Ovoz Modeli</label>
+            <Select value={voiceModel} onChange={(e) => setVoiceModel(e.target.value)}>
+              <option value="en-US-ChristopherNeural">Alex (en-US-ChristopherNeural) — Jiddiy, Texnologik & AI Ekspert (Standart)</option>
+              <option value="en-US-GuyNeural">Brian (en-US-GuyNeural) — Yuqori Energiya & Tezkor Viral Ovoz</option>
+              <option value="en-US-EricNeural">Eric (en-US-EricNeural) — Hujjatli Film & Nufuzli Ovoz</option>
+              <option value="en-US-JennyNeural">Jenny (en-US-JennyNeural) — Samimiy & Jonli Ayol Ovozi</option>
+              <option value="en-US-AriaNeural">Aria (en-US-AriaNeural) — Dinamik Texnologik Hikoyachi (Ayol)</option>
+              <option value="uz-UZ-SardorNeural">Sardor (uz-UZ-SardorNeural) — Tabiiy O'zbek Tili Ovoz Modeli</option>
+              <option value="es-ES-AlvaroNeural">Alvaro (es-ES-AlvaroNeural) — Standart Ispan Tili Ovoz Modeli</option>
+            </Select>
+            <p className="text-[11px] text-gray-400 mt-1">
+              * Tanlangan ovoz modeli video generatsiyasida nutq tezligi (+14%) va intonatsiyani avtomatik moslashtiradi.
+            </p>
+          </div>
+        </div>
+
         {/* Publishing & Automation Rules */}
-        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-2">
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-3">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400">
@@ -270,7 +307,7 @@ const SettingsPage = () => {
             <div className="space-y-0.5">
               <span className="font-bold text-white block">Avtomatik AI Kontent Generator (Smart Pipeline)</span>
               <span className="text-gray-400">
-                Agar rejalashtirilgan video qolmasa, Gemini 3.6 Flash o'zi yangi dolzarb mavzuni topib, o'z vaqtida videoni chiqaradi.
+                Agar rejalashtirilgan video qolmasa, Gemini o'zi yangi dolzarb mavzuni topib, o'z vaqtida videoni chiqaradi.
               </span>
             </div>
             <button
@@ -284,12 +321,23 @@ const SettingsPage = () => {
             </button>
           </div>
 
+          {/* Auto A/B Title Switcher */}
           <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs">
-            <div>
-              <span className="font-bold text-white block">Telegram Bildirishnomalari</span>
-              <span className="text-gray-400">Har bir video avtomatik YouTube'ga yuklanganda Telegram guruhga hisobot yuboriladi</span>
+            <div className="space-y-0.5">
+              <span className="font-bold text-white block">Avtomatik A/B Sarlavha Almashtirish (Auto Title Switcher)</span>
+              <span className="text-gray-400">
+                Agar video dastlabki 8-24 soat ichida past CTR ko'rsatsa (&lt;300 views), YouTube sarlavhasi avtomatik 2-variant (Urgency/Curiosity hook)ga o'zgartiriladi.
+              </span>
             </div>
-            <span className="text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Yoqilgan</span>
+            <button
+              type="button"
+              onClick={() => setAutoTitleAbTest(!autoTitleAbTest)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                autoTitleAbTest ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 text-gray-400'
+              }`}
+            >
+              {autoTitleAbTest ? 'Yoqilgan' : 'O\'chirilgan'}
+            </button>
           </div>
         </div>
 

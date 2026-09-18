@@ -4,6 +4,7 @@ import { contentStore, ContentItemRecord } from './content-store.service';
 import { youtubeService } from './youtube.service';
 import { VideoRenderService } from './video-render.service';
 import { aiService } from './ai.service';
+import { analyticsService } from './analytics.service';
 import { db } from '../db';
 import { publishingJobs, workspaces } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -72,6 +73,9 @@ export class SchedulerService {
 
       // 2. Process workspace daily auto-pilot slots
       await this.processDailyAutoPilot();
+
+      // 3. Process Automatic A/B Title Switcher for published videos
+      await this.processTitleAbTesting();
     } catch (err) {
       console.error('❌ [Auto-Scheduler] Xatolik yuz berdi:', err);
     } finally {
@@ -138,6 +142,13 @@ export class SchedulerService {
       // Check if YouTube is authenticated for this workspace
       if (!youtubeService.isAuthenticated(wsId)) {
         continue;
+      }
+
+      // Self-Learning Feedback Loop: Automatically analyze recent videos to update algorithmic memory
+      try {
+        await analyticsService.analyzeChannelVideos(wsId);
+      } catch (analyticsErr) {
+        console.warn(`[Auto-Pilot] Analytics tahlilida ogohlantirish (${wsId}):`, analyticsErr);
       }
 
       const settings = getWorkspaceSettings(wsId);
@@ -427,6 +438,85 @@ export class SchedulerService {
     }
 
     return slots;
+  }
+
+  /**
+   * 3. Auto A/B Title Switcher:
+   * Inspects published videos 6 to 48 hours post-upload.
+   * If view count velocity is sluggish (< 300 views) and alternative high-CTR hook title variants exist,
+   * automatically rotates the video title to Variant 2 via YouTube API videos.update.
+   */
+  private async processTitleAbTesting() {
+    const candidateWorkspaces = ['ws_j7ktjxw0', 'default'];
+    try {
+      const files = fs.readdirSync(SETTINGS_DIR);
+      for (const f of files) {
+        if (f.endsWith('.json')) {
+          const ws = f.replace('.json', '');
+          if (!candidateWorkspaces.includes(ws)) candidateWorkspaces.push(ws);
+        }
+      }
+    } catch (e) {}
+
+    const now = Date.now();
+
+    for (const wsId of candidateWorkspaces) {
+      if (!youtubeService.isAuthenticated(wsId)) continue;
+      const settings = getWorkspaceSettings(wsId);
+      if (settings.autoTitleAbTest === false) continue; // Skip if disabled by user
+
+      const items = contentStore.getAll(wsId);
+      const publishedCandidates = items.filter(i => 
+        i.status === 'published' &&
+        i.youtubeVideoId &&
+        i.titleVariants &&
+        i.titleVariants.length > 1 &&
+        i.abTestStatus !== 'switched'
+      );
+
+      if (publishedCandidates.length === 0) continue;
+
+      let liveStats = await youtubeService.getLiveStats(wsId);
+      const recentVideosMap = new Map<string, number>();
+      if (liveStats && Array.isArray(liveStats.recentVideos)) {
+        for (const rv of liveStats.recentVideos) {
+          recentVideosMap.set(rv.id, parseInt(rv.views || '0', 10));
+        }
+      }
+
+      for (const item of publishedCandidates) {
+        const publishedTime = item.publishedAt ? new Date(item.publishedAt).getTime() : 0;
+        if (!publishedTime) continue;
+
+        const hoursElapsed = (now - publishedTime) / (1000 * 60 * 60);
+
+        // Check window: between 6h and 48h after publishing
+        if (hoursElapsed >= 6 && hoursElapsed <= 48) {
+          const currentViews = recentVideosMap.get(item.youtubeVideoId!) ?? 0;
+
+          // If views are sluggish (< 300 views after 6+ hours)
+          if (currentViews < 300) {
+            // Pick the alternative variant (e.g. index 1 or urgency hook)
+            const altVariant = item.titleVariants![1] || item.titleVariants![0];
+            const newTitle = `${altVariant.title} #Shorts`;
+
+            if (newTitle !== item.title) {
+              console.log(`🧪 [Auto A/B Test - ${wsId}] Video ${item.youtubeVideoId} ko'rishlar (${currentViews}) past. Sarlavha almashtirilmoqda: "${item.title}" -> "${newTitle}"`);
+              const success = await youtubeService.updateVideoTitle(wsId, item.youtubeVideoId!, newTitle);
+              if (success) {
+                contentStore.updateItem(item.id, {
+                  originalTitle: item.originalTitle || item.title,
+                  title: newTitle,
+                  abTestStatus: 'switched',
+                  abTestSwitchedAt: new Date().toISOString()
+                });
+                console.log(`✅ [Auto A/B Test - ${wsId}] Sarlavha muvaffaqiyatli almashtirildi!`);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

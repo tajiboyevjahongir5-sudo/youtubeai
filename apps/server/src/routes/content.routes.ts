@@ -185,4 +185,50 @@ router.post('/:contentId/generate-video', async (req: Request, res: Response, ne
   }
 });
 
+// Multi-Language Auto-Localization (Spanish / Uzbek)
+router.post('/:contentId/localize', async (req: Request, res: Response, next: NextFunction) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Content item not found' });
+  }
+
+  const targetLanguage = req.body.targetLanguage === 'es' ? 'es' : 'uz';
+
+  try {
+    console.log(`🌐 [Localization] "${item.title}" videoni ${targetLanguage.toUpperCase()} tiliga tarjima qilinmoqda...`);
+    const localized = await aiService.localizeContent(item, targetLanguage);
+
+    const voiceModel = targetLanguage === 'uz' ? 'uz-UZ-SardorNeural' : 'es-ES-AlvaroNeural';
+
+    const newItem = contentStore.createItem({
+      workspaceId,
+      title: localized.title || `${item.title} (${targetLanguage.toUpperCase()})`,
+      videoFormat: item.videoFormat,
+      contentPillar: item.contentPillar,
+      status: 'review'
+    });
+
+    contentStore.updateItem(newItem.id, {
+      script: localized.script || item.script,
+      scenes: (localized.scenes && Array.isArray(localized.scenes) && localized.scenes.length > 0) ? localized.scenes : item.scenes,
+      description: localized.description || item.description,
+      tags: localized.tags || item.tags,
+      pinnedComment: localized.pinnedComment || item.pinnedComment,
+      voiceModel,
+      targetLanguage,
+      parentContentId: item.id
+    });
+
+    const finalLocalized = contentStore.getById(newItem.id, workspaceId);
+    console.log(`✅ [Localization] Yangi lokalizatsiyalangan kontent yaratildi: ${newItem.id} (${voiceModel})`);
+    res.status(201).json(finalLocalized);
+  } catch (error: any) {
+    console.error('Localization error:', error);
+    res.status(500).json({ error: error.message || 'Localization failed' });
+  }
+});
+
 export default router;

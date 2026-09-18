@@ -15,6 +15,8 @@ export interface AutoPublishSettings {
   audience?: string;
   englishVariant?: string;
   tone?: string;
+  voiceModel?: string;
+  autoTitleAbTest?: boolean;
 }
 
 const getSettingsDirs = () => [
@@ -42,7 +44,9 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           subNiches: parsed.subNiches || 'Coding, SaaS, Productivity, Python',
           audience: parsed.audience || 'US, UK, Canada tech professionals',
           englishVariant: parsed.englishVariant || 'us',
-          tone: parsed.tone || 'professional'
+          tone: parsed.tone || 'professional',
+          voiceModel: parsed.voiceModel || 'en-US-ChristopherNeural',
+          autoTitleAbTest: parsed.autoTitleAbTest ?? true
         };
       } catch (e) {}
     }
@@ -61,7 +65,9 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
     subNiches: 'Coding, SaaS, Productivity, Python',
     audience: 'US, UK, Canada tech professionals',
     englishVariant: 'us',
-    tone: 'professional'
+    tone: 'professional',
+    voiceModel: 'en-US-ChristopherNeural',
+    autoTitleAbTest: true
   };
 }
 

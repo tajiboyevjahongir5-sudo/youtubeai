@@ -16,6 +16,7 @@ export interface IYouTubeService {
   loadChannelInfo(workspaceId: string): any;
   isAuthenticated(workspaceId: string): boolean;
   clearTokens(workspaceId: string): void;
+  updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean>;
 }
 
 const OWNER_WORKSPACE_ID = 'ws_j7ktjxw0';
@@ -438,6 +439,45 @@ export class YouTubeService implements IYouTubeService {
     });
     return res.data;
   }
+
+  async updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean> {
+    try {
+      const auth = this.getClient(workspaceId);
+      const youtube = google.youtube({ version: 'v3', auth });
+
+      const videoRes = await youtube.videos.list({
+        part: ['snippet'],
+        id: [videoId]
+      });
+
+      const video = videoRes.data.items?.[0];
+      if (!video || !video.snippet) {
+        console.warn(`⚠️ [YouTube API - ${workspaceId}] updateVideoTitle: Video ${videoId} topilmadi`);
+        return false;
+      }
+
+      const snippet = video.snippet;
+      await youtube.videos.update({
+        part: ['snippet'],
+        requestBody: {
+          id: videoId,
+          snippet: {
+            title: newTitle,
+            description: snippet.description || '',
+            tags: snippet.tags || [],
+            categoryId: snippet.categoryId || '28',
+            defaultLanguage: snippet.defaultLanguage,
+            defaultAudioLanguage: snippet.defaultAudioLanguage,
+          }
+        }
+      });
+      console.log(`✅ [YouTube API - ${workspaceId}] Video ${videoId} sarlavhasi A/B test asosida yangilandi: "${newTitle}"`);
+      return true;
+    } catch (e: any) {
+      console.error(`❌ [YouTube API - ${workspaceId}] updateVideoTitle xatolik:`, e?.message || e);
+      return false;
+    }
+  }
 }
 
 export class MockYouTubeService implements IYouTubeService {
@@ -465,6 +505,10 @@ export class MockYouTubeService implements IYouTubeService {
   loadChannelInfo(workspaceId: string) { return null; }
   isAuthenticated(workspaceId: string) { return this.connectedWorkspaces.has(workspaceId); }
   clearTokens(workspaceId: string) { this.connectedWorkspaces.delete(workspaceId); }
+  async updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean> {
+    console.log(`[MockYouTube - ${workspaceId}] Sarlavha yangilandi: ${videoId} -> ${newTitle}`);
+    return true;
+  }
 }
 
 export function createYouTubeService(): IYouTubeService {

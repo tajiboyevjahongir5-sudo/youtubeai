@@ -3,6 +3,8 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { contentStore, ContentItemRecord } from './content-store.service';
 
+import { getWorkspaceSettings } from './workspace-settings.service';
+
 export class VideoRenderService {
   private getScriptPath(): string {
     const candidates = [
@@ -69,11 +71,15 @@ export class VideoRenderService {
       // Cross-platform python executable
       const pythonBin = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
 
+      const wsSettings = getWorkspaceSettings(item.workspaceId || 'default');
+      const voiceModel = (item as any).voiceModel || wsSettings.voiceModel || 'en-US-ChristopherNeural';
+
       // Execute python script
       const pythonProcess = spawn(pythonBin, [
         scriptPath,
         '--input', tempInputPath,
-        '--output', outputPath
+        '--output', outputPath,
+        '--voice', voiceModel
       ]);
 
       let stdoutData = '';

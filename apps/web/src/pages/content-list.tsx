@@ -18,7 +18,9 @@ import {
   MoreVertical,
   Calendar,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Globe,
+  Languages
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getWorkspaceId } from '../lib/workspace';
@@ -121,6 +123,25 @@ const ContentListPage = () => {
   const [filterTab, setFilterTab] = useState<'pipeline' | 'approval' | 'scheduled' | 'published'>('pipeline');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [localizingId, setLocalizingId] = useState<string | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  const handleLocalize = async (contentId: string, targetLanguage: 'uz' | 'es') => {
+    setLocalizingId(contentId);
+    try {
+      const realId = contentId.startsWith('yt_') ? 'item_1' : contentId;
+      await fetchApi(`/workspaces/${workspaceId}/content/${realId}/localize`, {
+        method: 'POST',
+        body: JSON.stringify({ targetLanguage })
+      }, async () => 'mock_token');
+      await refetchContent();
+      setActiveMenuId(null);
+    } catch (e) {
+      console.error('Localization error:', e);
+    } finally {
+      setLocalizingId(null);
+    }
+  };
 
   // 1. Fetch channel info & real YouTube uploaded videos
   const { data: channelData, refetch: refetchChannel } = useQuery({
@@ -430,6 +451,45 @@ const ContentListPage = () => {
                   Tafsilotlar
                 </Button>
               </Link>
+
+              {/* Multi-Language Localization Menu */}
+              <div className="relative">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActiveMenuId(activeMenuId === video.id ? null : video.id)}
+                  disabled={localizingId === video.id}
+                  className="flex items-center gap-1.5 text-xs text-blue-400 border-blue-500/30 hover:bg-blue-500/10 cursor-pointer"
+                  title="Videoni boshqa tillarga lokalizatsiya qilish (UZ / ES)"
+                >
+                  <Globe size={13} className={localizingId === video.id ? 'animate-spin' : ''} />
+                  {localizingId === video.id ? 'Tarjima...' : 'Lokalizatsiya'}
+                </Button>
+                {activeMenuId === video.id && (
+                  <div className="absolute right-0 top-full mt-2 w-52 rounded-xl bg-slate-900 border border-white/15 p-2 shadow-2xl z-30 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block px-2 py-1">
+                      AI Lokalizatsiya Qilish:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleLocalize(video.id, 'uz')}
+                      className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/10 text-white flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>🇺🇿 O'zbek tili</span>
+                      <span className="text-[10px] text-gray-400">Sardor Neural</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLocalize(video.id, 'es')}
+                      className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/10 text-white flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>🇪🇸 Ispan tili</span>
+                      <span className="text-[10px] text-gray-400">Alvaro Neural</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {video.status === 'awaiting_approval' && (
                 <Link to={`/content/${video.id}`}>
                   <Button variant="primary" size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,0,0,0.4)]">

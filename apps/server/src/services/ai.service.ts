@@ -12,6 +12,7 @@ export interface IAiService {
   generateMetadata(context: any): Promise<any>;
   generateStoryboard(context: any): Promise<any>;
   qualityReview(context: any): Promise<any>;
+  localizeContent(item: any, targetLanguage: 'es' | 'uz'): Promise<any>;
 }
 
 export class GeminiAiService implements IAiService {
@@ -298,6 +299,54 @@ Include: titleVariations (array of 3), selectedTitle, description, tags (array o
       feedback: 'Good video, clear hook.'
     };
   }
+
+  async localizeContent(item: any, targetLanguage: 'es' | 'uz'): Promise<any> {
+    const langName = targetLanguage === 'es' ? 'Spanish (Español)' : "Uzbek (O'zbek tili)";
+    const prompt = `You are an elite viral video translator and localization specialist.
+Translate and adapt this YouTube video package into authentic, high-retention ${langName}.
+Keep technical terms clear, natural, and engaging.
+
+Original Video:
+Title: ${item.title}
+Script: ${item.script}
+Description: ${item.description || ''}
+Pinned Comment: ${item.pinnedComment || ''}
+Scenes: ${JSON.stringify(item.scenes || [])}
+
+Rules:
+1. Translate Title to an irresistible viral title in ${langName}.
+2. Translate Script with punchy phrasing suited for voiceover.
+3. Translate overlayText for each scene (short, max 6 words).
+4. Translate Description and Pinned Comment.
+5. Provide relevant tags in ${langName}.
+
+Return JSON strictly:
+{
+  "title": "...",
+  "script": "...",
+  "description": "...",
+  "pinnedComment": "...",
+  "scenes": [ { "id": "...", "title": "...", "time": 0, "tag": "...", "overlayText": "..." } ],
+  "tags": ["..."]
+}`;
+
+    try {
+      const text = await this.generateWithFallback(prompt);
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}') + 1;
+      return JSON.parse(text.slice(jsonStart, jsonEnd));
+    } catch (e) {
+      console.error('Localization AI error:', e);
+      return {
+        title: targetLanguage === 'uz' ? `${item.title} (O'zbekcha)` : `${item.title} (Español)`,
+        script: item.script,
+        description: item.description,
+        pinnedComment: item.pinnedComment,
+        scenes: item.scenes,
+        tags: item.tags
+      };
+    }
+  }
 }
 
 export class MockAiService implements IAiService {
@@ -331,6 +380,16 @@ export class MockAiService implements IAiService {
   }
   async generateStoryboard(context: any) { return { scenes: [] }; }
   async qualityReview(context: any) { return { score: 95, originality: 'High', policyRisk: 'Low', hookStrength: 'Strong', feedback: 'Great' }; }
+  async localizeContent(item: any, targetLanguage: 'es' | 'uz'): Promise<any> {
+    return {
+      title: targetLanguage === 'uz' ? `${item.title} (O'zbekcha)` : `${item.title} (Español)`,
+      script: item.script,
+      description: item.description,
+      pinnedComment: item.pinnedComment,
+      scenes: item.scenes,
+      tags: item.tags
+    };
+  }
 }
 
 export function createAiService(): IAiService {

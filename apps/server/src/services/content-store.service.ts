@@ -44,6 +44,12 @@ export interface ContentItemRecord {
   youtubeVideoId?: string;
   youtubeUrl?: string;
   videoUrl?: string;
+  voiceModel?: string;
+  targetLanguage?: string;
+  parentContentId?: string;
+  abTestStatus?: 'initial' | 'testing' | 'switched' | 'completed';
+  abTestSwitchedAt?: string;
+  originalTitle?: string;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
