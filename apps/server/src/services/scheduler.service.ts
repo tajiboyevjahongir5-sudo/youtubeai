@@ -200,26 +200,64 @@ export class SchedulerService {
           console.log(`🤖 [Auto-Pilot] ${wsId} uchun ${timeSlot} vaqti keldi! Avtomatik video nashr jarayoni boshlandi.`);
           this.publishedSlotsToday.add(slotKey);
 
-          // Find ready item or generate a fresh one
-          let readyItem = contentStore.getAll(wsId).find(i => i.status === 'approved' || i.status === 'review');
+          // 1. Fetch channel's already uploaded videos to prevent ANY duplicate upload
+          let liveInfo = await youtubeService.getLiveStats(wsId);
+          if (!liveInfo) {
+            liveInfo = youtubeService.loadChannelInfo(wsId);
+          }
+          const uploadedTitles = new Set<string>(
+            (liveInfo?.recentVideos || []).map((v: any) =>
+              (v.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim()
+            )
+          );
+
+          // 2. Find ready item that has NOT been uploaded yet
+          const candidates = contentStore.getAll(wsId).filter(i => {
+            if (i.status === 'published' || i.status === 'failed') return false;
+            const normTitle = (i.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim();
+            if (uploadedTitles.has(normTitle)) {
+              // Synchronize state: mark as published in store
+              contentStore.updateItem(i.id, { status: 'published' });
+              return false;
+            }
+            return i.status === 'approved' || i.status === 'review';
+          });
+
+          let readyItem: ContentItemRecord | null = candidates[0] || null;
           
           if (!readyItem && settings.autoGenerateIfEmpty) {
-            console.log(`✨ [Auto-Pilot] Navbatda video yo'q. Gemini 3.6 Flash yangi viral mavzuni avtomatik generatsiya qilmoqda...`);
+            console.log(`✨ [Auto-Pilot] Navbatda yangi video yo'q. Gemini yangi viral mavzuni generatsiya qilmoqda...`);
             try {
-              const freshTitle = `AI Automation Blueprint: ${dateKey} Top Breakthroughs`;
+              const viralTopicPool = [
+                'Top 5 Autonomous Coding Agents in 2026',
+                'Claude 3.7 vs Gemini 2.0: Real World Coding Benchmark',
+                '5 AI Websites That Feel Completely Illegal to Know',
+                'How AI Agents Will Replace Traditional Software by 2027',
+                'The Secret AI Tool Every Solo Founder Uses in 2026',
+                'Why Most Developers Are Coding 10x Faster with AI Swarms',
+                'Stop Doing This Manually! Autonomous AI Automation Blueprint',
+                'Top 3 Open Source AI Models That Beat GPT-4 in 2026'
+              ];
+
+              let selectedTitle = viralTopicPool.find(t => {
+                const norm = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return !uploadedTitles.has(norm);
+              }) || `AI Breakthrough 2026: ${dateKey} Automation Blueprint`;
+
               const freshItem = contentStore.generateTailoredItem({
                 id: `item_auto_${Date.now()}`,
                 workspaceId: wsId,
-                title: freshTitle,
+                title: `${selectedTitle} #Shorts`,
                 videoFormat: settings.videoFormat || 'shorts',
                 contentPillar: 'educational',
                 status: 'review'
               });
               
-              // Generate super prompt content
+              // Generate script using AI with learned directives
               try {
                 const aiGen = await aiService.generateScript({
-                  title: freshTitle,
+                  workspaceId: wsId,
+                  title: selectedTitle,
                   videoFormat: settings.videoFormat || 'shorts',
                   contentPillar: 'educational'
                 });
@@ -229,20 +267,23 @@ export class SchedulerService {
                   freshItem.description = aiGen.description || freshItem.description;
                   freshItem.tags = aiGen.tags || freshItem.tags;
                   freshItem.pinnedComment = aiGen.pinnedComment || freshItem.pinnedComment;
+                  freshItem.titleVariants = aiGen.titleVariants || freshItem.titleVariants;
                 }
-              } catch (aiErr) {}
+              } catch (aiErr) {
+                console.warn('AI script generation warning in auto-pilot:', aiErr);
+              }
 
               contentStore.setItem(freshItem);
               readyItem = freshItem;
             } catch (genErr) {
-              console.error(`❌ [Auto-Pilot] Avtomatik mavzu yaratishda xatolik:`, genErr);
+              console.error(`❌ [Auto-Pilot] Yangi mavzu yaratishda xatolik:`, genErr);
             }
           }
 
           if (readyItem) {
             await this.publishItem(readyItem);
           } else {
-            console.warn(`⚠️ [Auto-Pilot] ${wsId} uchun nashr etishga tayyor video topilmadi.`);
+            console.warn(`⚠️ [Auto-Pilot] ${wsId} uchun nashr etishga yangi video topilmadi.`);
           }
         }
       }
@@ -251,11 +292,12 @@ export class SchedulerService {
 
   /**
    * Publishes a content item to YouTube automatically:
-   * 1. Checks/renders video MP4
-   * 2. Uploads via YouTube API
-   * 3. Sets Pinned Comment
-   * 4. Sets Custom Thumbnail
-   * 5. Updates status to 'published'
+   * 1. Checks YouTube Anti-Duplicate Shield
+   * 2. Checks/renders video MP4 specifically for this item
+   * 3. Uploads via YouTube API
+   * 4. Sets Pinned Comment
+   * 5. Sets Custom Thumbnail
+   * 6. Updates status to 'published'
    */
   public async publishItem(item: ContentItemRecord): Promise<{ success: boolean; youtubeUrl?: string; error?: string }> {
     const workspaceId = item.workspaceId || 'ws_j7ktjxw0';
@@ -267,23 +309,57 @@ export class SchedulerService {
       return { success: false, error: 'YouTube kanal ulanmagan' };
     }
 
-    // 1. Locate or render MP4 video
+    // 0. Anti-Duplicate Protection: Check if this video has already been published to YouTube
+    const titleNormalized = (item.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim();
+    let liveInfo = await youtubeService.getLiveStats(workspaceId);
+    if (!liveInfo) {
+      liveInfo = youtubeService.loadChannelInfo(workspaceId);
+    }
+    const existingVideo = (liveInfo?.recentVideos || []).find((v: any) => {
+      const vNorm = (v.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim();
+      return vNorm === titleNormalized;
+    });
+
+    if (existingVideo) {
+      console.warn(`🛡️ [Anti-Duplicate Shield] "${item.title}" allaqachon YouTube kanalida mavjud (ID: ${existingVideo.id})! Takroriy yuklash to'xtatildi.`);
+      contentStore.updateItem(item.id, {
+        status: 'published',
+        publishedAt: existingVideo.publishedAt || new Date().toISOString(),
+        youtubeVideoId: existingVideo.id,
+        youtubeUrl: `https://youtube.com/shorts/${existingVideo.id}`
+      });
+      return { success: false, error: 'Video allaqachon YouTube kanalida mavjud (takrorlanish oldi olindi)' };
+    }
+
+    // 1. Locate or render MP4 video specifically for this item
     const candidatePaths = [
       path.resolve(process.cwd(), 'apps/server/public/videos', `${item.id}.mp4`),
       path.resolve(process.cwd(), 'public/videos', `${item.id}.mp4`),
       path.resolve(process.cwd(), 'apps/web/public/videos', `${item.id}.mp4`),
       path.resolve(process.cwd(), '../web/public/videos', `${item.id}.mp4`),
-      'C:\\Users\\user\\Downloads\\neural_pulse_short.mp4',
-      path.resolve(process.cwd(), 'public/neural_pulse_short.mp4')
-    ];
+      item.videoUrl ? path.resolve(process.cwd(), item.videoUrl.replace(/^\//, '')) : ''
+    ].filter(Boolean) as string[];
+
     let videoPath = candidatePaths.find(p => fs.existsSync(p));
 
+    // Fallback ONLY for item_1 legacy video file
+    if (!videoPath && item.id === 'item_1') {
+      const legacyPaths = [
+        'C:\\Users\\user\\Downloads\\neural_pulse_short.mp4',
+        path.resolve(process.cwd(), 'public/neural_pulse_short.mp4')
+      ];
+      videoPath = legacyPaths.find(p => fs.existsSync(p));
+    }
+
     if (!videoPath) {
-      console.log(`🎬 [Auto-Scheduler] Video MP4 fayli topilmadi. Avtomatik audio-vizual render boshlanmoqda...`);
+      console.log(`🎬 [Auto-Scheduler] "${item.title}" uchun video MP4 fayli topilmadi. Mavzuga mos dinamik audio-vizual render boshlanmoqda...`);
       try {
         const renderRes = await videoRenderService.renderVideo(item);
         if (renderRes && renderRes.videoUrl) {
-          videoPath = candidatePaths.find(p => fs.existsSync(p));
+          const expectedPath = path.resolve(process.cwd(), 'public/videos', `${item.id}.mp4`);
+          const serverPath = path.resolve(process.cwd(), 'apps/server/public/videos', `${item.id}.mp4`);
+          if (fs.existsSync(expectedPath)) videoPath = expectedPath;
+          else if (fs.existsSync(serverPath)) videoPath = serverPath;
         }
       } catch (renderErr) {
         console.error(`❌ [Auto-Scheduler] Render xatosi:`, renderErr);

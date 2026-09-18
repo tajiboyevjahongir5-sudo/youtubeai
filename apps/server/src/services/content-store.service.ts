@@ -55,7 +55,7 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     id: 'item_1',
     workspaceId: 'ws_j7ktjxw0',
     title: 'Top 5 AI Tools That Work While You Sleep in 2026',
-    status: 'review',
+    status: 'published',
     videoFormat: 'shorts',
     contentPillar: 'educational',
     duration: '0:56',
@@ -96,8 +96,11 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
 #AITools #Automation #ArtificialIntelligence #Tech2026 #Productivity`,
     tags: ['ai tools', 'automation', 'chatgpt', 'productivity', 'neural pulse ai', 'make money online', 'coding agents'],
     seoScore: 95,
-    scheduledAt: new Date(Date.now() + 3600000).toISOString(),
-    createdAt: new Date().toISOString(),
+    scheduledAt: '2026-09-17T08:46:51Z',
+    createdAt: '2026-09-17T07:01:00Z',
+    publishedAt: '2026-09-17T08:46:51Z',
+    youtubeVideoId: 'y2uIY0kprx0',
+    youtubeUrl: 'https://youtube.com/shorts/y2uIY0kprx0',
     videoUrl: '/neural_pulse_short.mp4'
   },
   item_2: {
