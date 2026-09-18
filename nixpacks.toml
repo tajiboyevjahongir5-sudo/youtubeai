@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "pnpm", "ffmpeg", "python312Packages.pip", "python312Packages.numpy", "python312Packages.pillow", "python312Packages.opencv4"]
+
+[phases.install]
+cmds = [
+    "pnpm install --frozen-lockfile",
+    "pip install edge-tts || true"
+]
+
+[phases.build]
+cmds = ["pnpm build"]

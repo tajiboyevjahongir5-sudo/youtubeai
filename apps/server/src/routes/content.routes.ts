@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { aiService } from '../services/ai.service';
 import { youtubeService } from '../services/youtube.service';
 import { contentStore } from '../services/content-store.service';
+import { videoRenderService } from '../services/video-render.service';
 
 const router = Router({ mergeParams: true });
 
@@ -121,6 +122,25 @@ router.post('/:contentId/generate-script', async (req: Request, res: Response, n
   });
 
   res.json(updated || regenerated);
+});
+
+// Render dynamic MP4 video for specific topic item
+router.post('/:contentId/generate-video', async (req: Request, res: Response, next: NextFunction) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Content item not found' });
+  }
+
+  try {
+    const result = await videoRenderService.renderVideo(item);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Video generation error:', error);
+    res.status(500).json({ error: error.message || 'Video render failed' });
+  }
 });
 
 export default router;

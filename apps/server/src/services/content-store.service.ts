@@ -183,7 +183,7 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     scheduledAt: new Date(Date.now() - 86400000).toISOString(),
     createdAt: new Date().toISOString(),
     publishedAt: new Date(Date.now() - 86400000).toISOString(),
-    videoUrl: '/neural_pulse_short.mp4'
+    videoUrl: '/videos/item_3.mp4'
   },
   item_4: {
     id: 'item_4',
