@@ -247,9 +247,30 @@ def parse_timed_subtitles(script: str, total_duration: float):
             
     return chunks
 
-def generate_pure_cyberpunk_beat(duration: float, sr=24000) -> np.ndarray:
+def generate_pure_cyberpunk_beat(duration: float, sr=24000, mood='neon_pulse') -> np.ndarray:
     n_samples = int(sr * duration)
-    bpm = 124
+    mood_lower = (mood or 'neon_pulse').lower()
+    if 'phonk' in mood_lower:
+        bpm = 138
+        bass_notes = [49.0, 49.0, 58.2, 43.6]
+        kick_freq_boost = 120.0
+    elif 'synthwave' in mood_lower:
+        bpm = 118
+        bass_notes = [65.4, 55.0, 49.0, 41.2]
+        kick_freq_boost = 85.0
+    elif 'cinematic' in mood_lower or 'epic' in mood_lower:
+        bpm = 124
+        bass_notes = [43.6, 43.6, 51.9, 38.8]
+        kick_freq_boost = 110.0
+    elif 'chill' in mood_lower or 'lofi' in mood_lower:
+        bpm = 92
+        bass_notes = [65.4, 73.4, 58.2, 49.0]
+        kick_freq_boost = 70.0
+    else:
+        bpm = 124
+        bass_notes = [55.0, 55.0, 65.4, 49.0]
+        kick_freq_boost = 95.0
+
     beat_interval = int(sr * (60.0 / bpm))
     music = np.zeros(n_samples, dtype=np.float32)
 
@@ -259,7 +280,7 @@ def generate_pure_cyberpunk_beat(duration: float, sr=24000) -> np.ndarray:
         kick_len = int(0.22 * sr)
         if idx + kick_len < n_samples:
             kt = np.linspace(0, 0.22, kick_len, endpoint=False)
-            freq = 42.0 + 95.0 * np.exp(-kt * 26.0)
+            freq = 42.0 + kick_freq_boost * np.exp(-kt * 26.0)
             kick_env = np.exp(-kt * 19.0)
             phase = 2 * np.pi * np.cumsum(freq) / sr
             music[idx:idx+kick_len] += 0.38 * np.sin(phase) * kick_env
@@ -669,7 +690,7 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     except Exception:
         pass
 
-def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None):
+def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
     
@@ -709,7 +730,8 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     else:
         speech = speech_raw[:total_samples]
 
-    beat = generate_pure_cyberpunk_beat(duration, sr=sr)
+    music_mood = (music_mood_override or data.get('backgroundMusicMood') or data.get('musicMood') or 'neon_pulse').strip().lower()
+    beat = generate_pure_cyberpunk_beat(duration, sr=sr, mood=music_mood)
 
     sfx_track = np.zeros(total_samples, dtype=np.float32)
     sfx_sub = load_sfx_sample('sub_drop.wav', sr)
@@ -1327,6 +1349,7 @@ def main():
     parser.add_argument('--output', type=str, required=True, help="Output MP4 path")
     parser.add_argument('--voice', type=str, default=None, help="Azure Neural Voice name")
     parser.add_argument('--host', type=str, default=None, help="Host Avatar name or path")
+    parser.add_argument('--music-mood', type=str, default=None, help="Background music mood preset")
     args = parser.parse_args()
 
     if args.json:
@@ -1347,7 +1370,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host)
+    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

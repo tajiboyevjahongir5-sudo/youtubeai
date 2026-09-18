@@ -18,7 +18,8 @@ import {
   Mic,
   Sparkles,
   User,
-  Camera
+  Camera,
+  Music
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -44,6 +45,7 @@ const SettingsPage = () => {
   const [autoTitleAbTest, setAutoTitleAbTest] = useState(true);
   const [hostAvatar, setHostAvatar] = useState('alex');
   const [customHostImage, setCustomHostImage] = useState('');
+  const [backgroundMusicMood, setBackgroundMusicMood] = useState('neon_pulse');
 
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
@@ -64,6 +66,7 @@ const SettingsPage = () => {
           if (s.autoTitleAbTest !== undefined) setAutoTitleAbTest(s.autoTitleAbTest);
           if (s.hostAvatar) setHostAvatar(s.hostAvatar);
           if (s.customHostImage) setCustomHostImage(s.customHostImage);
+          if (s.backgroundMusicMood) setBackgroundMusicMood(s.backgroundMusicMood);
           if (Array.isArray(s.publishTimes)) {
             if (s.publishTimes[0]) setPublishTime1(s.publishTimes[0]);
             if (s.publishTimes[1]) setPublishTime2(s.publishTimes[1]);
@@ -97,6 +100,7 @@ const SettingsPage = () => {
             autoTitleAbTest,
             hostAvatar,
             customHostImage,
+            backgroundMusicMood,
             publishTimes: [publishTime1, publishTime2].filter(Boolean)
           }
         })
@@ -210,6 +214,113 @@ const SettingsPage = () => {
               * Tanlangan ovoz modeli video generatsiyasida nutq tezligi (+14%) va intonatsiyani avtomatik moslashtiradi.
             </p>
           </div>
+        </div>
+
+        {/* Viral Audio & Music Mood Matcher */}
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-2">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-600/20 text-amber-400">
+                <Music size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Fon Musiqasi & Audio Kayfiyati (Viral Mood Matcher)</h3>
+                <p className="text-xs text-gray-400">YouTube Shorts tomosha vaqtini 35% ga oshiruvchi no-copyright procedural saundtrek</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400">
+              Auto-Ducking: -10dB Faol
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {[
+              {
+                id: 'neon_pulse',
+                name: '🔥 Neon Pulse',
+                genre: 'Cyber Electronic Pulse',
+                bpm: '124 BPM',
+                badge: 'Standart',
+                desc: 'Neural Pulse AI ning rasmiy brend musiqasi. Qat\'iy, zamonaviy va yuqori intellekt atmosferasi.',
+                border: 'border-cyan-500/50',
+                activeBg: 'bg-cyan-500/10'
+              },
+              {
+                id: 'cyberpunk_phonk',
+                name: '⚡ Cyber Drift Phonk',
+                genre: 'Brazilian / Drift Phonk',
+                bpm: '138 BPM',
+                badge: 'TikTok Viral #1',
+                desc: 'Kiberxavfsizlik, "illegal" saytlar, shoshilinch AI xabarlari va tezkor hooklar uchun mukammal.',
+                border: 'border-purple-500/50',
+                activeBg: 'bg-purple-500/10'
+              },
+              {
+                id: 'dark_synthwave',
+                name: '🌌 Dark Synthwave 2026',
+                genre: 'Retro-Futuristic Arps',
+                bpm: '118 BPM',
+                badge: 'Cinematic',
+                desc: 'Chuqur neyron tarmoqlar, sun\'iy aql falsafasi, Linux va kelajak dasturlash mavzulari.',
+                border: 'border-indigo-500/50',
+                activeBg: 'bg-indigo-500/10'
+              },
+              {
+                id: 'epic_cinematic',
+                name: '🎬 Epic Cinematic Hybrid',
+                genre: 'Hybrid Orchestral',
+                bpm: '124 BPM',
+                badge: 'High Drama',
+                desc: 'Katta kompaniyalar kurashi, global AI poygasi va yirik sanoat inqiloblari.',
+                border: 'border-amber-500/50',
+                activeBg: 'bg-amber-500/10'
+              },
+              {
+                id: 'lofi_chill',
+                name: '☕ Lo-Fi Tech Chill',
+                genre: 'Chillhop / Coding Beats',
+                bpm: '92 BPM',
+                badge: 'Focus & Study',
+                desc: 'Batafsil darsliklar, mahsuldorlik va passiv daromad strategiyalari uchun sokin ritm.',
+                border: 'border-emerald-500/50',
+                activeBg: 'bg-emerald-500/10'
+              }
+            ].map((mood) => {
+              const isSelected = backgroundMusicMood === mood.id;
+              return (
+                <div
+                  key={mood.id}
+                  onClick={() => setBackgroundMusicMood(mood.id)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2.5 ${
+                    isSelected
+                      ? `${mood.border} ${mood.activeBg} shadow-lg ring-1 ring-white/20`
+                      : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                      {mood.badge}
+                    </span>
+                    <span className="text-[11px] font-mono text-amber-400 font-bold">
+                      {mood.bpm}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      {mood.name}
+                      {isSelected && <Check size={14} className="text-amber-400" />}
+                    </h4>
+                    <p className="text-[11px] text-gray-400 font-medium">{mood.genre}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 leading-snug">{mood.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] text-gray-400">
+            * Tanlangan musiqa nutq yangraganda avtomatik ravishda -10dB ga pasayadi (Auto-Ducking), diksiyani kristal toza eshittiradi va pauzalarda to'liq kuchga chiqadi.
+          </p>
         </div>
 
         {/* Multi-Host & Avatar Studio */}

@@ -16,6 +16,7 @@ import trendSpyRoutes from './trend-spy.routes';
 import communityRoutes from './community.routes';
 import affiliateRoutes from './affiliate.routes';
 import dubbingRoutes from './dubbing.routes';
+import channelHealthRoutes from './channel-health.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -49,6 +50,7 @@ workspaceRouter.use('/trends', trendSpyRoutes);
 workspaceRouter.use('/community', communityRoutes);
 workspaceRouter.use('/affiliate', affiliateRoutes);
 workspaceRouter.use('/dubbing', dubbingRoutes);
+workspaceRouter.use('/channel-health', channelHealthRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity

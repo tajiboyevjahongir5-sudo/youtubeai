@@ -19,6 +19,7 @@ export interface AutoPublishSettings {
   autoTitleAbTest?: boolean;
   hostAvatar?: string;
   customHostImage?: string;
+  backgroundMusicMood?: string;
 }
 
 const getSettingsDirs = () => [
@@ -50,7 +51,8 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           voiceModel: parsed.voiceModel || 'en-US-ChristopherNeural',
           autoTitleAbTest: parsed.autoTitleAbTest ?? true,
           hostAvatar: parsed.hostAvatar || 'alex',
-          customHostImage: parsed.customHostImage
+          customHostImage: parsed.customHostImage,
+          backgroundMusicMood: parsed.backgroundMusicMood || 'neon_pulse'
         };
       } catch (e) {}
     }
@@ -72,7 +74,8 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
     tone: 'professional',
     voiceModel: 'en-US-ChristopherNeural',
     autoTitleAbTest: true,
-    hostAvatar: 'alex'
+    hostAvatar: 'alex',
+    backgroundMusicMood: 'neon_pulse'
   };
 }
 

@@ -74,6 +74,7 @@ export class VideoRenderService {
       const wsSettings = getWorkspaceSettings(item.workspaceId || 'default');
       const voiceModel = (item as any).voiceModel || wsSettings.voiceModel || 'en-US-ChristopherNeural';
       const hostAvatar = (item as any).hostAvatar || wsSettings.hostAvatar || 'alex';
+      const musicMood = (item as any).backgroundMusicMood || (item as any).musicMood || wsSettings.backgroundMusicMood || 'neon_pulse';
 
       // Execute python script
       const pythonProcess = spawn(pythonBin, [
@@ -81,7 +82,8 @@ export class VideoRenderService {
         '--input', tempInputPath,
         '--output', outputPath,
         '--voice', voiceModel,
-        '--host', hostAvatar
+        '--host', hostAvatar,
+        '--music-mood', musicMood
       ]);
 
       let stdoutData = '';
