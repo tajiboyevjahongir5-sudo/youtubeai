@@ -41,7 +41,9 @@ import {
   Copy,
   Download,
   Share2,
-  Sliders
+  Sliders,
+  DollarSign,
+  Globe
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -179,6 +181,72 @@ export const ContentDetailPage = () => {
     }
   };
 
+  // Smart Affiliate State
+  const [matchedAffiliates, setMatchedAffiliates] = useState<any[]>([]);
+  const [isLoadingAffiliates, setIsLoadingAffiliates] = useState(false);
+  const [injectedAffiliateId, setInjectedAffiliateId] = useState<string | null>(null);
+
+  const fetchMatchedAffiliates = async () => {
+    setIsLoadingAffiliates(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/affiliate/match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          topic: metaTitle || videoTitle,
+          script: scriptText,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.matched)) {
+        setMatchedAffiliates(data.matched);
+      }
+    } catch (e) {
+      console.error('Affiliate match error:', e);
+    } finally {
+      setIsLoadingAffiliates(false);
+    }
+  };
+
+  // Global Dubbing State
+  const [selectedDubLang, setSelectedDubLang] = useState('es');
+  const [isDubbing, setIsDubbing] = useState(false);
+  const [dubbedResult, setDubbedResult] = useState<any | null>(null);
+
+  const handleTranslateAndDub = async () => {
+    setIsDubbing(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/dubbing/translate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          targetLanguage: selectedDubLang,
+          title: metaTitle || videoTitle,
+          description: metaDescription,
+          script: scriptText,
+          pinnedComment: pinnedCommentText,
+          scenes: scenes,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.dubbedPackage) {
+        setDubbedResult(data.dubbedPackage);
+        setToast(`🎉 Video ${data.dubbedPackage.languageName} tiliga to'liq dublyaj qilindi!`);
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      console.error('Dubbing error:', e);
+    } finally {
+      setIsDubbing(false);
+    }
+  };
+
   useEffect(() => {
     if (itemData) {
       setScriptText(itemData.script || '');
@@ -212,6 +280,7 @@ export const ContentDetailPage = () => {
       } else {
         setStatus('awaiting_generation');
       }
+      fetchMatchedAffiliates();
     }
   }, [itemData]);
 
@@ -729,6 +798,8 @@ export const ContentDetailPage = () => {
             { id: 'personaj', label: 'Personaj & Konsistentlik' },
             { id: 'metadata', label: 'SEO Metadata' },
             { id: 'comments', label: '💬 Izohlar & Reply AI' },
+            { id: 'monetization', label: '💰 Affiliate & Homiylik' },
+            { id: 'dubbing', label: '🌐 Global Dublyaj' },
             { id: 'sifat tekshiruvi', label: 'Sifat tekshiruvi' },
             { id: 'multi_export', label: '📱 Multi-Platform Eksport' },
             { id: 'tasdiqlash', label: 'Tasdiqlash & Video Studio' },
@@ -1438,6 +1509,299 @@ export const ContentDetailPage = () => {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
+        {/* Monetization & Affiliate Engine */}
+        <Tabs.Content value="monetization" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-emerald-500/30">
+            <CardContent className="p-6 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-600/20 text-emerald-400">
+                    <DollarSign size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Smart Affiliate & Sponsor Monetizatsiya Studiyasi</h3>
+                    <p className="text-xs text-gray-400">Video mavzusiga mos yuqori to'lovchi AI dasturlari orqali AdSense'dan tashqari daromad qiling</p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                  Est. +$150-$450 / 10k Views
+                </span>
+              </div>
+
+              {/* Profit Tip */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-transparent border border-emerald-500/25 flex items-start gap-3">
+                <Zap size={18} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-gray-300 leading-relaxed space-y-1">
+                  <span className="font-bold text-emerald-300 block">YouTube Shorts Monetizatsiya Haqiqati:</span>
+                  <p>
+                    YouTube Shorts faqat AdSense orqali kam to'laydi ($0.10 CPM). Lekin video tavsifiga (Description) yoki qadalgan izohga (Pinned Comment) qo'yilgan bitta SaaS hamkorlik havolasi (Affiliate) har 1000 ko'rishdan <strong>$15-$45</strong> gacha doimiy oylik passiv daromad olib kelishi mumkin.
+                  </p>
+                </div>
+              </div>
+
+              {/* Matched Links */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-400" />
+                    Ushbu Video Uchun Tavsiya Qilingan Eng Mos Hamkorlik Havolalari:
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={fetchMatchedAffiliates}
+                    disabled={isLoadingAffiliates}
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <RefreshCw size={12} className={isLoadingAffiliates ? 'animate-spin' : ''} />
+                    Yangilash
+                  </Button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(matchedAffiliates.length > 0 ? matchedAffiliates : [
+                    {
+                      id: 'aff_cursor',
+                      name: 'Cursor AI Code Editor',
+                      url: 'https://cursor.com/?ref=jpilot_creator',
+                      category: 'AI Dasturlash',
+                      commissionRate: '20% har oy',
+                      estimatedEpc: '$2.80',
+                      ctaPhrase: '⚡ Build apps 10x faster with Cursor AI (Free trial):',
+                      badge: 'High Converting'
+                    },
+                    {
+                      id: 'aff_make',
+                      name: 'Make.com Avtomatlashtirish',
+                      url: 'https://make.com/?ref=jpilot_ai',
+                      category: 'Avtomatlashtirish & Botlar',
+                      commissionRate: '20% doimiy',
+                      estimatedEpc: '$3.40',
+                      ctaPhrase: '🤖 Connect 1,000+ apps automatically with Make:',
+                      badge: 'Top SaaS'
+                    }
+                  ]).map((aff) => {
+                    const fullSnippet = `${aff.ctaPhrase} ${aff.url}`;
+                    return (
+                      <div
+                        key={aff.id}
+                        className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                              {aff.badge || 'SaaS'}
+                            </span>
+                            <span className="text-xs font-mono font-bold text-amber-400">
+                              EPC: {aff.estimatedEpc || '$2.50'}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white">{aff.name}</h4>
+                            <p className="text-[11px] text-gray-400">{aff.category} • Komissiya: <strong className="text-emerald-300">{aff.commissionRate}</strong></p>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] font-mono text-gray-300 break-all">
+                            {fullSnippet}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => {
+                              setMetaDescription((prev) => `${prev}\n\n${fullSnippet}`);
+                              setInjectedAffiliateId(aff.id);
+                              setToast(`✅ "${aff.name}" video tavsifiga muvaffaqiyatli kiritildi!`);
+                              setTimeout(() => setToast(null), 3000);
+                            }}
+                            className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 border-emerald-500 flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <CheckCircle2 size={13} />
+                            Tavsifga kiritish
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setPinnedCommentText((prev) => `${fullSnippet}\n\n${prev}`);
+                              setToast(`✅ "${aff.name}" qadalgan izohga (Pinned Comment) kiritildi!`);
+                              setTimeout(() => setToast(null), 3000);
+                            }}
+                            className="text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <Pin size={13} />
+                            Izohga kiritish
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
+        {/* Multi-Language Global Dubbing */}
+        <Tabs.Content value="dubbing" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-blue-500/30">
+            <CardContent className="p-6 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400">
+                    <Globe size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Multi-Language Global Dubbing Studio</h3>
+                    <p className="text-xs text-gray-400">Videoni professional AI diksiya bilan boshqa xalqaro tillarga 1-klikda o'giring</p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                  Global Reach Booster
+                </span>
+              </div>
+
+              {/* Language Selector Cards */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-white block">Maqsadli Tilni Tanlang:</label>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {
+                      code: 'es',
+                      name: 'Ispancha',
+                      native: 'Español',
+                      flag: '🇪🇸',
+                      market: 'Ispaniya & Lotin Amerikasi (500M+)',
+                      rpm: '$1.80 - $3.20',
+                      voice: 'es-ES-AlvaroNeural'
+                    },
+                    {
+                      code: 'uz',
+                      name: 'O\'zbekcha',
+                      native: 'O\'zbek tili',
+                      flag: '🇺🇿',
+                      market: 'O\'zbekiston & Markaziy Osiyo (36M+)',
+                      rpm: '$0.40 - $0.90',
+                      voice: 'uz-UZ-SardorNeural'
+                    },
+                    {
+                      code: 'de',
+                      name: 'Nemischa',
+                      native: 'Deutsch',
+                      flag: '🇩🇪',
+                      market: 'Germaniya & Avstriya (High CPM)',
+                      rpm: '$4.50 - $7.80',
+                      voice: 'de-DE-KillianNeural'
+                    },
+                    {
+                      code: 'fr',
+                      name: 'Fransuzcha',
+                      native: 'Français',
+                      flag: '🇫🇷',
+                      market: 'Fransiya & Kanada',
+                      rpm: '$3.20 - $5.50',
+                      voice: 'fr-FR-HenriNeural'
+                    }
+                  ].map((lang) => {
+                    const isSelected = selectedDubLang === lang.code;
+                    return (
+                      <div
+                        key={lang.code}
+                        onClick={() => setSelectedDubLang(lang.code)}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2.5 ${
+                          isSelected
+                            ? 'bg-blue-600/15 border-blue-500 text-white shadow-lg ring-1 ring-blue-500/30'
+                            : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl">{lang.flag}</span>
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                            {lang.rpm}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-1">
+                            {lang.name}
+                            {isSelected && <CheckCircle2 size={14} className="text-blue-400" />}
+                          </h4>
+                          <p className="text-[11px] text-gray-400">{lang.native}</p>
+                          <p className="text-[10px] text-gray-400 mt-1 leading-snug">{lang.market}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={isDubbing}
+                  onClick={handleTranslateAndDub}
+                  className="w-full sm:w-auto px-6 text-xs font-bold bg-blue-600 hover:bg-blue-500 border-blue-500 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <Sparkles size={16} className={isDubbing ? 'animate-spin' : ''} />
+                  {isDubbing ? 'Dublyaj skripti va audio generatsiya qilinmoqda...' : '🚀 Tanlangan Tilda Dublyaj Qilish'}
+                </Button>
+              </div>
+
+              {/* Dubbing Output Preview */}
+              {dubbedResult && (
+                <div className="space-y-4 pt-4 border-t border-white/10 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                      Tayyor Dublyaj Paketi ({dubbedResult.languageName}):
+                    </span>
+                    <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                      Ovoz: {dubbedResult.voiceModel}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 text-xs">
+                    <div>
+                      <span className="text-gray-400 block font-semibold">Tarjima qilingan Sarlavha:</span>
+                      <p className="font-bold text-white text-sm mt-0.5">{dubbedResult.translatedTitle}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block font-semibold">Dublyaj Skripti:</span>
+                      <p className="font-sans text-gray-200 mt-0.5 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap">
+                        {dubbedResult.translatedScript}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block font-semibold">Qadalgan Izoh (Pinned Comment):</span>
+                      <p className="font-sans text-amber-300 mt-0.5 bg-black/40 p-3 rounded-xl border border-white/5">
+                        {dubbedResult.translatedPinnedComment}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(dubbedResult.translatedScript);
+                        setToast("✅ Dublyaj skripti nusxalandi!");
+                        setTimeout(() => setToast(null), 2500);
+                      }}
+                      className="text-xs flex items-center gap-1.5"
+                    >
+                      <Copy size={13} />
+                      Skriptdan nusxa olish
+                    </Button>
                   </div>
                 </div>
               )}

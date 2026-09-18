@@ -135,6 +135,8 @@ def get_text_width(draw: ImageDraw.ImageDraw, text: str, font) -> int:
     bbox = draw.textbbox((0, 0), text, font=font)
     return bbox[2] - bbox[0]
 
+POWER_WORDS = {'2026', 'AI', 'FREE', 'SECRET', 'REVOLUTION', 'AUTOMATIC', 'ILLEGAL', 'PROFIT', 'CODE', 'AUTONOMOUS', 'MONEY', 'STOP', 'NEVER', 'TOOLS', 'TOOL', 'POWER', 'FAST', 'URGENT', 'NEW'}
+
 def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=None, 
                        max_w=880, base_size=46, min_size=28, stroke_color=(0,0,0), stroke_w=4):
     sanitized_lines = [sanitize_text(l) for l in lines]
@@ -153,18 +155,26 @@ def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=N
     line_h = cur_size + 16
     total_h = len(sanitized_lines) * line_h
     start_y = y_center - (total_h // 2)
+    space_w = get_text_width(draw, " ", font)
     
     for i, line in enumerate(sanitized_lines):
-        w = get_text_width(draw, line, font)
-        x = (W - w) // 2
-        y = start_y + i * line_h
         col = colors[i]
+        words = line.split()
+        total_line_w = get_text_width(draw, line, font)
+        start_x = (W - total_line_w) // 2
+        cur_x = start_x
+        y = start_y + i * line_h
         
-        for dx in range(-stroke_w, stroke_w+1):
-            for dy in range(-stroke_w, stroke_w+1):
-                if dx*dx + dy*dy <= stroke_w*stroke_w:
-                    draw.text((x+dx, y+dy), line, font=font, fill=stroke_color)
-        draw.text((x, y), line, font=font, fill=col)
+        for word in words:
+            w_clean = re.sub(r'[^a-zA-Z0-9]', '', word).upper()
+            word_col = (255, 225, 45) if (w_clean in POWER_WORDS and col == (255, 255, 255)) else col
+            
+            for dx in range(-stroke_w, stroke_w+1):
+                for dy in range(-stroke_w, stroke_w+1):
+                    if dx*dx + dy*dy <= stroke_w*stroke_w:
+                        draw.text((cur_x+dx, y+dy), word, font=font, fill=stroke_color)
+            draw.text((cur_x, y), word, font=font, fill=word_col)
+            cur_x += get_text_width(draw, word, font) + space_w
 
 def clean_script_for_tts(script: str) -> str:
     lines = []

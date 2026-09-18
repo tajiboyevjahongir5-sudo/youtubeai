@@ -4,6 +4,7 @@ import { youtubeChannels } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { youtubeService } from '../services/youtube.service';
 import { analyticsService } from '../services/analytics.service';
+import { generateRetentionReport } from '../services/retention.service';
 
 const router = Router({ mergeParams: true });
 
@@ -193,6 +194,17 @@ router.get('/strategy-memory', async (req: Request, res: Response, next: NextFun
       confidenceLevel: 'high',
       active: true
     })));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/retention', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const contentId = (req.query.contentId as string) || 'latest';
+    const duration = parseInt((req.query.duration as string) || '56', 10);
+    const report = generateRetentionReport(contentId, duration);
+    res.json(report);
   } catch (error) {
     next(error);
   }
