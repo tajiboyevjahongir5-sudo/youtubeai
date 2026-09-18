@@ -40,7 +40,7 @@ export const ContentDetailPage = () => {
   const workspaceId = getWorkspaceId();
 
   // Fetch specific content item details from backend
-  const { data: itemData } = useQuery({
+  const { data: itemData, refetch: refetchItem } = useQuery({
     queryKey: ['content-item', workspaceId, contentId],
     queryFn: async () => {
       try {
@@ -100,7 +100,81 @@ export const ContentDetailPage = () => {
     { id: 'conclusion', title: '5. Xulosa & Obuna', time: 510, tag: '🔔 Xulosa & CTA' },
   ];
 
-  const scenes = isLong ? longFormScenes : shortsScenes;
+  // Dynamic scenes: preferentially use scenes from backend itemData
+  const scenes = (itemData?.scenes && Array.isArray(itemData.scenes) && itemData.scenes.length > 0)
+    ? itemData.scenes
+    : (isLong ? longFormScenes : shortsScenes);
+
+  const currentScene = scenes.find((s: any, idx: number) => {
+    const next = scenes[idx + 1];
+    return currentTime >= s.time && (!next || currentTime < next.time);
+  }) || scenes[0];
+
+  // Editable fields synchronized with itemData
+  const [scriptText, setScriptText] = useState('');
+  const [briefText, setBriefText] = useState('');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  const [metaTags, setMetaTags] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  useEffect(() => {
+    if (itemData) {
+      setScriptText(itemData.script || '');
+      setBriefText(itemData.brief || '');
+      setMetaTitle(itemData.title || '');
+      setMetaDescription(itemData.description || '');
+      setMetaTags(Array.isArray(itemData.tags) ? itemData.tags.join(', ') : (itemData.tags || ''));
+      if (itemData.durationSeconds) {
+        setDuration(itemData.durationSeconds);
+      }
+    }
+  }, [itemData]);
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      await fetchApi(`/workspaces/${workspaceId}/content/${contentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: metaTitle || videoTitle,
+          script: scriptText,
+          brief: briefText,
+          description: metaDescription,
+          tags: metaTags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        })
+      }, async () => 'mock_token');
+      refetchItem();
+      setToast("✅ O'zgarishlar muvaffaqiyatli saqlandi!");
+      setTimeout(() => setToast(null), 4000);
+    } catch (e: any) {
+      setToast("❌ Saqlashda xatolik: " + (e?.message || 'Server xatosi'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRegenerateScript = async () => {
+    setIsRegenerating(true);
+    setToast("✨ Gemini 3.6 Flash tanlangan mavzuga moslab skript va sahnalarni qayta yaratmoqda...");
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}/generate-script`, {
+        method: 'POST'
+      }, async () => 'mock_token');
+      if (res) {
+        setScriptText(res.script || '');
+        setMetaDescription(res.description || '');
+        refetchItem();
+        setToast("🎉 Tanlangan mavzuga mos yangi skript va sahnalar muvaffaqiyatli generatsiya qilindi!");
+      }
+    } catch (e: any) {
+      setToast("❌ Generatsiyada xatolik: " + (e?.message || 'Server xatosi'));
+    } finally {
+      setIsRegenerating(false);
+      setTimeout(() => setToast(null), 5000);
+    }
+  };
 
   const jumpToScene = (time: number) => {
     if (videoRef.current) {
@@ -342,27 +416,33 @@ export const ContentDetailPage = () => {
         <Tabs.Content value="brief" className="space-y-4 animate-fade-in">
           <Card className="liquid-glass border border-white/10">
             <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white">Video Brief & Konsept</h3>
+              <h3 className="text-lg font-bold text-white">Video Brief & Konsept ({videoTitle})</h3>
               <p className="text-gray-300 text-sm leading-relaxed">
-                {isLong 
+                {briefText || itemData?.brief || (isLong 
                   ? "Ushbu 16:9 formatdagi to'liq video sun'iy intellekt agentlari, dasturlashning kelajagi va 2026-2027 yillardagi inqilobni chuqur tahliliy hujjatli uslubda yoritadi. Yuqori CPM auditoriyaga mo'ljallangan."
-                  : "Ushbu video 2026-yilgi eng so'nggi AI avtomatlashtirish vositalarini qisqa va ta'sirchan uslubda yoritadi. Dastlabki 3 sekundda kuchli 'Hook' orqali tomoshabin e'tibori jalb qilinadi."}
+                  : "Ushbu video tanlangan mavzuni qisqa va ta'sirchan uslubda yoritadi. Dastlabki 3 sekundda kuchli 'Hook' orqali tomoshabin e'tibori jalb qilinadi.")}
               </p>
               <div className="grid sm:grid-cols-2 gap-4 pt-2">
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
                   <span className="text-xs text-gray-400 font-medium">Maqsadli Auditoriya</span>
-                  <p className="text-sm font-bold text-white">AQSH, Buyuk Britaniya, Kanada, Germaniya (Tier-1 High CPM)</p>
+                  <p className="text-sm font-bold text-white">{itemData?.targetAudience || 'AQSH, Buyuk Britaniya, Kanada (Tier-1 High CPM)'}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
                   <span className="text-xs text-gray-400 font-medium">Davomiyligi va Format</span>
                   <p className="text-sm font-bold text-white">
-                    {isLong ? '10 daqiqa 15 soniya • Katta Format 16:9 (Landscape 1080p)' : '58 soniya • Vertical 9:16 (#Shorts)'}
+                    {isLong ? `${itemData?.duration || '10:15'} • Katta Format 16:9 (Landscape 1080p)` : `${itemData?.duration || '0:56'} • Vertical 9:16 (#Shorts)`}
                   </p>
                 </div>
               </div>
               <div className="flex gap-3 pt-4 border-t border-white/5">
-                <Button variant="secondary"><Edit3 size={16} className="mr-2" /> Briefni tahrirlash</Button>
-                <Button variant="primary"><Sparkles size={16} className="mr-2" /> Skriptni qayta generatsiya qilish</Button>
+                <Button 
+                  variant="primary" 
+                  disabled={isRegenerating}
+                  onClick={handleRegenerateScript}
+                >
+                  <Sparkles size={16} className={`mr-2 ${isRegenerating ? 'animate-spin' : ''}`} /> 
+                  {isRegenerating ? 'Generatsiya qilinmoqda...' : 'Skriptni qayta generatsiya qilish'}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -375,43 +455,39 @@ export const ContentDetailPage = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-white">
-                    {isLong ? '16:9 Katta Format: Ingliz tilidagi to\'liq skript (10:15)' : 'Shorts: Ingliz tilidagi to\'liq skript (52-58s)'}
+                    {isLong ? `16:9 Katta Format: Ingliz tilidagi to'liq skript (${itemData?.duration || '10:15'})` : `Shorts: Ingliz tilidagi to'liq skript (${itemData?.duration || '0:56'})`}
                   </h3>
                   <p className="text-xs text-gray-400">Har bir sahna, vizual kadrlash va diktor ovoz ko'rsatmalari</p>
                 </div>
-                <Button variant="outline" size="sm">Qayta yozish (Gemini 3.6 Flash)</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={isRegenerating}
+                  onClick={handleRegenerateScript}
+                  className="flex items-center gap-1.5"
+                >
+                  <Sparkles size={14} className={isRegenerating ? 'animate-spin text-red-400' : 'text-red-400'} />
+                  {isRegenerating ? 'Yozilmoqda...' : 'Qayta yozish (Gemini 3.6 Flash)'}
+                </Button>
               </div>
               <Textarea 
                 className="min-h-[340px] font-mono text-xs leading-relaxed" 
-                defaultValue={isLong ? `[00:00 - 01:45] CHAPTER 1: THE EXTINCTION OF BOILERPLATE CODING
-"In 2026, writing syntax by hand is becoming obsolete. Autonomous AI agents don't just complete your code—they architect, test, and deploy entire distributed infrastructures while you sleep. Welcome to the dawn of the Autonomous Engineering Era."
-
-[01:46 - 03:50] CHAPTER 2: AGENTIC ARCHITECTURES DEEP DIVE
-"Unlike simple chat assistants, modern autonomous agents employ recursive self-correcting loops, memory vectors, and direct terminal interfaces. They run test suites, catch regression bugs, and push pull requests without human oversight."
-
-[03:51 - 06:20] CHAPTER 3: LIVE DEMO - ZERO TO MULTI-CLOUD IN 3 MINUTES
-"Watch this: With a single natural language prompt, our orchestrator provisions an encrypted PostgreSQL database, builds Next.js endpoints, and configures Cloudflare edge workers in 180 seconds flat."
-
-[06:21 - 08:30] CHAPTER 4: THE 2027 DEVELOPER SURVIVAL BLUEPRINT
-"Will software engineers lose their jobs? No. But developers who refuse to orchestrate AI agents will be replaced by engineers who do. The new skill is system design, high-level architecture, and security auditing."
-
-[08:31 - 10:15] CHAPTER 5: KEY TAKEAWAYS & COMMUNITY DISCUSSION
-"If you want to stay ahead of this tidal wave, subscribe to Neural Pulse AI. Which agent framework are you currently deploying? Drop your thoughts in the comments below!"` : `[0:00 - 0:03] HOOK (Fast camera zoom in):
-"Stop trading your time for money. These 5 AI tools run 24/7 so you don't have to."
-
-[0:04 - 0:15] TOOL 1 (On screen text: AutoFlow 2.0):
-"First: AutoFlow 2.0. It connects your email, calendar, and Notion to execute tasks automatically while you sleep."
-
-[0:16 - 0:28] TOOL 2 (Visual demonstration):
-"Second: VoicePilot. Turn any 1-minute voice memo into full production-ready articles and scripts in 30 seconds."
-
-[0:29 - 0:45] TOOLS 3 & 4:
-"Third: DevEngine for autonomous code debugging. Fourth: Synthetix for social media repurposing."
-
-[0:46 - 0:58] CTA & CLOSING:
-"Which one are you trying first? Comment below and subscribe to Neural Pulse AI for daily blueprints!"`} 
+                value={scriptText}
+                onChange={(e) => setScriptText(e.target.value)}
+                placeholder="Inglizcha skript matni..."
               />
-              <Button variant="primary">O'zgarishlarni saqlash</Button>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-gray-400">
+                  Mavzuga moslangan so'zlar soni: ~{scriptText.split(/\s+/).filter(Boolean).length} ta so'z
+                </span>
+                <Button 
+                  variant="primary" 
+                  disabled={isSaving}
+                  onClick={handleSaveChanges}
+                >
+                  {isSaving ? 'Saqlanmoqda...' : "O'zgarishlarni saqlash"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </Tabs.Content>
@@ -506,47 +582,49 @@ export const ContentDetailPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-white">YouTube SEO Metadata</h3>
-                  <p className="text-xs text-gray-400">Qidiruv va tavsiyalarga moslashtirilgan</p>
+                  <p className="text-xs text-gray-400">Mavzuga mos optimallashtirilgan qidiruv kalit so'zlari va tavsif</p>
                 </div>
                 <div className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                  SEO Bali: {isLong ? '95 / 100' : '94 / 100'}
+                  SEO Bali: {itemData?.seoScore ? `${itemData.seoScore} / 100` : (isLong ? '95 / 100' : '96 / 100')}
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-300">Asosiy Sarlavha (Title)</label>
-                <Input defaultValue={videoTitle} />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-300">Tavsif (Description)</label>
-                <Textarea 
-                  className="min-h-[140px]" 
-                  defaultValue={isLong ? `The complete documentary breakdown of autonomous coding agents in 2026. How AI is transforming software engineering, cloud orchestration, and the job market.
-
-⏰ Timestamps:
-00:00 - The Extinction of Boilerplate Coding
-01:45 - Agentic Architectures Deep Dive
-03:50 - Live Demo: Zero to Multi-Cloud
-06:20 - The 2027 Developer Survival Blueprint
-08:30 - Key Takeaways & Community Discussion
-
-#AutonomousAgents #AICoding #SoftwareEngineering #FutureOfWork #ArtificialIntelligence` : `Here are the top 5 AI tools that will automate your business, coding, and content workflow in 2026.
-
-⏰ Timestamps:
-0:00 - Introduction & Hook
-0:04 - Tool 1: Workflow Automation
-0:16 - Tool 2: Voice Repurposing
-0:29 - Tool 3: Autonomous Coding
-0:46 - Summary & Next Steps
-
-#AITools #Automation #ArtificialIntelligence #Tech2026 #Productivity`} 
+                <Input 
+                  value={metaTitle} 
+                  onChange={(e) => setMetaTitle(e.target.value)} 
+                  placeholder="Video sarlavhasi..."
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-300">Teglar (Tags)</label>
-                <Input defaultValue={isLong ? "autonomous agents, ai coding, software engineering 2026, anthropic claude, devin ai, coding autopilot, future of developers" : "ai tools 2026, automation, productivity, chatgpt, artificial intelligence, make money with ai, coding agents"} />
+                <label className="text-xs font-semibold text-gray-300">Tavsif (Description & Timestamps)</label>
+                <Textarea 
+                  className="min-h-[140px]" 
+                  value={metaDescription}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  placeholder="YouTube video tavsifi va vaqt belgilari..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-300">Teglar (Tags - vergul bilan ajratilgan)</label>
+                <Input 
+                  value={metaTags} 
+                  onChange={(e) => setMetaTags(e.target.value)} 
+                  placeholder="ai, tech, viral..."
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button 
+                  variant="primary" 
+                  disabled={isSaving}
+                  onClick={handleSaveChanges}
+                >
+                  {isSaving ? 'Saqlanmoqda...' : "SEO Metadatasini saqlash"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -664,6 +742,17 @@ export const ContentDetailPage = () => {
                         </div>
                       ) : (
                         <div className="w-full max-w-[800px] aspect-video rounded-3xl border-4 border-white/20 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(59,130,246,0.3)] flex flex-col justify-center bg-zinc-950 group select-none">
+                          {/* Top Dynamic Topic Overlay */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
+                            <div className="flex items-center gap-2 bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-blue-500/40 max-w-[75%] shadow-xl">
+                              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
+                              <span className="text-xs font-bold text-white truncate">Mavzu: {videoTitle}</span>
+                            </div>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-blue-950/80 text-blue-300 border border-blue-500/40 backdrop-blur-md">
+                              {currentScene?.tag || '16:9 Master'}
+                            </span>
+                          </div>
+
                           <video 
                             ref={videoRef}
                             poster={`/banner.jpg?v=${videoVersion}`} 
@@ -691,11 +780,11 @@ export const ContentDetailPage = () => {
                               <div className="w-20 h-20 rounded-full bg-blue-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(59,130,246,0.85)] transform transition-transform hover:scale-110 active:scale-95">
                                 <Play size={36} className="ml-1.5 fill-white" />
                               </div>
-                              <span className="mt-4 text-xs font-bold text-white bg-black/75 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                                ▶ 16:9 Katta formatli videoni ko'rish
+                              <span className="mt-4 text-xs font-bold text-white bg-black/80 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
+                                ▶ {videoTitle}
                               </span>
                               <span className="text-[11px] text-blue-400 font-semibold mt-1.5 bg-black/60 px-2.5 py-0.5 rounded-md">
-                                📺 1920x1080 Full HD • 10:15 Davomiylik
+                                📺 1920x1080 Full HD • {itemData?.duration || '10:15'} Davomiylik
                               </span>
                             </div>
                           )}
@@ -735,11 +824,12 @@ export const ContentDetailPage = () => {
 
                       {/* Scene Jumper Chips */}
                       <div className="mt-4 flex flex-wrap gap-2 justify-center max-w-2xl">
-                        {scenes.map(s => {
-                          const isActive = currentTime >= s.time && (s.id === 'conclusion' || currentTime < (scenes[scenes.indexOf(s)+1]?.time || 999));
+                        {scenes.map((s: any, sIdx: number) => {
+                          const nextTime = scenes[sIdx + 1]?.time ?? 9999;
+                          const isActive = currentTime >= s.time && currentTime < nextTime;
                           return (
                             <button
-                              key={s.id}
+                              key={s.id || sIdx}
                               onClick={() => jumpToScene(s.time)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                                 isActive
@@ -747,7 +837,7 @@ export const ContentDetailPage = () => {
                                   : 'bg-white/[0.05] text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
                               }`}
                             >
-                              {s.tag}
+                              {s.tag || s.title}
                             </button>
                           );
                         })}
@@ -864,6 +954,17 @@ export const ContentDetailPage = () => {
                         </div>
                       ) : (
                         <div className="w-[290px] h-[515px] rounded-[38px] border-4 border-white/20 bg-black overflow-hidden relative shadow-[0_0_50px_rgba(255,0,0,0.4)] flex flex-col justify-center bg-zinc-950 group select-none">
+                          {/* Top Dynamic Topic Overlay */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
+                            <div className="flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-red-500/40 max-w-[75%] shadow-xl">
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                              <span className="text-[11px] font-bold text-white truncate">Mavzu: {videoTitle}</span>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-950/80 text-red-300 border border-red-500/40 backdrop-blur-md">
+                              {currentScene?.tag || 'Shorts'}
+                            </span>
+                          </div>
+
                           <video 
                             ref={videoRef}
                             poster={`/host_alex.jpg?v=${videoVersion}`} 
@@ -891,11 +992,11 @@ export const ContentDetailPage = () => {
                               <div className="w-20 h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(255,0,0,0.85)] transform transition-transform hover:scale-110 active:scale-95">
                                 <Play size={36} className="ml-1.5 fill-white" />
                               </div>
-                              <span className="mt-4 text-xs font-bold text-white bg-black/75 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                                ▶ Videoni tomosha qilish
+                              <span className="mt-4 text-xs font-bold text-white bg-black/80 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
+                                ▶ {videoTitle}
                               </span>
                               <span className="text-[11px] text-emerald-400 font-semibold mt-1.5 bg-black/60 px-2 py-0.5 rounded-md">
-                                🔊 Tabiiy Studio Diktor Ovozli
+                                🔊 Studio Diktor • {itemData?.duration || '0:56'}
                               </span>
                             </div>
                           )}
@@ -935,11 +1036,12 @@ export const ContentDetailPage = () => {
 
                       {/* Scene Jumper Chips */}
                       <div className="mt-3.5 flex flex-wrap gap-1.5 justify-center max-w-[310px]">
-                        {scenes.map(s => {
-                          const isActive = currentTime >= s.time && (s.id === 'outro' || currentTime < (scenes[scenes.indexOf(s)+1]?.time || 999));
+                        {scenes.map((s: any, sIdx: number) => {
+                          const nextTime = scenes[sIdx + 1]?.time ?? 9999;
+                          const isActive = currentTime >= s.time && currentTime < nextTime;
                           return (
                             <button
-                              key={s.id}
+                              key={s.id || sIdx}
                               onClick={() => jumpToScene(s.time)}
                               className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                                 isActive
@@ -947,7 +1049,7 @@ export const ContentDetailPage = () => {
                                   : 'bg-white/[0.05] text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
                               }`}
                             >
-                              {s.tag}
+                              {s.tag || s.title}
                             </button>
                           );
                         })}
@@ -960,9 +1062,9 @@ export const ContentDetailPage = () => {
                         <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
                           2-Bosqich: Multi-Scene Shorts Tayyor (Ko'rish & Tasdiqlash)
                         </span>
-                        <h3 className="text-2xl font-black text-white">Video to'liq tayyor! YouTube'ga yuklaymizmi?</h3>
+                        <h3 className="text-2xl font-black text-white">{videoTitle}</h3>
                         <p className="text-xs text-gray-300 leading-relaxed">
-                          AI 6 ta alohida sahnani ketma-ket montaj qildi: <strong>Alex personaji</strong>, <strong>AutoFlow 2.0</strong>, <strong>VoicePilot</strong>, <strong>DevEngine</strong> va <strong>Synthetix</strong>. 
+                          AI ushbu video uchun {scenes.length} ta alohida sahnani ketma-ket montaj qildi: {scenes.map((s: any) => s.tag || s.title).join(', ')}. 
                           Microsoft Azure Neural Studio ovozi va ritmik fon musiqasi to'liq sinxronlandi.
                         </p>
                       </div>

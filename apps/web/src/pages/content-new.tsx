@@ -7,6 +7,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Sparkles, Youtube, ArrowRight, Wand2, Check, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
+import { fetchApi } from '../lib/api';
 
 const NewContentPage = () => {
   const navigate = useNavigate();
@@ -14,13 +16,51 @@ const NewContentPage = () => {
   const [pillar, setPillar] = useState('educational');
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genStep, setGenStep] = useState('');
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
+    const workspaceId = getWorkspaceId();
+    const finalTopic = topic.trim() || (format === 'shorts' 
+      ? 'Top 5 Secret AI Websites That Feel Illegal to Know in 2026 #Shorts' 
+      : 'Building an Autonomous AI Engineering System: 2026 Masterclass');
+
+    try {
+      setGenStep('1/3: Mavzu va maqsadli auditoriya tahlil qilinmoqda...');
+      
+      const stepTimer1 = setTimeout(() => {
+        setGenStep('2/3: Gemini 3.6 Flash skript va multi-sahna boblarini yozmoqda...');
+      }, 700);
+
+      const stepTimer2 = setTimeout(() => {
+        setGenStep('3/3: Yuqori konversiyali SEO va YouTube metadata optimallashtirilmoqda...');
+      }, 1500);
+
+      const res = await fetchApi(`/workspaces/${workspaceId}/content`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: finalTopic,
+          videoFormat: format,
+          contentPillar: pillar,
+          status: 'review'
+        })
+      }, async () => 'mock_token');
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+
+      if (res && res.id) {
+        navigate(`/content/${res.id}`);
+      } else {
+        navigate('/content/item_1');
+      }
+    } catch (err) {
+      console.error('Generation error:', err);
+      // Fallback
       navigate('/content/item_1');
-    }, 800);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -104,9 +144,10 @@ const NewContentPage = () => {
         </div>
 
         {/* Action button */}
-        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+        <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-xs text-gray-400 flex items-center gap-1.5">
-            <Clock size={14} className="text-red-500" /> Generatsiya taxminan 5-10 soniya oladi
+            <Clock size={14} className="text-red-500" /> 
+            {isGenerating ? genStep : 'Generatsiya taxminan 2-4 soniya oladi'}
           </span>
           <Button 
             variant="primary" 
@@ -116,7 +157,9 @@ const NewContentPage = () => {
             className="flex items-center gap-2"
           >
             {isGenerating ? (
-              <span>Generatsiya qilinmoqda...</span>
+              <span className="flex items-center gap-2">
+                <Sparkles size={16} className="animate-spin" /> {genStep || 'Generatsiya qilinmoqda...'}
+              </span>
             ) : (
               <>
                 <Wand2 size={18} /> Skript va SEO generatsiya qilish
