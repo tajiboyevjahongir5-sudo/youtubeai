@@ -50,7 +50,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     res.json({
       channelConnected: hasChannel,
-      channel: channelInfo || {
+      channel: hasChannel && channelInfo ? channelInfo : {
         title: 'YouTube Kanal Ulanmagan',
         subscriberCount: 0,
         totalViews: 0,

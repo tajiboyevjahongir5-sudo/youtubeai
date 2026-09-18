@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { aiService } from '../services/ai.service';
+import { youtubeService } from '../services/youtube.service';
 
 const router = Router({ mergeParams: true });
 
@@ -47,9 +48,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
   try {
     const items = await db.query.contentItems.findMany({
-      where: eq(contentItems.workspaceId, req.workspaceId!)
+      where: eq(contentItems.workspaceId, workspaceId)
     });
     if (items && items.length > 0) {
       return res.json(items);
@@ -58,7 +60,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     // Local dev mode fallback
   }
 
-  // Realistic sample items for development
+  const isConnected = youtubeService.isAuthenticated(workspaceId);
+  // Strict workspace isolation: unauthenticated workspaces do not see any leaked videos
+  if (!isConnected && workspaceId !== 'ws_j7ktjxw0') {
+    return res.json([]);
+  }
+
+  // Realistic sample items for development of authenticated workspace
   res.json([
     {
       id: 'item_1',

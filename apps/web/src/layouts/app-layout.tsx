@@ -36,8 +36,13 @@ const AppLayout = () => {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.connectionStatus === 'connected') {
-          setChannelName(data.channelTitle || 'YouTube Kanal');
+        if (
+          data.connectionStatus === 'connected' && 
+          data.channelTitle && 
+          data.channelTitle !== 'YouTube Kanal Ulanmagan' && 
+          data.channelTitle !== 'Kanal ulanmagan'
+        ) {
+          setChannelName(data.channelTitle);
           setChannelStatus('Ulangan');
         } else {
           setChannelName('Kanal ulanmagan');
@@ -177,12 +182,24 @@ const AppLayout = () => {
               <Menu size={22} />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                channelStatus === 'Ulangan' 
+                  ? 'bg-red-600/20 border border-red-500/30 text-red-500' 
+                  : 'bg-amber-500/20 border border-amber-500/30 text-amber-400'
+              }`}>
                 <Radio size={16} />
               </div>
               <div>
-                <div className="font-bold text-white text-sm">{channelName || 'Yuklanmoqda...'}</div>
-                <div className="text-[11px] text-gray-400">{channelStatus === 'Ulangan' ? 'Ulangan' : 'Ulanmagan'} • Global (US/EN)</div>
+                <div className="font-bold text-white text-sm">{channelName || 'Kanal ulanmagan'}</div>
+                <div className="text-[11px]">
+                  {channelStatus === 'Ulangan' ? (
+                    <span className="text-emerald-400 font-medium">Ulangan • Global (US/EN)</span>
+                  ) : (
+                    <Link to="/integrations" className="text-amber-400 hover:text-amber-300 font-medium">
+                      Ulanmagan • Ulash &rarr;
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>

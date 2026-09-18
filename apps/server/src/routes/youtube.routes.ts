@@ -7,9 +7,6 @@ import { env } from '../env';
 
 const router = Router({ mergeParams: true });
 
-// In-memory cache for the connected channel if database is not active
-let activeConnectedChannel: any = null;
-
 router.get('/connect', (req: Request, res: Response) => {
   const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
   const state = Buffer.from(JSON.stringify({ workspaceId })).toString('base64url');
@@ -20,14 +17,14 @@ router.get('/connect', (req: Request, res: Response) => {
 router.get('/status', (req: Request, res: Response) => {
   const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
   const isAuth = youtubeService.isAuthenticated(workspaceId);
-  const channel = youtubeService.loadChannelInfo(workspaceId);
+  const channel = isAuth ? youtubeService.loadChannelInfo(workspaceId) : null;
   res.json({
     workspaceId,
     connected: isAuth,
-    channel: channel ? {
-      title: channel.snippet?.title,
+    channel: (isAuth && channel) ? {
+      title: channel.snippet?.title || channel.title || 'YouTube Kanal',
       id: channel.id,
-      subscribers: channel.statistics?.subscriberCount
+      subscribers: channel.statistics?.subscriberCount || channel.subscriberCount || 0
     } : null
   });
 });

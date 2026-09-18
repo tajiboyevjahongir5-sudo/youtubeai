@@ -10,6 +10,26 @@ router.get('/summary', async (req: Request, res: Response, next: NextFunction) =
   try {
     const workspaceId = (req as any).workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
     const isConnected = youtubeService.isAuthenticated(workspaceId);
+
+    if (!isConnected) {
+      return res.json({
+        channelConnected: false,
+        isNewChannel: true,
+        channelTitle: 'YouTube Kanal Ulanmagan',
+        views: 0,
+        videoCount: 0,
+        totalLikes: 0,
+        impressions: 0,
+        ctr: 0.0,
+        watchTimeHours: 0,
+        subscribers: 0,
+        avgViewPercentage: 0.0,
+        recentVideos: [],
+        lastSyncAt: null,
+        message: 'YouTube kanal hali ulanmagan. O\'z kanalingizni ulash uchun Integratsiyalar sahifasiga o\'ting.'
+      });
+    }
+
     let subscriberCount = 0;
     let viewCount = 0;
     let videoCount = 0;
@@ -18,20 +38,18 @@ router.get('/summary', async (req: Request, res: Response, next: NextFunction) =
     let channelTitle = 'YouTube Kanal Ulanmagan';
     let recentVideos: any[] = [];
 
-    if (isConnected) {
-      let saved = await youtubeService.getLiveStats(workspaceId);
-      if (!saved) {
-        saved = youtubeService.loadChannelInfo(workspaceId);
-      }
-      if (saved) {
-        channelTitle = saved.snippet?.title || saved.title || 'Ulangan Kanal';
-        subscriberCount = parseInt(saved.statistics?.subscriberCount || saved.subscriberCount || '0', 10);
-        viewCount = parseInt(saved.statistics?.viewCount || saved.totalViews || '0', 10);
-        videoCount = parseInt(saved.statistics?.videoCount || saved.videoCount || '0', 10);
-        totalLikes = parseInt(saved.statistics?.totalLikes || '0', 10);
-        recentVideos = saved.recentVideos || [];
-        isNewChannel = (videoCount === 0 && viewCount === 0);
-      }
+    let saved = await youtubeService.getLiveStats(workspaceId);
+    if (!saved) {
+      saved = youtubeService.loadChannelInfo(workspaceId);
+    }
+    if (saved) {
+      channelTitle = saved.snippet?.title || saved.title || 'Ulangan Kanal';
+      subscriberCount = parseInt(saved.statistics?.subscriberCount || saved.subscriberCount || '0', 10);
+      viewCount = parseInt(saved.statistics?.viewCount || saved.totalViews || '0', 10);
+      videoCount = parseInt(saved.statistics?.videoCount || saved.videoCount || '0', 10);
+      totalLikes = parseInt(saved.statistics?.totalLikes || '0', 10);
+      recentVideos = saved.recentVideos || [];
+      isNewChannel = (videoCount === 0 && viewCount === 0);
     }
 
     try {

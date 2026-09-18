@@ -154,11 +154,13 @@ const ContentListPage = () => {
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
+  const isChannelConnected = Boolean(channelData?.connectionStatus === 'connected');
+
   // 3. Construct unified live video list
   let allVideos: VideoItem[] = [];
 
-  // A. Add real YouTube uploaded videos from the channel
-  if (channelData?.recentVideos && Array.isArray(channelData.recentVideos) && channelData.recentVideos.length > 0) {
+  // A. Add real YouTube uploaded videos from the channel ONLY if channel is connected
+  if (isChannelConnected && channelData?.recentVideos && Array.isArray(channelData.recentVideos) && channelData.recentVideos.length > 0) {
     const realYtVideos: VideoItem[] = channelData.recentVideos.map((v: any) => {
       const pubDate = v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Bugun';
       return {
@@ -210,8 +212,8 @@ const ContentListPage = () => {
     });
   }
 
-  // If list is still minimal, supplement with fallback items
-  if (allVideos.length < fallbackVideos.length) {
+  // If list is still minimal and channel is connected, supplement with fallback items
+  if (isChannelConnected && allVideos.length < fallbackVideos.length) {
     fallbackVideos.forEach(fv => {
       if (!allVideos.some(v => v.title.toLowerCase() === fv.title.toLowerCase())) {
         allVideos.push(fv);
@@ -257,6 +259,28 @@ const ContentListPage = () => {
         }
       />
 
+      {/* Disconnected Workspace Banner */}
+      {!isChannelConnected && (
+        <div className="liquid-glass rounded-2xl p-5 border border-amber-500/30 bg-gradient-to-r from-amber-950/20 via-black/40 to-black/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <Youtube size={22} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-sm">Kanal ulanmagan</h3>
+              <p className="text-xs text-gray-300">
+                Ushbu workspace'ga YouTube kanali hali ulanmagan. Videolarni avtomatik yuklash va jonli ko'rishlar statistikasini kuzatish uchun o'z kanalingizni ulang.
+              </p>
+            </div>
+          </div>
+          <Link to="/integrations">
+            <Button variant="primary" size="sm" className="whitespace-nowrap shadow-lg">
+              O'z kanalingizni ulang
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Tabs */}
@@ -301,7 +325,27 @@ const ContentListPage = () => {
       </div>
 
       {/* Video List */}
-      <div className="grid gap-4">
+      {filteredVideos.length === 0 ? (
+        <div className="liquid-glass rounded-2xl p-12 text-center border border-white/10 space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-gray-400 mx-auto">
+            <FileText size={24} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-white">Hozircha videolar mavjud emas</h3>
+            <p className="text-xs text-gray-400 max-w-sm mx-auto">
+              {isChannelConnected 
+                ? "Ushbu parametr bo'yicha hech qanday video topilmadi." 
+                : "Ushbu ish maydonida hech qanday video mavjud emas. Yangi video yarating yoki o'z YouTube kanalingizni ulang."}
+            </p>
+          </div>
+          {!isChannelConnected && (
+            <Link to="/integrations" className="inline-block">
+              <Button variant="primary" size="sm">O'z kanalingizni ulang</Button>
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4">
         {filteredVideos.map((video, index) => (
           <div 
             key={video.id}
@@ -395,8 +439,9 @@ const ContentListPage = () => {
           </div>
         ))}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 };
 
 export default ContentListPage;

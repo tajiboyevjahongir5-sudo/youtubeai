@@ -18,6 +18,8 @@ export interface IYouTubeService {
   clearTokens(workspaceId: string): void;
 }
 
+const OWNER_WORKSPACE_ID = 'ws_j7ktjxw0';
+
 export class YouTubeService implements IYouTubeService {
   private tokensDir: string;
   private channelsDir: string;
@@ -38,7 +40,7 @@ export class YouTubeService implements IYouTubeService {
   }
 
   private sanitizeId(workspaceId: string): string {
-    return (workspaceId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+    return (workspaceId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 
   private getTokenFilePath(workspaceId: string): string {
@@ -52,18 +54,13 @@ export class YouTubeService implements IYouTubeService {
   }
 
   saveTokens(workspaceId: string, tokens: any) {
+    if (!workspaceId) return;
     try {
       const existing = this.loadTokens(workspaceId) || {};
       const merged = { ...existing, ...tokens, workspaceId, savedAt: new Date().toISOString() };
       
       const filePath = this.getTokenFilePath(workspaceId);
       fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), 'utf-8');
-      
-      if (workspaceId === 'default') {
-        try {
-          fs.writeFileSync(this.legacyTokenPath, JSON.stringify(merged, null, 2), 'utf-8');
-        } catch (e) {}
-      }
       console.log(`✅ [${workspaceId}] YouTube OAuth tokenlari saqlandi:`, filePath);
     } catch (e) {
       console.error(`❌ [${workspaceId}] Token saqlashda xatolik:`, e);
@@ -71,29 +68,40 @@ export class YouTubeService implements IYouTubeService {
   }
 
   loadTokens(workspaceId: string): any {
+    if (!workspaceId) return null;
     try {
       const filePath = this.getTokenFilePath(workspaceId);
       if (fs.existsSync(filePath)) {
         return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       }
-      
-      if (fs.existsSync(this.legacyTokenPath)) {
-        return JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
-      }
 
-      // Railway environment variable fallback
-      if (process.env.YOUTUBE_TOKEN_JSON) {
-        try {
-          return JSON.parse(process.env.YOUTUBE_TOKEN_JSON);
-        } catch (e) {}
-      }
+      // STRICT WORKSPACE ISOLATION:
+      // Only the verified owner workspace ('ws_j7ktjxw0') may use fallback files or env vars.
+      // Other workspaces MUST NEVER access owner tokens or environment fallbacks.
+      if (workspaceId === OWNER_WORKSPACE_ID) {
+        if (fs.existsSync(this.legacyTokenPath)) {
+          const legacy = JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
+          this.saveTokens(OWNER_WORKSPACE_ID, legacy);
+          return legacy;
+        }
 
-      if (process.env.YOUTUBE_REFRESH_TOKEN) {
-        return {
-          refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
-          scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/yt-analytics.readonly',
-          token_type: 'Bearer',
-        };
+        if (process.env.YOUTUBE_TOKEN_JSON) {
+          try {
+            const parsed = JSON.parse(process.env.YOUTUBE_TOKEN_JSON);
+            this.saveTokens(OWNER_WORKSPACE_ID, parsed);
+            return parsed;
+          } catch (e) {}
+        }
+
+        if (process.env.YOUTUBE_REFRESH_TOKEN) {
+          const fallback = {
+            refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
+            scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/yt-analytics.readonly',
+            token_type: 'Bearer',
+          };
+          this.saveTokens(OWNER_WORKSPACE_ID, fallback);
+          return fallback;
+        }
       }
     } catch (e) {
       console.error(`❌ [${workspaceId}] Token o'qishda xatolik:`, e);
@@ -102,14 +110,10 @@ export class YouTubeService implements IYouTubeService {
   }
 
   saveChannelInfo(workspaceId: string, info: any) {
+    if (!workspaceId) return;
     try {
       const filePath = this.getChannelFilePath(workspaceId);
       fs.writeFileSync(filePath, JSON.stringify(info, null, 2), 'utf-8');
-      if (workspaceId === 'default') {
-        try {
-          fs.writeFileSync(this.legacyChannelPath, JSON.stringify(info, null, 2), 'utf-8');
-        } catch (e) {}
-      }
       console.log(`✅ [${workspaceId}] Kanal ma'lumotlari saqlandi:`, filePath);
     } catch (e) {
       console.error(`❌ [${workspaceId}] Kanal ma'lumotlarini saqlashda xatolik:`, e);
@@ -117,42 +121,48 @@ export class YouTubeService implements IYouTubeService {
   }
 
   loadChannelInfo(workspaceId: string): any {
+    if (!workspaceId) return null;
     try {
       const filePath = this.getChannelFilePath(workspaceId);
       if (fs.existsSync(filePath)) {
         return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       }
-      if (fs.existsSync(this.legacyChannelPath)) {
-        return JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
-      }
 
-      // Railway environment variable fallback
-      if (process.env.YOUTUBE_CHANNEL_JSON) {
-        try {
-          return JSON.parse(process.env.YOUTUBE_CHANNEL_JSON);
-        } catch (e) {}
+      // STRICT WORKSPACE ISOLATION:
+      // Only the verified owner workspace ('ws_j7ktjxw0') may use fallback files or env vars.
+      // Other workspaces MUST NEVER access owner channel info or environment fallbacks.
+      if (workspaceId === OWNER_WORKSPACE_ID) {
+        if (fs.existsSync(this.legacyChannelPath)) {
+          const legacy = JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
+          this.saveChannelInfo(OWNER_WORKSPACE_ID, legacy);
+          return legacy;
+        }
+
+        if (process.env.YOUTUBE_CHANNEL_JSON) {
+          try {
+            const parsed = JSON.parse(process.env.YOUTUBE_CHANNEL_JSON);
+            this.saveChannelInfo(OWNER_WORKSPACE_ID, parsed);
+            return parsed;
+          } catch (e) {}
+        }
       }
     } catch (e) {}
     return null;
   }
 
-
-
   isAuthenticated(workspaceId: string): boolean {
+    if (!workspaceId) return false;
     const tokens = this.loadTokens(workspaceId);
     return !!(tokens && (tokens.access_token || tokens.refresh_token));
   }
 
   clearTokens(workspaceId: string): void {
+    if (!workspaceId) return;
     try {
       const tokenPath = this.getTokenFilePath(workspaceId);
       const channelPath = this.getChannelFilePath(workspaceId);
       if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath);
       if (fs.existsSync(channelPath)) fs.unlinkSync(channelPath);
-      if (workspaceId === 'default') {
-        if (fs.existsSync(this.legacyTokenPath)) fs.unlinkSync(this.legacyTokenPath);
-        if (fs.existsSync(this.legacyChannelPath)) fs.unlinkSync(this.legacyChannelPath);
-      }
       console.log(`🗑️ [${workspaceId}] YouTube tokenlari o'chirildi.`);
     } catch (e) {}
   }
@@ -381,10 +391,15 @@ export class YouTubeService implements IYouTubeService {
 }
 
 export class MockYouTubeService implements IYouTubeService {
+  private connectedWorkspaces = new Set<string>([OWNER_WORKSPACE_ID]);
   getAuthUrl(state?: string) { return 'https://mock.auth.url?state=' + (state || ''); }
   async getToken(code: string) { return { access_token: 'mock_access', refresh_token: 'mock_refresh', expiry_date: 1234567890 }; }
-  async getChannelInfo(workspaceId: string) { return { id: 'mock_channel_' + workspaceId, snippet: { title: 'Mock Channel ' + workspaceId }, statistics: { subscriberCount: 100 } }; }
+  async getChannelInfo(workspaceId: string) { 
+    if (!this.isAuthenticated(workspaceId)) return null;
+    return { id: 'mock_channel_' + workspaceId, snippet: { title: 'Mock Channel ' + workspaceId }, statistics: { subscriberCount: 100 } }; 
+  }
   async getLiveStats(workspaceId: string) {
+    if (!this.isAuthenticated(workspaceId)) return null;
     return {
       id: 'mock_channel_' + workspaceId,
       snippet: { title: 'Mock Channel ' + workspaceId },
@@ -394,12 +409,12 @@ export class MockYouTubeService implements IYouTubeService {
   }
   async uploadVideo(workspaceId: string, videoPath: string, metadata: any) { return { id: 'mock_video_id', snippet: { title: metadata?.title } }; }
   async getAnalytics(workspaceId: string) { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
-  saveTokens(workspaceId: string, tokens: any) {}
-  loadTokens(workspaceId: string) { return { access_token: 'mock_access' }; }
+  saveTokens(workspaceId: string, tokens: any) { this.connectedWorkspaces.add(workspaceId); }
+  loadTokens(workspaceId: string) { return this.isAuthenticated(workspaceId) ? { access_token: 'mock_access' } : null; }
   saveChannelInfo(workspaceId: string, info: any) {}
   loadChannelInfo(workspaceId: string) { return null; }
-  isAuthenticated(workspaceId: string) { return true; }
-  clearTokens(workspaceId: string) {}
+  isAuthenticated(workspaceId: string) { return this.connectedWorkspaces.has(workspaceId); }
+  clearTokens(workspaceId: string) { this.connectedWorkspaces.delete(workspaceId); }
 }
 
 export function createYouTubeService(): IYouTubeService {

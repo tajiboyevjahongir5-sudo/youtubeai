@@ -90,8 +90,13 @@ export const IntegrationsPage = () => {
     }
   };
 
-  const isConnected = channelData?.connectionStatus === 'connected';
-  const channelTitle = isConnected ? (channelData?.channelTitle || 'Mening YouTube Kanalim') : 'YouTube Kanal Ulanmagan';
+  const isConnected = Boolean(
+    channelData?.connectionStatus === 'connected' &&
+    channelData?.channelTitle &&
+    channelData.channelTitle !== 'YouTube Kanal Ulanmagan' &&
+    channelData.channelTitle !== 'Kanal ulanmagan'
+  );
+  const channelTitle = isConnected ? channelData.channelTitle : 'Kanal ulanmagan';
   const subCount = isConnected 
     ? (channelData?.subscriberCount ? `${channelData.subscriberCount} obunachi` : '0 obunachi') 
     : 'Ulanmagan';
@@ -118,9 +123,13 @@ export const IntegrationsPage = () => {
               <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 shadow-[0_0_20px_rgba(255,0,0,0.3)]">
                 <Youtube size={26} className="fill-red-500" />
               </div>
-              <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                {isConnected ? 'Ulangan (OAuth 2.0)' : 'Ulanmagan'}
+              <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
+                isConnected 
+                  ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' 
+                  : 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                {isConnected ? 'Ulangan (OAuth 2.0)' : 'Kanal ulanmagan'}
               </span>
             </div>
 
@@ -134,15 +143,21 @@ export const IntegrationsPage = () => {
             <div className="space-y-2.5 pt-2">
               <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-between text-xs">
                 <span className="text-gray-400">Ulangan kanal:</span>
-                <span className="font-bold text-white">{channelTitle} ({subCount} obunachi)</span>
+                <span className="font-bold text-white">
+                  {isConnected ? `${channelTitle} (${subCount})` : 'Kanal ulanmagan'}
+                </span>
               </div>
               <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-between text-xs">
                 <span className="text-gray-400">Kunlik yuklash kvotasi:</span>
-                <span className="font-bold text-emerald-400">2 / 100 video (Xavfsiz)</span>
+                <span className={`font-bold ${isConnected ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  {isConnected ? '2 / 100 video (Xavfsiz)' : 'Ulanmagan'}
+                </span>
               </div>
               <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-between text-xs">
                 <span className="text-gray-400">Google OAuth 2.0:</span>
-                <span className="font-bold text-emerald-400">Kalitlar kiritilgan</span>
+                <span className={`font-bold ${isConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isConnected ? 'Kalitlar kiritilgan' : 'Ulanmagan'}
+                </span>
               </div>
             </div>
           </div>
@@ -156,16 +171,18 @@ export const IntegrationsPage = () => {
               className="w-full flex items-center justify-center gap-2 shadow-lg"
             >
               <RefreshCw size={14} className={isConnecting ? "animate-spin" : ""} /> 
-              {isConnecting ? "Ulanmoqda..." : "Kanalni qayta ulash"}
+              {isConnecting ? "Ulanmoqda..." : (isConnected ? "Kanalni qayta ulash" : "O'z YouTube kanalingizni ulang")}
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDisconnect}
-              className="w-full text-red-400 hover:text-red-300 border-red-500/30"
-            >
-              Kanalni uzish
-            </Button>
+            {isConnected && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDisconnect}
+                className="w-full text-red-400 hover:text-red-300 border-red-500/30"
+              >
+                Kanalni uzish
+              </Button>
+            )}
           </div>
         </div>
 
