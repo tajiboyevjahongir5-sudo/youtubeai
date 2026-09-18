@@ -3,6 +3,7 @@ import { env } from '../env';
 import { analyticsService } from './analytics.service';
 
 import { getWorkspaceSettings } from './workspace-settings.service';
+import { aiCouncilService } from './ai-council.service';
 
 export interface IAiService {
   generateIdea(context: any): Promise<any>;
@@ -66,6 +67,23 @@ Generate content in ENGLISH. Return JSON format with fields: title, contentPilla
     const audience = settings.audience || 'US, UK, Canada tech professionals';
     const tone = settings.tone || 'professional';
 
+    // 1. Delegate to Agent 1: Trend & Deep Reasoning Strategist
+    try {
+      const trend = await aiCouncilService.runTrendStrategist({
+        workspaceId,
+        niche,
+        subNiches,
+        audience,
+        pastTitles: uploadedTitles ? Array.from(uploadedTitles) : []
+      });
+      if (trend && trend.selectedTitle && trend.selectedTitle.length > 5) {
+        console.log(`💡 [AI Council: Agent 1] Yangi mavzu [Nisha: ${niche}] asosan tanlandi: "${trend.selectedTitle}"`);
+        return trend.selectedTitle;
+      }
+    } catch (councilErr) {
+      console.warn('⚠️ [AI Council] Agent 1 fallback to direct Gemini:', councilErr);
+    }
+
     const pastList = uploadedTitles ? Array.from(uploadedTitles).slice(0, 20).join('\n- ') : '';
 
     const prompt = `You are an elite YouTube Shorts viral strategist.
@@ -106,6 +124,33 @@ Return ONLY the raw title string, without quotes, formatting, or markdown.`;
     const targetAudience = context.audience || settings.audience || 'US, UK, Canada tech professionals';
     const rawTone = context.tone || settings.tone || 'professional';
     const rawLang = context.englishVariant || settings.englishVariant || 'us';
+
+    // 1. Delegate to 5-Agent Council Pipeline
+    try {
+      const councilRes = await aiCouncilService.runCouncilPipeline({
+        workspaceId,
+        title: cleanTitle,
+        niche: channelNiche,
+        subNiches,
+        audience: targetAudience,
+        tone: rawTone,
+        isLong
+      });
+      if (councilRes && councilRes.script && Array.isArray(councilRes.scenes) && councilRes.scenes.length >= 3) {
+        return {
+          script: councilRes.script,
+          scenes: councilRes.scenes,
+          titleVariants: councilRes.titleVariants,
+          description: councilRes.description,
+          tags: councilRes.tags,
+          pinnedComment: councilRes.pinnedComment,
+          loopTransition: councilRes.loopTransition,
+          highCpmKeywords: councilRes.highCpmKeywords
+        };
+      }
+    } catch (councilErr) {
+      console.warn('⚠️ [AI Council Pipeline] Fallback to direct Gemini generation:', councilErr);
+    }
 
     const toneMap: Record<string, string> = {
       professional: "Authoritative, crisp, analytical, high-credibility executive tone",
