@@ -36,7 +36,8 @@ import {
   Hash,
   CheckCircle2,
   Calendar,
-  CalendarCheck
+  CalendarCheck,
+  Video
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -195,11 +196,44 @@ export const ContentDetailPage = () => {
     }
   };
 
-  const activeVideoSrc = customVideoUrl 
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+
+  // Strict topic-isolated video source: NEVER fallback to neural_pulse_short.mp4 for different topics!
+  const activeVideoSrc: string | undefined = customVideoUrl 
     ? (customVideoUrl.startsWith('http') ? customVideoUrl : `${customVideoUrl}?v=${videoVersion}`)
     : (itemData?.videoUrl 
       ? `${itemData.videoUrl}?v=${videoVersion}`
-      : (isLong ? `/neural_pulse_16x9.mp4?v=${videoVersion}` : `/neural_pulse_short.mp4?v=${videoVersion}`));
+      : (contentId === 'item_1' 
+          ? `/neural_pulse_short.mp4?v=${videoVersion}` 
+          : (contentId === 'item_2' 
+              ? `/neural_pulse_16x9.mp4?v=${videoVersion}` 
+              : (contentId === 'item_3' 
+                  ? `/media/videos/item_3.mp4?v=${videoVersion}` 
+                  : undefined))));
+
+  const handleGenerateVideo = async () => {
+    setIsGeneratingVideo(true);
+    setToast("🚀 AI Video Engine ishga tushdi: Azure Neural ovoz, kadrlar va kinetik subtitrlar yaratilmoqda...");
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}/generate-video`, {
+        method: 'POST'
+      }, async () => 'mock_token');
+      if (res && res.videoUrl) {
+        setCustomVideoUrl(res.videoUrl);
+        setVideoVersion(Date.now());
+        refetchItem();
+        setToast("🎉 Ushbu mavzuga mos yangi video muvaffaqiyatli generatsiya qilindi!");
+      } else {
+        refetchItem();
+        setVideoVersion(Date.now());
+      }
+    } catch (e: any) {
+      setToast("❌ Video yaratishda xatolik: " + (e?.message || 'Server xatosi'));
+    } finally {
+      setIsGeneratingVideo(false);
+      setTimeout(() => setToast(null), 5000);
+    }
+  };
 
   const handleSaveChanges = async () => {
     setIsSaving(true);
@@ -1231,7 +1265,8 @@ export const ContentDetailPage = () => {
                             onClick={togglePlay}
                           >
                             <source src={activeVideoSrc} type="video/mp4" />
-                            <source src={`/neural_pulse_16x9.mp4?v=${videoVersion}`} type="video/mp4" />
+                            {contentId && <source src={`/media/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
+                            {contentId && <source src={`/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
                           </video>
 
                           {/* Center Play Overlay */}
@@ -1452,40 +1487,84 @@ export const ContentDetailPage = () => {
                             </span>
                           </div>
 
-                          <video 
-                            ref={videoRef}
-                            key={activeVideoSrc}
-                            poster={`/host_alex.jpg?v=${videoVersion}`} 
-                            playsInline
-                            preload="auto"
-                            loop
-                            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 55.63)}
-                            onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
-                            onEnded={() => setIsPlaying(false)}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={togglePlay}
-                          >
-                            <source src={activeVideoSrc} type="video/mp4" />
-                            <source src={`/neural_pulse_short.mp4?v=${videoVersion}`} type="video/mp4" />
-                          </video>
+                          {activeVideoSrc ? (
+                            <>
+                              <video 
+                                ref={videoRef}
+                                key={activeVideoSrc}
+                                poster={`/host_alex.jpg?v=${videoVersion}`} 
+                                playsInline
+                                preload="auto"
+                                loop
+                                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 55.63)}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                                onEnded={() => setIsPlaying(false)}
+                                className="w-full h-full object-cover cursor-pointer"
+                                onClick={togglePlay}
+                              >
+                                <source src={activeVideoSrc} type="video/mp4" />
+                                {contentId && <source src={`/media/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
+                                {contentId && <source src={`/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
+                              </video>
 
-                          {/* Center Play Overlay */}
-                          {!isPlaying && (
-                            <div 
-                              onClick={togglePlay}
-                              className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
-                            >
-                              <div className="w-20 h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(255,0,0,0.85)] transform transition-transform hover:scale-110 active:scale-95">
-                                <Play size={36} className="ml-1.5 fill-white" />
-                              </div>
-                              <span className="mt-4 text-xs font-bold text-white bg-black/80 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
-                                ▶ {videoTitle}
-                              </span>
-                              <span className="text-[11px] text-emerald-400 font-semibold mt-1.5 bg-black/60 px-2 py-0.5 rounded-md">
-                                🔊 Studio Diktor • {itemData?.duration || '0:56'}
-                              </span>
+                              {/* Center Play Overlay */}
+                              {!isPlaying && (
+                                <div 
+                                  onClick={togglePlay}
+                                  className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
+                                >
+                                  <div className="w-20 h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(255,0,0,0.85)] transform transition-transform hover:scale-110 active:scale-95">
+                                    <Play size={36} className="ml-1.5 fill-white" />
+                                  </div>
+                                  <span className="mt-4 text-xs font-bold text-white bg-black/80 px-3.5 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
+                                    ▶ {videoTitle}
+                                  </span>
+                                  <span className="text-[11px] text-emerald-400 font-semibold mt-1.5 bg-black/60 px-2 py-0.5 rounded-md">
+                                    🔊 Studio Diktor • {itemData?.duration || '0:56'}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-slate-900 via-zinc-900 to-black relative select-none">
+                              {isGeneratingVideo ? (
+                                <div className="flex flex-col items-center justify-center max-w-xs space-y-4 animate-in fade-in">
+                                  <div className="relative">
+                                    <div className="w-16 h-16 rounded-full border-4 border-red-500/20 border-t-red-500 animate-spin flex items-center justify-center"></div>
+                                    <Sparkles className="absolute inset-0 m-auto text-red-400 animate-pulse" size={24} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-white mb-1">AI Video Generatsiya Qilinmoqda...</h4>
+                                    <p className="text-[11px] text-gray-400 leading-relaxed px-2">
+                                      Azure Neural diktor ovozi, dinamik kadrlar va kinetik subtitrlar yig'ilmoqda.
+                                    </p>
+                                  </div>
+                                  <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden border border-white/10">
+                                    <div className="bg-gradient-to-r from-red-500 via-amber-500 to-pink-500 h-full w-2/3 animate-pulse rounded-full"></div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center max-w-xs space-y-4">
+                                  <div className="w-16 h-16 rounded-2xl bg-red-600/10 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_25px_rgba(239,68,68,0.2)]">
+                                    <Video size={30} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-white mb-1.5">Maxsus Video Tayyor Emas</h4>
+                                    <p className="text-[11px] text-gray-400 leading-relaxed px-2">
+                                      Boshqa mavzudagi videoni aralashtirmaslik uchun, aynan shu mavzu uchun maxsus video yarating!
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={handleGenerateVideo}
+                                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold shadow-lg shadow-red-500/30 flex items-center gap-2 transform active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <Sparkles size={15} />
+                                    Mavzuga Mos Video Generatsiya Qilish
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
 

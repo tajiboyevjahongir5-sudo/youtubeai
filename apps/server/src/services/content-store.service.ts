@@ -115,7 +115,7 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     seoScore: 98,
     scheduledAt: new Date(Date.now() + 3600000).toISOString(),
     createdAt: new Date().toISOString(),
-    videoUrl: ''
+    videoUrl: '/media/videos/item_coding_agents.mp4'
   },
   item_illegal_websites: {
     id: 'item_illegal_websites',
@@ -154,7 +154,7 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     seoScore: 97,
     scheduledAt: new Date(Date.now() + 7200000).toISOString(),
     createdAt: new Date().toISOString(),
-    videoUrl: ''
+    videoUrl: '/media/videos/item_illegal_websites.mp4'
   },
   item_2: {
     id: 'item_2',

@@ -119,38 +119,11 @@ export class VideoRenderService {
             duration: item.durationSeconds || 55
           });
         } else {
-          console.warn(`⚠️ Video render exited with code ${code}. Error: ${stderrData}`);
-          
-          // Fallback: If python/ffmpeg is missing on cloud container, copy master template
-          const templateName = item.videoFormat === 'long_form' ? 'neural_pulse_16x9.mp4' : 'neural_pulse_short.mp4';
-          const templateCandidates = [
-            path.resolve(publicVideosDir, '..', templateName),
-            path.resolve(__dirname, '../../public', templateName),
-            path.resolve(__dirname, '../public', templateName),
-            path.resolve(process.cwd(), 'apps/server/public', templateName),
-            path.resolve(process.cwd(), 'public', templateName)
-          ];
-          const templateSource = templateCandidates.find(p => fs.existsSync(p));
-
-          if (templateSource && fs.existsSync(templateSource)) {
-            fs.copyFileSync(templateSource, outputPath);
-            if (webVideosDir) {
-              try {
-                const webTarget = path.join(webVideosDir, videoFileName);
-                fs.copyFileSync(outputPath, webTarget);
-              } catch (e) {}
-            }
-          }
-
-          contentStore.updateItem(item.id, {
-            videoUrl,
-            status: 'review'
-          });
-
+          console.error(`❌ Video render failed with code ${code}. Error: ${stderrData}`);
           resolve({
-            success: true,
-            videoUrl,
-            duration: item.durationSeconds || 55
+            success: false,
+            videoUrl: '',
+            duration: 0
           });
         }
       });
