@@ -351,6 +351,11 @@ class ContentStoreService {
     return item;
   }
 
+  public setItem(item: ContentItemRecord): void {
+    this.items.set(item.id, item);
+    this.persist();
+  }
+
   public updateItem(id: string, updates: Partial<ContentItemRecord>): ContentItemRecord | null {
     const item = this.getById(id);
     if (!item) return null;

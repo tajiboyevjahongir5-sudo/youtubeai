@@ -9,6 +9,7 @@ import { clerkMiddleware } from '@clerk/express';
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 import './jobs/worker';
+import './services/scheduler.service';
 
 const app = express();
 

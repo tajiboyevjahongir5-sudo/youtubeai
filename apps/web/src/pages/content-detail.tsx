@@ -34,7 +34,9 @@ import {
   BarChart2,
   Repeat,
   Hash,
-  CheckCircle2
+  CheckCircle2,
+  Calendar,
+  CalendarCheck
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -129,6 +131,10 @@ export const ContentDetailPage = () => {
   const [customVideoUrl, setCustomVideoUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduledAtTime, setScheduledAtTime] = useState<string | null>(null);
+  const [customScheduleInput, setCustomScheduleInput] = useState('');
 
   useEffect(() => {
     if (itemData) {
@@ -145,6 +151,9 @@ export const ContentDetailPage = () => {
       if (itemData.relatedVideoId) {
         setRelatedVideoId(itemData.relatedVideoId);
       }
+      if (itemData.scheduledAt) {
+        setScheduledAtTime(itemData.scheduledAt);
+      }
       if (itemData.videoUrl && itemData.videoUrl.trim() !== '') {
         setCustomVideoUrl(itemData.videoUrl);
       }
@@ -153,6 +162,8 @@ export const ContentDetailPage = () => {
       }
       if (itemData.status === 'published') {
         setStatus('published');
+      } else if (itemData.status === 'scheduled') {
+        setStatus('ready_for_review');
       } else if (itemData.videoUrl && itemData.videoUrl.trim() !== '') {
         setStatus('ready_for_review');
       } else {
@@ -342,6 +353,54 @@ export const ContentDetailPage = () => {
   const [isAuthNeeded, setIsAuthNeeded] = useState(false);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
 
+  // Rejalashtirish (O'z vaqtida avtomatik yuklash)
+  const handleSchedulePublish = async (targetIsoTime: string) => {
+    setIsScheduling(true);
+    const wsId = getWorkspaceId();
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/publishing/${contentId}/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': wsId
+        },
+        body: JSON.stringify({
+          scheduledAt: targetIsoTime,
+          privacyStatus: 'public'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setScheduledAtTime(targetIsoTime);
+        setScheduleModalOpen(false);
+        refetchItem();
+        const formatted = new Date(targetIsoTime).toLocaleString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        setToast(`📅 Video ${formatted} vaqtiga muvaffaqiyatli rejalashtirildi! Avtopilot o'z vaqtida YouTube'ga yuklaydi.`);
+      } else {
+        setToast(`❌ Rejalashtirishda xatolik: ${data.message || 'Xatolik'}`);
+      }
+    } catch (e: any) {
+      setToast(`❌ Rejalashtirishda xatolik: ${e?.message || 'Server xatosi'}`);
+    } finally {
+      setIsScheduling(false);
+      setTimeout(() => setToast(null), 5000);
+    }
+  };
+
+  const handleCancelSchedule = async () => {
+    const wsId = getWorkspaceId();
+    try {
+      await fetch(`/api/workspaces/${wsId}/publishing/${contentId}/schedule`, {
+        method: 'DELETE',
+        headers: { 'x-workspace-id': wsId }
+      });
+      setScheduledAtTime(null);
+      refetchItem();
+      setToast("Rejalashtirilgan vaqt bekor qilindi.");
+      setTimeout(() => setToast(null), 3000);
+    } catch (e) {}
+  };
+
   // YouTube'ga yuklash
   const handlePublishToYouTube = async () => {
     const wsId = getWorkspaceId();
@@ -387,6 +446,115 @@ export const ContentDetailPage = () => {
       setStatus('ready_for_review');
       setToast(`❌ Tarmoq xatosi: ${e?.message || 'Serverga ulanib bo\'lmadi'}`);
     }
+  };
+
+  const renderSchedulingControls = () => {
+    const today19 = new Date();
+    today19.setHours(19, 0, 0, 0);
+    const today21 = new Date();
+    today21.setHours(21, 0, 0, 0);
+    const tmr14 = new Date();
+    tmr14.setDate(tmr14.getDate() + 1);
+    tmr14.setHours(14, 0, 0, 0);
+    const tmr20 = new Date();
+    tmr20.setDate(tmr20.getDate() + 1);
+    tmr20.setHours(20, 0, 0, 0);
+
+    return (
+      <div className="space-y-3 pt-2">
+        {scheduledAtTime ? (
+          <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <CalendarCheck size={20} className="text-amber-400 flex-shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-amber-300 block">
+                  ⏰ Avtomatik Nashr Rejalashtirilgan: {new Date(scheduledAtTime).toLocaleString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="text-[11px] text-gray-300">
+                  Ushbu daqiqada Jpilot avtopiloti videoni avtomatik tarzda YouTube'ga yuklaydi (inson aralashuvisiz).
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCancelSchedule} className="text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 whitespace-nowrap">
+              Bekor qilish
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {scheduleModalOpen && (
+              <div className="p-4 rounded-2xl bg-[#121420] border border-amber-500/30 space-y-3 animate-fade-in shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Clock size={14} /> Avtomatik YouTube Nashr Vaqtini Tanlang:
+                  </span>
+                  <button 
+                    onClick={() => setScheduleModalOpen(false)}
+                    className="text-gray-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSchedulePublish(today19.toISOString())}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-center transition-all cursor-pointer"
+                  >
+                    <span className="text-[11px] font-bold text-white block">Bugun 19:00</span>
+                    <span className="text-[10px] text-amber-400">Peak Time (Toshkent)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSchedulePublish(today21.toISOString())}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-center transition-all cursor-pointer"
+                  >
+                    <span className="text-[11px] font-bold text-white block">Bugun 21:00</span>
+                    <span className="text-[10px] text-amber-400">AQSH Tong (US Traffic)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSchedulePublish(tmr14.toISOString())}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-center transition-all cursor-pointer"
+                  >
+                    <span className="text-[11px] font-bold text-white block">Ertaga 14:00</span>
+                    <span className="text-[10px] text-gray-400">Kunning 1-sloti</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSchedulePublish(tmr20.toISOString())}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-center transition-all cursor-pointer"
+                  >
+                    <span className="text-[11px] font-bold text-white block">Ertaga 20:00</span>
+                    <span className="text-[10px] text-gray-400">Kunning 2-sloti</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                  <Input
+                    type="datetime-local"
+                    value={customScheduleInput}
+                    onChange={(e) => setCustomScheduleInput(e.target.value)}
+                    className="text-xs h-9"
+                  />
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={!customScheduleInput || isScheduling}
+                    onClick={() => {
+                      if (customScheduleInput) {
+                        handleSchedulePublish(new Date(customScheduleInput).toISOString());
+                      }
+                    }}
+                    className="whitespace-nowrap bg-amber-600 hover:bg-amber-500 border-amber-500 text-xs font-bold cursor-pointer"
+                  >
+                    {isScheduling ? 'Rejalashtirilmoqda...' : 'Vaqtni belgilash'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderProgressBar = () => {
@@ -1178,6 +1346,9 @@ export const ContentDetailPage = () => {
                         </span>
                       </div>
 
+                      {/* Scheduling Controls */}
+                      {renderSchedulingControls()}
+
                       {/* Buttons */}
                       <div className="pt-2 flex flex-wrap items-center gap-3">
                         <a 
@@ -1193,6 +1364,16 @@ export const ContentDetailPage = () => {
                         }}>
                           <RefreshCw size={14} className="mr-1.5" /> Qayta render (16:9)
                         </Button>
+                        {!scheduledAtTime && (
+                          <Button 
+                            variant="outline" 
+                            size="lg" 
+                            onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
+                            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                          >
+                            <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                          </Button>
+                        )}
                         {isAuthNeeded && authUrl && (
                           <a
                             href={authUrl}
@@ -1412,6 +1593,9 @@ export const ContentDetailPage = () => {
                         </span>
                       </div>
 
+                      {/* Scheduling Controls */}
+                      {renderSchedulingControls()}
+
                       {/* Final Action Buttons */}
                       <div className="pt-2 flex flex-wrap items-center gap-3">
                         <a 
@@ -1427,6 +1611,16 @@ export const ContentDetailPage = () => {
                         }}>
                           <RefreshCw size={14} className="mr-1.5" /> Qayta render
                         </Button>
+                        {!scheduledAtTime && (
+                          <Button 
+                            variant="outline" 
+                            size="lg" 
+                            onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
+                            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                          >
+                            <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                          </Button>
+                        )}
                         {isAuthNeeded && authUrl && (
                           <a
                             href={authUrl}

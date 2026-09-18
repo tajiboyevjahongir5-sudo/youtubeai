@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { youtubeService } from '../services/youtube.service';
+import { contentStore } from '../services/content-store.service';
 
 const router = Router({ mergeParams: true });
 
@@ -18,20 +19,31 @@ const scheduleSchema = z.object({
 router.post('/:contentId/schedule', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = scheduleSchema.parse(req.body);
+    const contentId = req.params.contentId;
+    const workspaceId = req.workspaceId || (req.body?.workspaceId as string) || 'default';
+    const scheduledDate = data.scheduledAt ? new Date(data.scheduledAt) : new Date();
+
+    contentStore.updateItem(contentId, {
+      status: 'scheduled',
+      scheduledAt: scheduledDate.toISOString()
+    });
+
     const jobId = uuidv4();
     try {
       await db.insert(publishingJobs).values({
         id: jobId,
-        contentItemId: req.params.contentId,
-        workspaceId: req.workspaceId!,
+        contentItemId: contentId,
+        workspaceId,
         status: 'pending',
-        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : new Date(),
+        scheduledAt: scheduledDate,
         privacyStatus: data.privacyStatus
       });
     } catch (e) {
       // Dev mode fallback
     }
-    res.json({ id: jobId, success: true, status: 'scheduled' });
+
+    console.log(`📅 [Schedule] "${contentId}" ${scheduledDate.toISOString()} vaqtiga rejalashtirildi.`);
+    res.json({ id: jobId, success: true, status: 'scheduled', scheduledAt: scheduledDate.toISOString() });
   } catch (error) {
     next(error);
   }
@@ -127,8 +139,13 @@ Which AI tool will you try first? Comment below and subscribe for daily blueprin
 
 router.delete('/:contentId/schedule', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const contentId = req.params.contentId;
+    contentStore.updateItem(contentId, {
+      status: 'review',
+      scheduledAt: undefined
+    });
     try {
-      await db.delete(publishingJobs).where(eq(publishingJobs.contentItemId, req.params.contentId));
+      await db.delete(publishingJobs).where(eq(publishingJobs.contentItemId, contentId));
     } catch (e) {
       // Dev fallback
     }

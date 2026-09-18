@@ -4,6 +4,7 @@ import { workspaces, workspaceMembers, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { getWorkspaceSettings, saveWorkspaceSettings } from '../services/scheduler.service';
 
 const router = Router();
 
@@ -48,12 +49,19 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
+  const savedSettings = getWorkspaceSettings(id);
   try {
     const workspace = await db.query.workspaces.findFirst({
       where: eq(workspaces.id, id)
     });
     if (workspace) {
-      return res.json(workspace);
+      return res.json({
+        ...workspace,
+        settings: {
+          ...(workspace.settings as any || {}),
+          ...savedSettings
+        }
+      });
     }
   } catch (error) {
     // Dev mode fallback
@@ -62,8 +70,9 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   res.json({
     id: id || 'default',
     name: 'Tech Explorer English Studio',
-    niche: 'Technology & AI Automation',
-    timezone: 'Asia/Tashkent',
+    niche: savedSettings.niche || 'Technology & AI Automation',
+    timezone: savedSettings.timezone || 'Asia/Tashkent',
+    settings: savedSettings,
     createdAt: new Date().toISOString(),
   });
 });
@@ -71,14 +80,15 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.put('/:id/settings', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { settings } = updateSettingsSchema.parse(req.body);
+    const persisted = saveWorkspaceSettings(req.params.id, settings);
     try {
       await db.update(workspaces)
-        .set({ settings, updatedAt: new Date() })
+        .set({ settings: persisted, updatedAt: new Date() })
         .where(eq(workspaces.id, req.params.id));
     } catch (e) {
       // Dev mode fallback
     }
-    res.json({ success: true, settings });
+    res.json({ success: true, settings: persisted });
   } catch (error) {
     next(error);
   }
