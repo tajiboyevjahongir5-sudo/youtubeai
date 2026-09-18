@@ -3,6 +3,7 @@ import { db } from '../db';
 import { youtubeChannels } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { youtubeService } from '../services/youtube.service';
+import { contentStore } from '../services/content-store.service';
 
 const router = Router({ mergeParams: true });
 
@@ -48,6 +49,23 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const hasChannel = isConnected && !!channelInfo;
 
+    const items = contentStore.getAll(workspaceId);
+    const scheduledCount = items.filter(i => i.status === 'scheduled' || i.status === 'approved').length;
+    const needsApprovalCount = items.filter(i => i.status === 'review' || i.status === 'idea').length;
+    const inProgressCount = items.filter(i => i.status === 'generating' || i.status === 'scripting' || i.status === 'storyboarding').length;
+    const publishedCount = items.filter(i => i.status === 'published').length;
+
+    const upcomingContent = items.map(item => ({
+      id: item.id,
+      title: item.title,
+      format: item.videoFormat,
+      duration: item.duration || (item.videoFormat === 'shorts' ? '0:56' : '10:15'),
+      status: item.status,
+      scheduledAt: item.scheduledAt,
+      contentPillar: item.contentPillar,
+      videoUrl: item.videoUrl
+    }));
+
     res.json({
       channelConnected: hasChannel,
       channel: hasChannel && channelInfo ? channelInfo : {
@@ -59,11 +77,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         isNewChannel: true
       },
       stats: {
-        scheduled: hasChannel ? 2 : 0,
-        needsApproval: hasChannel ? 1 : 0,
-        inProgress: hasChannel ? 1 : 0,
-        publishedThisWeek: 0,
+        scheduled: scheduledCount,
+        needsApproval: needsApprovalCount,
+        inProgress: inProgressCount,
+        publishedThisWeek: publishedCount,
       },
+      upcomingContent,
       recentActivity: hasChannel ? [
         { id: '1', action: 'YouTube OAuth 2.0 orqali kanal muvaffaqiyatli ulandi', performedAt: 'Hozirgina' },
         { id: '2', action: 'AI orqali video skripti tayyorlandi', performedAt: 'Bugun, 14:00' },

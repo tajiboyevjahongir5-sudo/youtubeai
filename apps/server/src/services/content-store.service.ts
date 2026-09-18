@@ -425,7 +425,7 @@ In this video, we dissect the core mechanics, practical implementation, and futu
         seoScore: 94,
         scheduledAt: new Date(Date.now() + 3600000).toISOString(),
         createdAt: new Date().toISOString(),
-        videoUrl: '/neural_pulse_16x9.mp4'
+        videoUrl: ''
       };
     } else {
       const scenes: SceneItem[] = [
@@ -492,7 +492,7 @@ Watch until the end for the exact blueprint.
         seoScore: 96,
         scheduledAt: new Date(Date.now() + 3600000).toISOString(),
         createdAt: new Date().toISOString(),
-        videoUrl: '/neural_pulse_short.mp4'
+        videoUrl: ''
       };
     }
   }

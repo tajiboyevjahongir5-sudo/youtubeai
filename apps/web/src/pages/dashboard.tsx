@@ -159,61 +159,55 @@ const DashboardPage = () => {
 
           {isChannelConnected ? (
             <div className="space-y-3">
-              {/* Scheduled item 1 */}
-              <div className="liquid-glass rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10 hover:border-red-500/40 transition-all animate-fade-in-up stagger-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-12 rounded-xl bg-gradient-to-tr from-red-950 to-slate-900 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                    <Youtube size={24} className="text-red-500/60" />
-                    <span className="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded font-mono">0:58</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">#Shorts</span>
-                      <span className="text-xs text-gray-400">14:00 UTC (19:00 Toshkent)</span>
+              {(data?.upcomingContent && data.upcomingContent.length > 0) ? (
+                data.upcomingContent.slice(0, 4).map((item: any, idx: number) => {
+                  const isShort = item.format === 'shorts';
+                  const isDone = item.status === 'published' || item.status === 'approved';
+                  const isReview = item.status === 'review' || item.status === 'idea' || item.status === 'awaiting_generation';
+                  return (
+                    <div key={item.id} className="liquid-glass rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10 hover:border-red-500/40 transition-all animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-12 rounded-xl bg-gradient-to-tr from-red-950 to-slate-900 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                          <Youtube size={24} className="text-red-500/60" />
+                          <span className="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded font-mono">{item.duration || (isShort ? '0:56' : '10:15')}</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isShort ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                              {isShort ? '#Shorts' : '16:9 Long-form'}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Rejalashtirilgan'}
+                            </span>
+                          </div>
+                          <h3 className="font-bold text-white text-sm sm:text-base hover:text-red-400 transition-colors">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-0.5">High retention • {item.contentPillar || 'AI Texnologiya'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                          isDone 
+                            ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' 
+                            : isReview
+                            ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                            : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+                        }`}>
+                          {item.status === 'published' ? 'Nashr etildi' : (isDone ? 'Tasdiqlangan' : 'Tasdiqlash kutilmoqda')}
+                        </span>
+                        <Link to={`/content/${item.id}`}>
+                          <Button size="sm" variant="secondary">Ko'rib chiqish</Button>
+                        </Link>
+                      </div>
                     </div>
-                    <h3 className="font-bold text-white text-sm sm:text-base hover:text-red-400 transition-colors">
-                      Top 5 AI Tools That Work While You Sleep
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">High retention hook • Eng so'nggi texnologiyalar</p>
-                  </div>
+                  );
+                })
+              ) : (
+                <div className="p-6 text-center text-xs text-gray-400 bg-white/[0.02] rounded-2xl border border-white/5">
+                  Hozircha rejalashtirilgan videolar mavjud emas. Yangi g'oya yarating!
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <span className="text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
-                    Tasdiqlash kutilmoqda
-                  </span>
-                  <Link to="/content/item_1">
-                    <Button size="sm" variant="secondary">Ko'rib chiqish</Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Scheduled item 2 */}
-              <div className="liquid-glass rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10 hover:border-red-500/40 transition-all animate-fade-in-up stagger-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-12 rounded-xl bg-gradient-to-tr from-slate-900 to-red-950 border border-white/10 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                    <Youtube size={24} className="text-red-500/60" />
-                    <span className="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded font-mono">8:42</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">16:9 Long-form</span>
-                      <span className="text-xs text-gray-400">21:00 UTC (02:00 Toshkent)</span>
-                    </div>
-                    <h3 className="font-bold text-white text-sm sm:text-base hover:text-red-400 transition-colors">
-                      The Complete Future of Autonomous Coding in 2026
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Chapters: 6 • SEO optimizatsiya qilingan</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 rounded-full">
-                    Tasdiqlangan
-                  </span>
-                  <Link to="/content/item_2">
-                    <Button size="sm" variant="secondary">Tahrirlash</Button>
-                  </Link>
-                </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="liquid-glass rounded-2xl p-8 border border-white/10 text-center space-y-4">

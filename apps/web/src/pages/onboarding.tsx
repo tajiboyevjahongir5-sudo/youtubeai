@@ -6,6 +6,8 @@ import { Textarea } from '../components/ui/textarea';
 import { Select } from '../components/ui/select';
 import { AlertTriangle, CheckCircle, Youtube, MessageCircle, Sparkles, Check } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { getWorkspaceId } from '../lib/workspace';
+import { fetchApi } from '../lib/api';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -28,7 +30,39 @@ const OnboardingPage = () => {
 
   const nextStep = () => setStep(s => Math.min(s + 1, 5));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
-  const handleFinish = () => navigate('/dashboard');
+
+  const handleConnectYouTube = async () => {
+    try {
+      const wsId = getWorkspaceId();
+      const res = await fetch(`/api/workspaces/${wsId}/youtube/connect?workspaceId=${wsId}`);
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleFinish = async () => {
+    const wsId = getWorkspaceId();
+    try {
+      await fetchApi(`/workspaces/${wsId}/onboarding`, {
+        method: 'POST',
+        body: JSON.stringify({
+          niche: formData.niche,
+          timezone: formData.timezone,
+        })
+      }, async () => 'mock_token');
+      await fetchApi(`/workspaces/${wsId}/settings`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          settings: formData
+        })
+      }, async () => 'mock_token');
+    } catch (e) {
+      // continue
+    }
+    navigate('/dashboard');
+  };
 
   return (
     <div className="max-w-3xl mx-auto mt-8 p-4 sm:p-6 space-y-6 animate-fade-in">
@@ -169,7 +203,11 @@ const OnboardingPage = () => {
 
           {step === 5 && (
             <div className="space-y-4 animate-fade-in">
-              <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-red-500/30 text-white hover:bg-red-500/10">
+              <Button 
+                variant="outline" 
+                onClick={handleConnectYouTube}
+                className="w-full flex items-center justify-center gap-2 border-red-500/30 text-white hover:bg-red-500/10 cursor-pointer"
+              >
                 <Youtube className="w-5 h-5 text-red-500" /> YouTube kanalni ulash (OAuth 2.0)
               </Button>
               <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-blue-500/30 text-white hover:bg-blue-500/10">

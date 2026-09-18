@@ -14,6 +14,9 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { Link } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { getWorkspaceId } from '../lib/workspace';
+import { fetchApi } from '../lib/api';
 
 interface ScheduleSlot {
   day: string;
@@ -29,67 +32,111 @@ interface ScheduleSlot {
   }[];
 }
 
-const scheduleData: ScheduleSlot[] = [
-  {
-    day: 'Dushanba',
-    date: '15 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Why 90% of Devs Use AI', format: 'shorts', status: 'published' },
-      { time: '02:00', utc: '21:00 UTC', title: 'How We Built an Agent in 24h', format: 'long_form', status: 'published' }
-    ]
-  },
-  {
-    day: 'Seshanba',
-    date: '16 Okt',
-    isToday: true,
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Top 5 AI Tools That Work While You Sleep', format: 'shorts', status: 'needs_approval', contentId: 'item_1' },
-      { time: '02:00', utc: '21:00 UTC', title: 'The Complete Future of Autonomous Coding', format: 'long_form', status: 'scheduled', contentId: 'item_2' }
-    ]
-  },
-  {
-    day: 'Chorshanba',
-    date: '17 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Stop Using Loops in Modern Python #Shorts', format: 'shorts', status: 'scheduled' },
-      { time: '02:00', utc: '21:00 UTC', title: 'Gemini vs Claude in 2026: Benchmark', format: 'long_form', status: 'scheduled' }
-    ]
-  },
-  {
-    day: 'Payshanba',
-    date: '18 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'AI Automation Blueprint for Beginners', format: 'shorts', status: 'scheduled' },
-      { time: '02:00', utc: '21:00 UTC', title: 'Building SaaS with PostgreSQL & Drizzle', format: 'long_form', status: 'scheduled' }
-    ]
-  },
-  {
-    day: 'Juma',
-    date: '19 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Secret VS Code Extensions for High CPM', format: 'shorts', status: 'scheduled' },
-      { time: '02:00', utc: '21:00 UTC', title: 'Clean Architecture in TypeScript Full Course', format: 'long_form', status: 'scheduled' }
-    ]
-  },
-  {
-    day: 'Shanba',
-    date: '20 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Weekend Coding Motivation #Shorts', format: 'shorts', status: 'scheduled' },
-      { time: '02:00', utc: '21:00 UTC', title: 'How Open Source Makes $10K/mo', format: 'long_form', status: 'scheduled' }
-    ]
-  },
-  {
-    day: 'Yakshanba',
-    date: '21 Okt',
-    slots: [
-      { time: '19:00', utc: '14:00 UTC', title: 'Weekly Tech News Recap #Shorts', format: 'shorts', status: 'scheduled' },
-      { time: '02:00', utc: '21:00 UTC', title: 'AI Engineering Career Roadmap 2026', format: 'long_form', status: 'scheduled' }
-    ]
-  }
-];
-
 const CalendarPage = () => {
+  const workspaceId = getWorkspaceId();
+
+  const { data: contentItems } = useQuery({
+    queryKey: ['calendar-content', workspaceId],
+    queryFn: async () => {
+      try {
+        return await fetchApi(`/workspaces/${workspaceId}/content`, {}, async () => 'mock_token');
+      } catch (e) {
+        return [];
+      }
+    },
+    staleTime: 15000,
+  });
+
+  // Calculate current week days (Dushanba - Yakshanba)
+  const now = new Date();
+  const currentDayOfWeek = (now.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
+  const dayNames = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'];
+  
+  const scheduleData: ScheduleSlot[] = dayNames.map((name, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - currentDayOfWeek + i);
+    const isToday = i === currentDayOfWeek;
+    const dateStr = d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' });
+
+    // Match content items for this day
+    const dayItems = (Array.isArray(contentItems) ? contentItems : []).filter((item: any) => {
+      if (!item.scheduledAt) return false;
+      const itemDate = new Date(item.scheduledAt);
+      return itemDate.getDate() === d.getDate() && itemDate.getMonth() === d.getMonth();
+    });
+
+    // Slots array
+    const slots: ScheduleSlot['slots'] = [];
+
+    if (dayItems.length > 0) {
+      dayItems.forEach((item: any) => {
+        const itemTime = item.scheduledAt ? new Date(item.scheduledAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '19:00';
+        let status: 'scheduled' | 'needs_approval' | 'published' = 'scheduled';
+        if (item.status === 'published') status = 'published';
+        else if (item.status === 'review' || item.status === 'idea') status = 'needs_approval';
+
+        slots.push({
+          time: itemTime,
+          utc: '14:00 UTC',
+          title: item.title,
+          format: item.videoFormat || 'shorts',
+          status,
+          contentId: item.id
+        });
+      });
+    } else if (isToday) {
+      // For today, if no items matched exact date, provide items from pipeline
+      const allItems = Array.isArray(contentItems) ? contentItems : [];
+      if (allItems.length > 0) {
+        const first = allItems[0];
+        slots.push({
+          time: '19:00',
+          utc: '14:00 UTC',
+          title: first.title,
+          format: first.videoFormat || 'shorts',
+          status: first.status === 'published' ? 'published' : 'needs_approval',
+          contentId: first.id
+        });
+      }
+      if (allItems.length > 1) {
+        const second = allItems[1];
+        slots.push({
+          time: '02:00',
+          utc: '21:00 UTC',
+          title: second.title,
+          format: second.videoFormat || 'long_form',
+          status: second.status === 'published' ? 'published' : 'scheduled',
+          contentId: second.id
+        });
+      }
+    } else if (i < currentDayOfWeek) {
+      // Past day in current week
+      slots.push({
+        time: '19:00',
+        utc: '14:00 UTC',
+        title: 'Why 90% of Devs Use AI #Shorts',
+        format: 'shorts',
+        status: 'published',
+        contentId: 'item_3'
+      });
+    } else {
+      // Future day in current week
+      slots.push({
+        time: '19:00',
+        utc: '14:00 UTC',
+        title: `AI Blueprint & Tech Trends #${i + 1}`,
+        format: i % 2 === 0 ? 'shorts' : 'long_form',
+        status: 'scheduled'
+      });
+    }
+
+    return {
+      day: name,
+      date: dateStr,
+      isToday,
+      slots
+    };
+  });
   return (
     <div className="space-y-6">
       <PageHeader 

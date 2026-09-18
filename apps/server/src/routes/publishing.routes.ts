@@ -63,7 +63,14 @@ router.post('/:contentId/publish', async (req: Request, res: Response, next: Nex
       });
     }
 
+    const contentId = req.params.contentId;
     const candidatePaths = [
+      path.resolve(__dirname, '../../public/videos', `${contentId}.mp4`),
+      path.resolve(__dirname, '../public/videos', `${contentId}.mp4`),
+      path.resolve(process.cwd(), 'apps/server/public/videos', `${contentId}.mp4`),
+      path.resolve(process.cwd(), 'public/videos', `${contentId}.mp4`),
+      path.resolve(process.cwd(), 'apps/web/public/videos', `${contentId}.mp4`),
+      path.resolve(process.cwd(), '../web/public/videos', `${contentId}.mp4`),
       'C:\\Users\\user\\Downloads\\neural_pulse_short.mp4',
       path.resolve(process.cwd(), '../web/public/neural_pulse_short.mp4'),
       path.resolve(process.cwd(), 'storage/neural_pulse_short.mp4')
@@ -73,7 +80,7 @@ router.post('/:contentId/publish', async (req: Request, res: Response, next: Nex
       return res.status(404).json({
         success: false,
         error: 'video_not_found',
-        message: 'Yuklanadigan video fayli topilmadi (neural_pulse_short.mp4)'
+        message: `Yuklanadigan video fayli topilmadi (${contentId}.mp4 yoki neural_pulse_short.mp4)`
       });
     }
 

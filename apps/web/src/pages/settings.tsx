@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,14 +16,69 @@ import {
   Globe,
   Bell
 } from 'lucide-react';
+import { getWorkspaceId } from '../lib/workspace';
+import { fetchApi } from '../lib/api';
 
 const SettingsPage = () => {
+  const wsId = getWorkspaceId();
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const [niche, setNiche] = useState("Texnologiya & AI Avtomatlashtirish");
+  const [subNiches, setSubNiches] = useState("Coding, SaaS, Productivity, Python");
+  const [audience, setAudience] = useState("AQSH, Kanada va Yevropadagi dasturchilar, frilanserlar va texnologiyaga qiziquvchi mutaxassislar (English speakers).");
+  const [englishVariant, setEnglishVariant] = useState("us");
+  const [tone, setTone] = useState("professional");
+  const [dailyTarget, setDailyTarget] = useState(2);
+  const [timezone, setTimezone] = useState("Asia/Tashkent");
+  const [approvalMode, setApprovalMode] = useState("manual");
+
+  useEffect(() => {
+    fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
+      .then((data: any) => {
+        if (data?.settings) {
+          const s = data.settings;
+          if (s.niche) setNiche(s.niche);
+          if (s.subNiches) setSubNiches(s.subNiches);
+          if (s.audience) setAudience(s.audience);
+          if (s.englishVariant) setEnglishVariant(s.englishVariant);
+          if (s.tone) setTone(s.tone);
+          if (s.dailyTarget) setDailyTarget(s.dailyTarget);
+          if (s.timezone) setTimezone(s.timezone);
+          if (s.approvalMode) setApprovalMode(s.approvalMode);
+        } else if (data?.niche) {
+          setNiche(data.niche);
+        }
+      })
+      .catch(() => {});
+  }, [wsId]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setIsSaving(true);
+    try {
+      await fetchApi(`/workspaces/${wsId}/settings`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          settings: {
+            niche,
+            subNiches,
+            audience,
+            englishVariant,
+            tone,
+            dailyTarget,
+            timezone,
+            approvalMode
+          }
+        })
+      }, async () => 'mock_token');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -58,21 +113,30 @@ const SettingsPage = () => {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <Input label="Asosiy Nisha (Niche)" defaultValue="Texnologiya & AI Avtomatlashtirish" />
-            <Input label="Sub-nishalar (vergul bilan)" defaultValue="Coding, SaaS, Productivity, Python" />
+            <Input 
+              label="Asosiy Nisha (Niche)" 
+              value={niche} 
+              onChange={(e) => setNiche(e.target.value)} 
+            />
+            <Input 
+              label="Sub-nishalar (vergul bilan)" 
+              value={subNiches} 
+              onChange={(e) => setSubNiches(e.target.value)} 
+            />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Maqsadli Auditoriya (Target Audience)</label>
             <Textarea 
-              defaultValue="AQSH, Kanada va Yevropadagi dasturchilar, frilanserlar va texnologiyaga qiziquvchi mutaxassislar (English speakers)." 
+              value={audience} 
+              onChange={(e) => setAudience(e.target.value)} 
             />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Kontent Ingliz Tili Uslubi</label>
-              <Select defaultValue="us">
+              <Select value={englishVariant} onChange={(e) => setEnglishVariant(e.target.value)}>
                 <option value="us">American English (AQSH - Eng yuqori hajm)</option>
                 <option value="uk">British English (Buyuk Britaniya)</option>
                 <option value="international">Xalqaro soddalashtirilgan Ingliz tili</option>
@@ -81,7 +145,7 @@ const SettingsPage = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Ovoz Toni</label>
-              <Select defaultValue="professional">
+              <Select value={tone} onChange={(e) => setTone(e.target.value)}>
                 <option value="professional">Professional, jiddiy va ta'sirchan</option>
                 <option value="friendly">Samimiy, tushunarli va do'stona</option>
                 <option value="dynamic">Tezkor, dinamik va qiziqarli</option>
@@ -105,12 +169,18 @@ const SettingsPage = () => {
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Kunlik Yuklash Maqsadi</label>
-              <Input type="number" defaultValue="2" min="1" max="5" />
+              <Input 
+                type="number" 
+                value={dailyTarget} 
+                onChange={(e) => setDailyTarget(Number(e.target.value))} 
+                min="1" 
+                max="5" 
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Vaqt Mintaqasi</label>
-              <Select defaultValue="Asia/Tashkent">
+              <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
                 <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
                 <option value="UTC">UTC (Standart)</option>
               </Select>
@@ -118,7 +188,7 @@ const SettingsPage = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Tasdiqlash Rejimi</label>
-              <Select defaultValue="manual">
+              <Select value={approvalMode} onChange={(e) => setApprovalMode(e.target.value)}>
                 <option value="manual">Qo'lda tasdiqlash (Inson nazorati)</option>
                 <option value="auto">Avtomatik nashr qilish</option>
               </Select>

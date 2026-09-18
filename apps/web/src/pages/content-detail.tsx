@@ -126,11 +126,18 @@ export const ContentDetailPage = () => {
       setMetaTitle(itemData.title || '');
       setMetaDescription(itemData.description || '');
       setMetaTags(Array.isArray(itemData.tags) ? itemData.tags.join(', ') : (itemData.tags || ''));
-      if (itemData.videoUrl) {
+      if (itemData.videoUrl && itemData.videoUrl.trim() !== '') {
         setCustomVideoUrl(itemData.videoUrl);
       }
       if (itemData.durationSeconds) {
         setDuration(itemData.durationSeconds);
+      }
+      if (itemData.status === 'published') {
+        setStatus('published');
+      } else if (itemData.videoUrl && itemData.videoUrl.trim() !== '') {
+        setStatus('ready_for_review');
+      } else {
+        setStatus('awaiting_generation');
       }
     }
   }, [itemData]);
@@ -302,9 +309,9 @@ export const ContentDetailPage = () => {
           'x-workspace-id': wsId
         },
         body: JSON.stringify({
-          title: isLong 
-            ? "The Complete Future of Autonomous Coding & Agents in 2026 #technology" 
-            : "Top 5 AI Tools That Work While You Sleep in 2026 #shorts",
+          title: metaTitle || videoTitle || (isLong ? "The Future of Autonomous AI in 2026 #technology" : "Top AI Tools in 2026 #shorts"),
+          description: metaDescription || itemData?.description || "",
+          tags: metaTags ? metaTags.split(',').map((t: string) => t.trim()).filter(Boolean) : (itemData?.tags || []),
           privacyStatus: "public",
           workspaceId: wsId
         })
@@ -696,6 +703,55 @@ export const ContentDetailPage = () => {
 
         {/* Tasdiqlash & Video Studio */}
         <Tabs.Content value="tasdiqlash" className="space-y-6 animate-fade-in">
+          {/* AWAITING GENERATION: STUDIO READY */}
+          {status === 'awaiting_generation' && (
+            <div className="liquid-glass rounded-3xl p-8 border border-red-500/30 text-center space-y-6 shadow-2xl animate-fade-in">
+              <div className="w-16 h-16 rounded-2xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto shadow-[0_0_25px_rgba(239,68,68,0.3)]">
+                <Sparkles size={32} className="animate-pulse" />
+              </div>
+              <div className="space-y-2 max-w-xl mx-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-500/15 text-red-300 border border-red-500/30">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                  Skript & Sahnalar Tayyor
+                </div>
+                <h3 className="text-2xl font-black text-white">{videoTitle}</h3>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Ushbu mavzu uchun AI skripti, {scenes.length} ta alohida sahnasi va SEO parametrlari muvaffaqiyatli shakllantirildi. 
+                  Haqiqiy videoni (Microsoft Azure diktor ovozi, 2K B-roll va dinamik kinetik subtitrlar bilan) render qilish uchun quyidagi tugmani bosing.
+                </p>
+              </div>
+
+              {/* Scene Breakdown preview */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 max-w-2xl mx-auto pt-2">
+                {scenes.map((s: any, idx: number) => (
+                  <div key={idx} className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                    <span className="text-[10px] font-bold text-red-400 block">{s.tag || `Sahna ${idx + 1}`}</span>
+                    <span className="text-[11px] text-gray-300 font-semibold truncate block mt-0.5">{s.title.split(':')[0]}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  onClick={handleStartGeneration}
+                  className="shadow-[0_0_30px_rgba(239,68,68,0.4)] px-8 py-3 text-sm font-bold flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 cursor-pointer"
+                >
+                  <Play size={18} className="fill-white" />
+                  Mavzuga Mos Video Generatsiya Qilish (Azure Voice + 6 Sahna B-Roll)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab('skript')}
+                  className="text-xs"
+                >
+                  Skriptni ko'rish / tahrirlash
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* GENERATION IN PROGRESS */}
           {status === 'generating' && (
             <div className="liquid-glass rounded-3xl p-8 border border-white/10 text-center space-y-6 shadow-2xl animate-fade-in">

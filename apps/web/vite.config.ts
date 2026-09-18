@@ -27,6 +27,10 @@ export default defineConfig({
         target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/videos': {
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   preview: {
@@ -39,6 +43,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/media': {
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/videos': {
         target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
       },

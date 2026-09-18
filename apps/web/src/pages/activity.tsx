@@ -25,7 +25,7 @@ const auditEntries = [
   {
     id: '2',
     action: 'AI Skript va SEO metadata yaratildi',
-    details: 'Gemini 1.5 Flash orqali ingliz tilida 58s skript va 15 ta teglar tayyorlandi',
+    details: 'Gemini 3.6 Flash orqali ingliz tilida 58s skript va 15 ta teglar tayyorlandi',
     user: 'AI Autopilot Engine',
     time: 'Bugun, 13:42:05',
     type: 'ai'
