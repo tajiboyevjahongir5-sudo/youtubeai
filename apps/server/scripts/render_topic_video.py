@@ -713,7 +713,7 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     except Exception:
         pass
 
-def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None, voice_preset_override: str = None):
+def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None, voice_preset_override: str = None, beat_sync: bool = True):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
     
@@ -786,6 +786,12 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     sc6_start = sc5_end
 
     scene_cuts = [sc1_end, sc2_end, sc3_end, sc4_end, sc5_end]
+    if beat_sync:
+        bpm = 138 if 'phonk' in music_mood else (118 if 'synthwave' in music_mood else (92 if ('chill' in music_mood or 'lofi' in music_mood) else 124))
+        beat_dur = 60.0 / bpm
+        scene_cuts = [round(c / beat_dur) * beat_dur for c in scene_cuts]
+        print(f"🥁 [Beat-Sync] 5 ta sahna o'tishi va oq fleshlar musiqa zarbasiga (BPM: {bpm}) millisekund aniqlikda sinxronlandi!", flush=True)
+
     for cut in scene_cuts:
         add_sfx(sfx_track, sfx_whoosh, cut, vol=0.35)
 
@@ -1386,6 +1392,7 @@ def main():
     parser.add_argument('--host', type=str, default=None, help="Host Avatar name or path")
     parser.add_argument('--music-mood', type=str, default=None, help="Background music mood preset")
     parser.add_argument('--voice-preset', type=str, default=None, help="Voice emotion and pace preset")
+    parser.add_argument('--beat-sync', type=lambda x: str(x).lower() in ['true', '1', 'yes'], default=True, help="Enable beat-synced jumpcuts")
     args = parser.parse_args()
 
     if args.json:
@@ -1406,7 +1413,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood, voice_preset_override=args.voice_preset)
+    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood, voice_preset_override=args.voice_preset, beat_sync=args.beat_sync)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

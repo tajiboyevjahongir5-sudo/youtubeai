@@ -85,7 +85,8 @@ export class VideoRenderService {
         '--voice', voiceModel,
         '--host', hostAvatar,
         '--music-mood', musicMood,
-        '--voice-preset', voicePreset
+        '--voice-preset', voicePreset,
+        '--beat-sync', 'true'
       ]);
 
       let stdoutData = '';

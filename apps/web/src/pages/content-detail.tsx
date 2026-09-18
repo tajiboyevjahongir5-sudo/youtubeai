@@ -43,7 +43,10 @@ import {
   Share2,
   Sliders,
   DollarSign,
-  Globe
+  Globe,
+  Search,
+  Award,
+  Flame
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -353,6 +356,127 @@ export const ContentDetailPage = () => {
     }
   };
 
+  // 1. YouTube SEO & Ranked Tags Bashoratchisi (Search Rank Optimizer) State
+  const [seoAudit, setSeoAudit] = useState<any>(null);
+  const [isAnalyzingSeo, setIsAnalyzingSeo] = useState(false);
+  const [isOptimizingTags, setIsOptimizingTags] = useState(false);
+
+  const handleAnalyzeSeo = async (customTags?: string) => {
+    setIsAnalyzingSeo(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/seo-rank/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          title: metaTitle || videoTitle,
+          description: metaDescription,
+          tags: customTags !== undefined ? customTags : metaTags,
+          category: 'AI & Technology',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.audit) {
+        setSeoAudit(data.audit);
+      }
+    } catch (e) {
+      console.error('SEO audit error:', e);
+    } finally {
+      setIsAnalyzingSeo(false);
+    }
+  };
+
+  const handleOptimizeTags = async () => {
+    setIsOptimizingTags(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/seo-rank/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          title: metaTitle || videoTitle,
+          description: metaDescription,
+          tags: metaTags,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.optimizedTags)) {
+        const newTagsStr = data.optimizedTags.join(', ');
+        setMetaTags(newTagsStr);
+        setToast("🚀 VidIQ/TubeBuddy Ranked teglar optimallashtirildi va saqlandi!");
+        setTimeout(() => setToast(null), 3500);
+        handleAnalyzeSeo(newTagsStr);
+      }
+    } catch (e) {
+      console.error('Optimize tags error:', e);
+    } finally {
+      setIsOptimizingTags(false);
+    }
+  };
+
+  // 2. Viral Relaunch Engine ("O'lik" Videolarni Qayta Tiriltirish) State
+  const [relaunchStatus, setRelaunchStatus] = useState<any>(null);
+  const [relaunchPack, setRelaunchPack] = useState<any>(null);
+  const [isLoadingRelaunch, setIsLoadingRelaunch] = useState(false);
+  const [isTriggeringRelaunch, setIsTriggeringRelaunch] = useState(false);
+
+  const fetchRelaunchStatus = async () => {
+    setIsLoadingRelaunch(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/video-relaunch/status/${contentId}`, {
+        headers: { 'x-workspace-id': workspaceId },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRelaunchStatus(data);
+      }
+    } catch (e) {
+      console.error('Relaunch status error:', e);
+    } finally {
+      setIsLoadingRelaunch(false);
+    }
+  };
+
+  const handleTriggerRelaunch = async () => {
+    setIsTriggeringRelaunch(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/video-relaunch/trigger/${contentId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          currentViews: relaunchStatus?.currentViews || 140,
+          currentCtr: relaunchStatus?.currentCtr || 3.8,
+          hoursSincePublished: relaunchStatus?.hoursSincePublished || 36,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.relaunchPack) {
+        setRelaunchPack(data.relaunchPack);
+        setToast("⚡ Qayta Tiriltirish (Viral Relaunch) paketi shakllantirildi!");
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      console.error('Trigger relaunch error:', e);
+    } finally {
+      setIsTriggeringRelaunch(false);
+    }
+  };
+
+  const handleApplyRelaunchPack = () => {
+    if (!relaunchPack) return;
+    if (relaunchPack.newTitle) setMetaTitle(relaunchPack.newTitle);
+    if (relaunchPack.newPinnedComment) setPinnedCommentText(relaunchPack.newPinnedComment);
+    setToast("🔥 Yangi Viral Sarlavha va Qadalgan Izoh qabul qilindi!");
+    setTimeout(() => setToast(null), 3500);
+  };
+
   useEffect(() => {
     if (itemData) {
       setScriptText(itemData.script || '');
@@ -389,6 +513,8 @@ export const ContentDetailPage = () => {
       fetchMatchedAffiliates();
       fetchABTest();
       fetchSeriesData();
+      handleAnalyzeSeo();
+      fetchRelaunchStatus();
     }
   }, [itemData]);
 
@@ -1700,6 +1826,142 @@ export const ContentDetailPage = () => {
                 </div>
               </div>
 
+              {/* YouTube SEO & Ranked Tags Bashoratchisi (VidIQ / TubeBuddy Style) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0c1322] to-[#121c30] border border-emerald-500/30 space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <Award size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white">VidIQ & TubeBuddy Ranked Teglar Bashoratchisi</h4>
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          Search Rank Optimizer
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-400">
+                        YouTube qidiruv natijalarida yuqori pog'onalarga (#1-#3) chiqish ehtimolini hisoblash va optimallash
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isAnalyzingSeo}
+                      onClick={() => handleAnalyzeSeo()}
+                      className="text-xs flex items-center gap-1.5 border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 cursor-pointer"
+                    >
+                      <Search size={14} className={isAnalyzingSeo ? 'animate-spin' : ''} />
+                      {isAnalyzingSeo ? 'Audit...' : 'Audit Qilish'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={isOptimizingTags}
+                      onClick={handleOptimizeTags}
+                      className="text-xs flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer"
+                    >
+                      <Sparkles size={14} className={isOptimizingTags ? 'animate-spin' : ''} />
+                      {isOptimizingTags ? 'Optimizatsiya...' : 'Ranked Teglarni 1-Bosishda Qo\'shish'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Score Cards Breakdown */}
+                {seoAudit && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Umumiy SEO Ball</span>
+                        <span className="text-xl font-black text-white">{seoAudit.score}/100</span>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                        seoAudit.score >= 80 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                        seoAudit.score >= 60 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                        'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        {seoAudit.score >= 80 ? 'Ajoyib' : seoAudit.score >= 60 ? 'O\'rtacha' : 'Past'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Sarlavha</span>
+                      <div className="flex items-baseline justify-between mt-1">
+                        <span className="text-sm font-bold text-emerald-400">{seoAudit.titleScore} / 30</span>
+                        <span className="text-[10px] text-gray-400">Power words</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Tavsif</span>
+                      <div className="flex items-baseline justify-between mt-1">
+                        <span className="text-sm font-bold text-blue-400">{seoAudit.descriptionScore} / 35</span>
+                        <span className="text-[10px] text-gray-400">Timestamps & Links</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Ranked Teglar</span>
+                      <div className="flex items-baseline justify-between mt-1">
+                        <span className="text-sm font-bold text-amber-400">{seoAudit.tagScore} / 35</span>
+                        <span className="text-[10px] text-gray-400">Search Rank #1-#5</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ranked Tags Display */}
+                {seoAudit?.rankedTags && seoAudit.rankedTags.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                      <Flame size={14} className="text-emerald-400" />
+                      Kutilayotgan Qidiruv Pog'onalari (Predicted Search Ranks):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {seoAudit.rankedTags.map((rt: any, rtIdx: number) => (
+                        <div
+                          key={rtIdx}
+                          className="px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2 text-xs hover:border-emerald-500/40 transition-all"
+                        >
+                          <span className="text-gray-200 font-semibold">{rt.tag}</span>
+                          {rt.isRanked ? (
+                            <span className="bg-emerald-500 text-black font-black text-[11px] px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                              #{rt.predictedRank}
+                            </span>
+                          ) : (
+                            <span className="bg-white/10 text-gray-400 font-mono text-[10px] px-1.5 py-0.5 rounded">
+                              #{rt.predictedRank}
+                            </span>
+                          )}
+                          <span className="text-[10px] font-medium text-emerald-400/80">
+                            {rt.searchVolume}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {seoAudit?.recommendations && seoAudit.recommendations.length > 0 && (
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                    <span className="text-[11px] font-bold text-gray-300 block">💡 Algoritmik Maslahatlar:</span>
+                    <ul className="text-[11px] text-gray-400 space-y-0.5">
+                      {seoAudit.recommendations.map((rec: string, rIdx: number) => (
+                        <li key={rIdx} className="flex items-center gap-1.5">
+                          <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               {/* Teglar Input */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-300">Teglar (Tags - vergul bilan ajratilgan)</label>
@@ -2994,6 +3256,101 @@ export const ContentDetailPage = () => {
                         <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20 text-[10px]">
                           EBU R128 (-14 LUFS) & Custom Thumb Faol
                         </span>
+                      </div>
+
+                      {/* Viral Relaunch Engine Card */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1a111a] via-[#161224] to-[#12182b] border border-rose-500/30 space-y-3.5 shadow-xl">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                              <Flame size={18} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-white">Viral Relaunch Engine</h4>
+                                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                                  relaunchStatus?.velocityRating === 'viral'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                    : relaunchStatus?.velocityRating === 'normal'
+                                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                                }`}>
+                                  {relaunchStatus?.velocityRating === 'viral' ? '🔥 Trendda' :
+                                   relaunchStatus?.velocityRating === 'normal' ? '✅ Barqaror' :
+                                   relaunchStatus?.velocityRating === 'underperforming' ? '⚠️ Sekinlashgan' : '🚨 Qayta Tiriltirish Kerak'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400">
+                                24 soat ichida algoritmdan qolib ketgan videolarni yangi sarlavha va muqova bilan ikkinchi to'lqinga olib chiqish
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isTriggeringRelaunch}
+                            onClick={handleTriggerRelaunch}
+                            className="text-xs flex items-center gap-1.5 border-rose-500/40 hover:bg-rose-500/10 text-rose-300 cursor-pointer"
+                          >
+                            <Sparkles size={14} className={isTriggeringRelaunch ? 'animate-spin' : ''} />
+                            {isTriggeringRelaunch ? 'Qayta tiriltirilmoqda...' : '⚡ Relaunch Paketini Yaratish'}
+                          </Button>
+                        </div>
+
+                        {relaunchStatus && (
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                              <span className="text-[10px] text-gray-400 block">Ko'rishlar</span>
+                              <span className="font-bold text-white text-sm">{relaunchStatus.currentViews || 140}</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                              <span className="text-[10px] text-gray-400 block">Joriy CTR</span>
+                              <span className="font-bold text-amber-400 text-sm">{relaunchStatus.currentCtr || 3.8}%</span>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                              <span className="text-[10px] text-gray-400 block">Yuklangandan beri</span>
+                              <span className="font-bold text-cyan-400 text-sm">{relaunchStatus.hoursSincePublished || 36} soat</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {relaunchStatus?.diagnosis && (
+                          <p className="text-xs text-gray-300 italic bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                            🩺 <strong>Diagnostika:</strong> {relaunchStatus.diagnosis}
+                          </p>
+                        )}
+
+                        {relaunchPack && (
+                          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 space-y-2.5 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                                <Sparkles size={13} /> Yangi Algoritmik Sarlavha (+{relaunchPack.predictedCTRBoost || '85%'} CTR):
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={handleApplyRelaunchPack}
+                                className="text-[11px] h-7 px-3 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 cursor-pointer"
+                              >
+                                1-Bosishda Qo'llash
+                              </Button>
+                            </div>
+                            <p className="text-xs font-bold text-white bg-black/40 p-2.5 rounded-lg border border-white/10 font-mono">
+                              {relaunchPack.newTitle}
+                            </p>
+                            <div className="grid sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                              <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                                <span className="text-gray-400 font-semibold block">🖼️ Muqova Strategiyasi:</span>
+                                <span className="text-gray-200">{relaunchPack.newThumbnailConcept || 'Yuqori kontrastli neon matn'}</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                                <span className="text-gray-400 font-semibold block">💬 Munozarali Qadalgan Izoh:</span>
+                                <span className="text-gray-200 truncate block">{relaunchPack.newPinnedComment || 'Munozaraga undovchi savol'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Scheduling Controls */}

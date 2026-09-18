@@ -19,6 +19,8 @@ import dubbingRoutes from './dubbing.routes';
 import channelHealthRoutes from './channel-health.routes';
 import abTestingRoutes from './ab-testing.routes';
 import seriesRoutes from './series.routes';
+import seoRankRoutes from './seo-rank.routes';
+import videoRelaunchRoutes from './video-relaunch.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -55,6 +57,8 @@ workspaceRouter.use('/dubbing', dubbingRoutes);
 workspaceRouter.use('/channel-health', channelHealthRoutes);
 workspaceRouter.use('/ab-tests', abTestingRoutes);
 workspaceRouter.use('/series', seriesRoutes);
+workspaceRouter.use('/seo-rank', seoRankRoutes);
+workspaceRouter.use('/video-relaunch', videoRelaunchRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity
