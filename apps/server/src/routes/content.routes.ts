@@ -176,6 +176,19 @@ router.post('/:contentId/generate-video', async (req: Request, res: Response, ne
     return res.status(404).json({ error: 'Content item not found' });
   }
 
+  // Support optional dynamic overrides from request body
+  if (req.body.voiceEmotionPreset) (item as any).voiceEmotionPreset = req.body.voiceEmotionPreset;
+  if (req.body.backgroundMusicMood) (item as any).backgroundMusicMood = req.body.backgroundMusicMood;
+
+  // Auto-inject series binge teaser into the outro if video is part of an episodic series
+  try {
+    const { seriesService } = await import('../services/series.service');
+    const seriesCtx = seriesService.getVideoSeriesContext(workspaceId, contentId);
+    if (seriesCtx.inSeries && seriesCtx.outroTeaser) {
+      (item as any).bingeTeaser = seriesCtx.outroTeaser;
+    }
+  } catch (e) {}
+
   try {
     const result = await videoRenderService.renderVideo(item);
     res.json(result);

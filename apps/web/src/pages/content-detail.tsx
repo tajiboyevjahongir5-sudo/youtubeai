@@ -96,6 +96,20 @@ export const ContentDetailPage = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // A/B Testing Lab state
+  const [abTestResult, setAbTestResult] = useState<any>(null);
+  const [isGeneratingAB, setIsGeneratingAB] = useState(false);
+  const [isApplyingAB, setIsApplyingAB] = useState(false);
+
+  // Series & Playlist state
+  const [seriesContext, setSeriesContext] = useState<any>(null);
+  const [allSeriesList, setAllSeriesList] = useState<any[]>([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>('series_ai_tools_2026');
+  const [isAddingToSeries, setIsAddingToSeries] = useState(false);
+
+  // Voice Emotion Preset override
+  const [selectedVoicePreset, setSelectedVoicePreset] = useState<string>('energetic');
+
   // Dynamic titles and metadata based on format and item
   const isLong = videoFormat === 'long_form';
 
@@ -247,6 +261,98 @@ export const ContentDetailPage = () => {
     }
   };
 
+  const fetchABTest = async () => {
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/ab-tests/${contentId}`, {}, async () => 'mock_token');
+      if (res && res.variants) setAbTestResult(res);
+    } catch (e) {}
+  };
+
+  const handleGenerateABTests = async () => {
+    setIsGeneratingAB(true);
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/ab-tests/generate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          videoId: contentId,
+          topic: metaTitle || videoTitle,
+          currentTitle: metaTitle || videoTitle
+        })
+      }, async () => 'mock_token');
+      if (res && res.variants) {
+        setAbTestResult(res);
+        setToast("🧪 Gemini 2.0 orqali 3 ta psixologik A/B variant tayyorlandi!");
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      console.error('AB test error:', e);
+    } finally {
+      setIsGeneratingAB(false);
+    }
+  };
+
+  const handleApplyABVariant = async (variantId: string) => {
+    setIsApplyingAB(true);
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/ab-tests/apply`, {
+        method: 'POST',
+        body: JSON.stringify({
+          videoId: contentId,
+          variantId
+        })
+      }, async () => 'mock_token');
+      if (res && res.success && res.appliedVariant) {
+        setMetaTitle(res.appliedVariant.title);
+        setToast(`✅ Variant muvaffaqiyatli qo'llandi: "${res.appliedVariant.title}"`);
+        refetchItem();
+        fetchABTest();
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      console.error('Apply AB error:', e);
+    } finally {
+      setIsApplyingAB(false);
+    }
+  };
+
+  const fetchSeriesData = async () => {
+    try {
+      const [ctx, list] = await Promise.all([
+        fetchApi(`/workspaces/${workspaceId}/series/video/${contentId}`, {}, async () => 'mock_token'),
+        fetchApi(`/workspaces/${workspaceId}/series`, {}, async () => 'mock_token')
+      ]);
+      if (ctx) setSeriesContext(ctx);
+      if (Array.isArray(list)) {
+        setAllSeriesList(list);
+        if (list.length > 0 && !selectedSeriesId) setSelectedSeriesId(list[0].id);
+      }
+    } catch (e) {}
+  };
+
+  const handleAddToSeries = async () => {
+    if (!selectedSeriesId) return;
+    setIsAddingToSeries(true);
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/series/${selectedSeriesId}/episodes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          videoId: contentId,
+          title: metaTitle || videoTitle
+        })
+      }, async () => 'mock_token');
+      if (res) {
+        setToast(`🎉 Video muvaffaqiyatli serialga biriktirildi!`);
+        fetchSeriesData();
+        refetchItem();
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      console.error('Add to series error:', e);
+    } finally {
+      setIsAddingToSeries(false);
+    }
+  };
+
   useEffect(() => {
     if (itemData) {
       setScriptText(itemData.script || '');
@@ -281,6 +387,8 @@ export const ContentDetailPage = () => {
         setStatus('awaiting_generation');
       }
       fetchMatchedAffiliates();
+      fetchABTest();
+      fetchSeriesData();
     }
   }, [itemData]);
 
@@ -327,7 +435,10 @@ export const ContentDetailPage = () => {
     setToast("🚀 AI Video Engine ishga tushdi: Azure Neural ovoz, kadrlar va kinetik subtitrlar yaratilmoqda...");
     try {
       const res = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}/generate-video`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+          voiceEmotionPreset: selectedVoicePreset
+        })
       }, async () => 'mock_token');
       if (res && res.videoUrl) {
         setCustomVideoUrl(res.videoUrl);
@@ -460,7 +571,10 @@ export const ContentDetailPage = () => {
 
     try {
       const res = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}/generate-video`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+          voiceEmotionPreset: selectedVoicePreset
+        })
       }, async () => 'mock_token');
 
       clearTimeout(timer1);
@@ -794,6 +908,8 @@ export const ContentDetailPage = () => {
           {[
             { id: 'brief', label: 'Brief' },
             { id: 'skript', label: 'Skript' },
+            { id: 'ab_test', label: '🧪 A/B Title & Hook' },
+            { id: 'binge_series', label: '🔁 Binge Serial' },
             { id: 'preview_canvas', label: '🎛️ 9:16 Jonli Simulyator' },
             { id: 'personaj', label: 'Personaj & Konsistentlik' },
             { id: 'metadata', label: 'SEO Metadata' },
@@ -894,6 +1010,300 @@ export const ContentDetailPage = () => {
                   {isSaving ? 'Saqlanmoqda...' : "O'zgarishlarni saqlash"}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
+        {/* 🧪 A/B Title & Hook Test Laboratoriyasi */}
+        <Tabs.Content value="ab_test" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-purple-500/30">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-purple-600/20 text-purple-400">
+                    <Sparkles size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">A/B Title & Hook Test Laboratoriyasi (CTR 2.5x)</h3>
+                    <p className="text-xs text-gray-400">
+                      YouTube Shorts tomoshabinlarini o'tkazib yubormaslik (Swipe Away'ni kamaytirish) uchun 3 xil psixologik formuladagi sarlavha va 3-soniyalik hook
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={isGeneratingAB}
+                  onClick={handleGenerateABTests}
+                  className="flex items-center gap-2 text-xs font-bold bg-purple-600 hover:bg-purple-500 border-purple-500 cursor-pointer whitespace-nowrap"
+                >
+                  <RefreshCw size={14} className={isGeneratingAB ? 'animate-spin' : ''} />
+                  {isGeneratingAB ? 'Gemini Generatsiya Qilmoqda...' : 'A/B Variantlarni Generatsiya Qilish (Gemini 2.0)'}
+                </Button>
+              </div>
+
+              {/* 3 Psychological Variants */}
+              <div className="grid lg:grid-cols-3 gap-5">
+                {(abTestResult?.variants || [
+                  {
+                    id: 'fomo',
+                    label: "FOMO / Qiziqish Bo'shlig'i",
+                    badge: "Eng Yuqori Urgency",
+                    title: `Buni Bilmasangiz 2026-Yilda Kech Qolasiz: ${videoTitle.slice(0, 30)}`,
+                    hook: "Agar siz hali ham ushbu AI vositasini ishlatmayotgan bo'lsangiz, raqobatchilaringiz allaqachon sizdan 10 qadam oldinga o'tib ketdi!",
+                    visualAlert: "! 2026 OGOHLANTIRISH !",
+                    predictedCtr: 11.2,
+                    psychologyAngle: "Yo'qotish qo'rquvi va eksklyuziv bilimga intilish tuyg'usi (Loss Aversion).",
+                    powerWords: ["2026", "MAXFIY", "TEZKOR", "INQILOB"]
+                  },
+                  {
+                    id: 'direct_value',
+                    label: "Aniq Foyda / Tezkor ROI",
+                    badge: "Yuqori Saqlanish (Retention)",
+                    title: `3 Daqiqada 5 Soatni Tejash: Bepul ${videoTitle.slice(0, 30)}`,
+                    hook: "Bugun sizga kuniga 4 soat vaqtingizni va $500 pulingizni tejaydigan mutlaqo bepul sun'iy intellekt sirini ochaman!",
+                    visualAlert: "! 100% BEPUL AI !",
+                    predictedCtr: 9.8,
+                    psychologyAngle: "Aniq raqamlar va tezkor moddiy samara kafolati orqali ishonch uyg'otish.",
+                    powerWords: ["BEPUL", "AVTOMATIK", "DAROMAD", "TEJAMKOR"]
+                  },
+                  {
+                    id: 'controversial',
+                    label: "Munozara / Pattern Interrupt",
+                    badge: "Viral Kommentlar Dvigateli",
+                    title: `Katta Kompaniyalar Bu Dasturni Nega Yashiryapti?`,
+                    hook: "Dasturchilar va IT gigantlar bu AI vositasini sizdan nega sir tutayotganini hech o'ylab ko'rganmisiz? Sababi hayratda qoldiradi!",
+                    visualAlert: "! TAQIQLANGAN SIR !",
+                    predictedCtr: 11.8,
+                    psychologyAngle: "Kognitiv to'siqni buzish va izohlarda qizg'in bahs qo'zg'ash (High Controversy).",
+                    powerWords: ["TO'XTATING", "ALDOV", "HAQIQAT", "MAXFIY"]
+                  }
+                ]).map((v: any) => {
+                  const isCurrent = metaTitle === v.title || abTestResult?.appliedVariantId === v.id;
+                  return (
+                    <div 
+                      key={v.id}
+                      className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 ${
+                        isCurrent 
+                          ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/40' 
+                          : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            {v.badge}
+                          </span>
+                          <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            CTR: {v.predictedCtr}%
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{v.label}</h4>
+                          <p className="text-sm font-bold text-white mt-1 leading-snug">{v.title}</p>
+                        </div>
+
+                        {/* Spoken Hook */}
+                        <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase block">🎙️ 3-Soniyalik Spoken Hook (Nutq):</span>
+                          <p className="text-xs text-gray-300 italic leading-relaxed">"{v.hook}"</p>
+                        </div>
+
+                        {/* Visual Alert Pill */}
+                        <div className="flex items-center justify-between text-[11px] text-gray-400">
+                          <span>Vizual Pill:</span>
+                          <span className="px-2 py-0.5 rounded bg-red-600/30 text-red-300 font-mono text-[10px] font-bold border border-red-500/40">
+                            {v.visualAlert}
+                          </span>
+                        </div>
+
+                        {/* Psychology Angle */}
+                        <p className="text-[11px] text-gray-400 leading-snug">
+                          <strong>Psixologik ta'sir:</strong> {v.psychologyAngle}
+                        </p>
+
+                        {/* Power words */}
+                        {v.powerWords && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {v.powerWords.map((pw: string, pIdx: number) => (
+                              <span key={pIdx} className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white/5 text-amber-300 border border-amber-500/20">
+                                #{pw}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-white/10">
+                        {isCurrent ? (
+                          <div className="w-full py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 text-center text-xs font-bold text-purple-300 flex items-center justify-center gap-1.5">
+                            <Check size={14} className="text-purple-400" />
+                            [OK] Videoga Qo'llangan
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isApplyingAB}
+                            onClick={() => handleApplyABVariant(v.id)}
+                            className="w-full text-xs font-bold hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all cursor-pointer"
+                          >
+                            {isApplyingAB ? 'Qo\'llanmoqda...' : 'Ushbu Variantni Qo\'llash'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
+        {/* 🔁 Binge-Watch Series & Pleylist */}
+        <Tabs.Content value="binge_series" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-blue-500/30">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-600/20 text-blue-400">
+                    <Repeat size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Binge-Watch Series & Pleylist Arxitektori</h3>
+                    <p className="text-xs text-gray-400">
+                      Shorts tomoshabinlarini ketma-ket 3-4 ta videoni ko'rishga zanjirlash (Session Watch Time oshirish)
+                    </p>
+                  </div>
+                </div>
+                {seriesContext?.inSeries && (
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                    Epizod #{seriesContext.episodeNumber} / {seriesContext.totalEpisodes}
+                  </span>
+                )}
+              </div>
+
+              {/* In-Series Chain Display */}
+              {seriesContext?.inSeries ? (
+                <div className="space-y-5">
+                  <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Biriktirilgan Serial:</span>
+                        <h4 className="text-base font-bold text-white mt-0.5">{seriesContext.series.title}</h4>
+                        <p className="text-xs text-gray-300 mt-1">{seriesContext.series.description}</p>
+                      </div>
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-white/10 text-gray-200">
+                        {seriesContext.series.badge}
+                      </span>
+                    </div>
+
+                    {/* Chain Flow */}
+                    <div className="grid sm:grid-cols-3 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                        <span className="text-[10px] text-gray-400 block font-semibold">⏮️ Oldingi Epizod:</span>
+                        <p className="text-xs text-gray-300 font-medium truncate">
+                          {seriesContext.prevEpisode ? `#${seriesContext.prevEpisode.episodeNumber}: ${seriesContext.prevEpisode.title}` : "Yo'q (Bu 1-epizod)"}
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-blue-600/20 border border-blue-500/40 space-y-1">
+                        <span className="text-[10px] text-blue-400 block font-bold">🎬 Hozirgi Video:</span>
+                        <p className="text-xs text-white font-bold truncate">
+                          Epizod #{seriesContext.episodeNumber}: {videoTitle}
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                        <span className="text-[10px] text-gray-400 block font-semibold">⏭️ Keyingi Epizod:</span>
+                        <p className="text-xs text-gray-300 font-medium truncate">
+                          {seriesContext.nextEpisode ? `#${seriesContext.nextEpisode.episodeNumber}: ${seriesContext.nextEpisode.title}` : `Keyingi qism (#${seriesContext.episodeNumber + 1}) tez kunda`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Binge Pinned Comment */}
+                  <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Pin size={16} className="text-blue-400" />
+                        <h4 className="text-xs font-bold text-white uppercase">Avtomatlashtirilgan Binge Qadalgan Izoh (Pinned Comment):</h4>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(seriesContext.bingeComment || '');
+                          setToast("✅ Binge qadalgan izoh buferga nusxalandi!");
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className="text-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <Copy size={13} />
+                        Nusxa olish
+                      </Button>
+                    </div>
+                    <pre className="p-3.5 rounded-xl bg-black/50 border border-white/5 text-xs text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">
+                      {seriesContext.bingeComment}
+                    </pre>
+                  </div>
+
+                  {/* Outro Teaser Visual Preview */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold text-cyan-300 uppercase block">Outro Visual Teaser (So'nggi 2 soniya):</span>
+                      <span className="text-xs font-bold text-white font-mono">&gt;&gt; {seriesContext.outroTeaser?.toUpperCase()} &lt;&lt;</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      [OK] Video Renderga Ulangan
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-4 max-w-lg mx-auto">
+                    <Repeat size={36} className="text-blue-400 mx-auto opacity-70" />
+                    <div className="space-y-1">
+                      <h4 className="text-base font-bold text-white">Ushbu video hali birorta serialga biriktirilmagan</h4>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        Videoni mavzusiga mos serialga qo'shish orqali tomoshabinlarni ketma-ket boshqa videolaringizga yo'naltiring.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 pt-2 text-left">
+                      <label className="text-xs font-semibold text-gray-300 block">Serialni tanlang:</label>
+                      <select 
+                        value={selectedSeriesId} 
+                        onChange={(e) => setSelectedSeriesId(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                      >
+                        {(allSeriesList.length > 0 ? allSeriesList : [
+                          { id: 'series_ai_tools_2026', title: 'Top 100 Yashirin AI Saytlar' },
+                          { id: 'series_cybersecurity_2026', title: '2026 Kiberxavfsizlik & Darknet Sirlari' },
+                          { id: 'series_coding_agents_2026', title: 'AI Dasturlash & Avtonom Agentlar' }
+                        ]).map((s: any) => (
+                          <option key={s.id} value={s.id}>
+                            {s.title} ({s.badge || 'Serial'})
+                          </option>
+                        ))}
+                      </select>
+
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={isAddingToSeries}
+                        onClick={handleAddToSeries}
+                        className="w-full text-xs font-bold bg-blue-600 hover:bg-blue-500 border-blue-500 cursor-pointer"
+                      >
+                        {isAddingToSeries ? 'Biriktirilmoqda...' : 'Ushbu Serialga Biriktirish'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </Tabs.Content>
@@ -2012,6 +2422,44 @@ export const ContentDetailPage = () => {
                     <span className="text-[11px] text-gray-300 font-semibold truncate block mt-0.5">{s.title.split(':')[0]}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Voice Emotion Selector for this video */}
+              <div className="max-w-xl mx-auto p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sliders size={14} className="text-violet-400" />
+                    Diksiya & Nutq Emotsiyasi (Azure SSML Modulator):
+                  </span>
+                  <span className="text-[10px] font-mono text-violet-300 font-bold px-2 py-0.5 rounded bg-violet-500/20 border border-violet-500/30">
+                    {selectedVoicePreset.toUpperCase()}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'energetic', name: '⚡ Ultra Energetic', sub: '+16% Tezlik' },
+                    { id: 'mysterious', name: '🕵️ Mysterious', sub: '-5% Chuqur' },
+                    { id: 'authoritative', name: '🎓 Confident', sub: '+10% Ekspert' },
+                    { id: 'calm', name: '🧘 Calm Story', sub: '0% Sokin' }
+                  ].map((p) => {
+                    const isSel = selectedVoicePreset === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedVoicePreset(p.id)}
+                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          isSel
+                            ? 'bg-violet-600/30 border-violet-500 text-white shadow'
+                            : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                        }`}
+                      >
+                        <span className="text-xs font-bold block truncate">{p.name}</span>
+                        <span className="text-[10px] text-gray-400 block">{p.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">

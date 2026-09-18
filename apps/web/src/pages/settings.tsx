@@ -46,6 +46,7 @@ const SettingsPage = () => {
   const [hostAvatar, setHostAvatar] = useState('alex');
   const [customHostImage, setCustomHostImage] = useState('');
   const [backgroundMusicMood, setBackgroundMusicMood] = useState('neon_pulse');
+  const [voiceEmotionPreset, setVoiceEmotionPreset] = useState('energetic');
 
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
@@ -67,6 +68,7 @@ const SettingsPage = () => {
           if (s.hostAvatar) setHostAvatar(s.hostAvatar);
           if (s.customHostImage) setCustomHostImage(s.customHostImage);
           if (s.backgroundMusicMood) setBackgroundMusicMood(s.backgroundMusicMood);
+          if (s.voiceEmotionPreset) setVoiceEmotionPreset(s.voiceEmotionPreset);
           if (Array.isArray(s.publishTimes)) {
             if (s.publishTimes[0]) setPublishTime1(s.publishTimes[0]);
             if (s.publishTimes[1]) setPublishTime2(s.publishTimes[1]);
@@ -101,6 +103,7 @@ const SettingsPage = () => {
             hostAvatar,
             customHostImage,
             backgroundMusicMood,
+            voiceEmotionPreset,
             publishTimes: [publishTime1, publishTime2].filter(Boolean)
           }
         })
@@ -320,6 +323,108 @@ const SettingsPage = () => {
 
           <p className="text-[11px] text-gray-400">
             * Tanlangan musiqa nutq yangraganda avtomatik ravishda -10dB ga pasayadi (Auto-Ducking), diksiyani kristal toza eshittiradi va pauzalarda to'liq kuchga chiqadi.
+          </p>
+        </div>
+
+        {/* Voice Emotion & Pace Modulator Studio */}
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-2">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-violet-600/20 text-violet-400">
+                <Mic size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Diksiyaning Hissiy Energiya Sozlagichi (Voice Emotion Studio)</h3>
+                <p className="text-xs text-gray-400">Azure TTS SSML parametrlari orqali boshlovchi ovozining sur'ati va emotsiyasini boshqarish</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400">
+              Preset: {voiceEmotionPreset.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                id: 'energetic',
+                name: '⚡ Ultra Energetic',
+                pace: '+16% Tezlik',
+                pitch: '+2Hz Pitch',
+                badge: 'Viral News #1',
+                desc: 'Tezkor yangiliklar, yashirin vositalar va 0-3 soniyalik kuchli hooklar uchun eng ommabop dinamika.',
+                border: 'border-violet-500/50',
+                activeBg: 'bg-violet-500/10'
+              },
+              {
+                id: 'mysterious',
+                name: '🕵️ Mysterious & Deep',
+                pace: '-5% Tezlik',
+                pitch: '-2Hz Pitch',
+                badge: 'Kiber & Darknet',
+                desc: 'Kiberxavfsizlik, sirli internet sirlari va taqiqlangan mavzularda qiziqish uyg\'otuvchi chuqur tembr.',
+                border: 'border-cyan-500/50',
+                activeBg: 'bg-cyan-500/10'
+              },
+              {
+                id: 'authoritative',
+                name: '🎓 Confident Authority',
+                pace: '+10% Tezlik',
+                pitch: '+1Hz Pitch',
+                badge: 'Senior Ekspert',
+                desc: 'Dasturlash arxitekturasi, murakkab AI modellar tahlili va nufuzli ekspert tushuntirishi uchun ideal.',
+                border: 'border-blue-500/50',
+                activeBg: 'bg-blue-500/10'
+              },
+              {
+                id: 'calm',
+                name: '🧘 Calm Storyteller',
+                pace: '0% Standart',
+                pitch: '0Hz Tabiiy',
+                badge: 'Darslik & Tahlil',
+                desc: 'Shoshilmasdan har bir fikrni yetkazuvchi, tushunarli qo\'llanmalar va falsafiy texnologiya mavzulari.',
+                border: 'border-emerald-500/50',
+                activeBg: 'bg-emerald-500/10'
+              }
+            ].map((preset) => {
+              const isSelected = voiceEmotionPreset === preset.id;
+              return (
+                <div
+                  key={preset.id}
+                  onClick={() => setVoiceEmotionPreset(preset.id)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                    isSelected 
+                      ? `${preset.border} ${preset.activeBg} shadow-lg ring-1 ring-white/20` 
+                      : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                      {preset.badge}
+                    </span>
+                    <span className="text-[10px] font-mono text-violet-400 font-semibold">
+                      {preset.pace}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      {preset.name}
+                      {isSelected && <Check size={14} className="text-violet-400" />}
+                    </h4>
+                    <p className="text-[10px] text-gray-400 mt-1 leading-snug">{preset.desc}</p>
+                  </div>
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400">
+                    <span>Tembr: {preset.pitch}</span>
+                    <span className={isSelected ? 'text-violet-300 font-bold' : 'text-gray-500'}>
+                      {isSelected ? '[OK] Faol' : 'Tanlash'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] text-gray-400">
+            * Tanlangan emotsiya Azure TTS orqali nutq sintezlanishidan oldin avtomatik kiritiladi va diksiyaga jonli hayajon bag'ishlaydi.
           </p>
         </div>
 

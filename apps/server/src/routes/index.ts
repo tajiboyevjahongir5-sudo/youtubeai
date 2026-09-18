@@ -17,6 +17,8 @@ import communityRoutes from './community.routes';
 import affiliateRoutes from './affiliate.routes';
 import dubbingRoutes from './dubbing.routes';
 import channelHealthRoutes from './channel-health.routes';
+import abTestingRoutes from './ab-testing.routes';
+import seriesRoutes from './series.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -51,6 +53,8 @@ workspaceRouter.use('/community', communityRoutes);
 workspaceRouter.use('/affiliate', affiliateRoutes);
 workspaceRouter.use('/dubbing', dubbingRoutes);
 workspaceRouter.use('/channel-health', channelHealthRoutes);
+workspaceRouter.use('/ab-tests', abTestingRoutes);
+workspaceRouter.use('/series', seriesRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity

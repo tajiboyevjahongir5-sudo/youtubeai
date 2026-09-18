@@ -330,15 +330,38 @@ def load_sfx_sample(name: str, target_sr=24000) -> np.ndarray:
                 pass
     return np.zeros(0, dtype=np.float32)
 
-async def synthesize_speech(text: str, output_wav: str, ffmpeg_bin: str, voice_name: str = "en-US-ChristopherNeural") -> float:
+async def synthesize_speech(text: str, output_wav: str, ffmpeg_bin: str, voice_name: str = "en-US-ChristopherNeural", voice_preset: str = "energetic") -> float:
     temp_mp3 = output_wav.replace('.wav', '_temp.mp3')
     try:
         import edge_tts
-        rate = "+14%"
-        pitch = "+1Hz"
-        if voice_name.startswith("uz-") or voice_name.startswith("es-"):
-            rate = "+6%"
+        preset_lower = (voice_preset or 'energetic').lower()
+        if 'mysterious' in preset_lower or 'deep' in preset_lower:
+            rate = "-5%"
+            pitch = "-2Hz"
+        elif 'authoritative' in preset_lower or 'confident' in preset_lower:
+            rate = "+10%"
+            pitch = "+1Hz"
+        elif 'calm' in preset_lower or 'story' in preset_lower:
+            rate = "+0%"
             pitch = "+0Hz"
+        else:
+            rate = "+16%"
+            pitch = "+2Hz"
+
+        if voice_name.startswith("uz-") or voice_name.startswith("es-"):
+            if 'mysterious' in preset_lower:
+                rate = "-2%"
+                pitch = "-1Hz"
+            elif 'authoritative' in preset_lower:
+                rate = "+5%"
+                pitch = "+1Hz"
+            elif 'calm' in preset_lower:
+                rate = "+0%"
+                pitch = "+0Hz"
+            else:
+                rate = "+8%"
+                pitch = "+1Hz"
+
         communicate = edge_tts.Communicate(text, voice_name, rate=rate, pitch=pitch)
         await communicate.save(temp_mp3)
 
@@ -690,15 +713,17 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     except Exception:
         pass
 
-def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None):
+def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None, voice_preset_override: str = None):
     ffmpeg_bin = get_ffmpeg_bin()
     is_long = data.get('videoFormat') == 'long_form'
     
     title = data.get('title', 'Neural Pulse AI')
     clean_title = sanitize_text(title)
     script = data.get('script', '')
+    binge_teaser = sanitize_text(data.get('bingeTeaser') or data.get('seriesNextTeaser') or '')
 
     voice_name = voice_override or data.get('voiceModel') or data.get('voice') or "en-US-ChristopherNeural"
+    voice_preset = voice_preset_override or data.get('voiceEmotionPreset') or data.get('voicePreset') or 'energetic'
 
     temp_dir = os.path.join(os.path.dirname(output_mp4), f"tmp_{data.get('id', 'render')}")
     os.makedirs(temp_dir, exist_ok=True)
@@ -707,12 +732,12 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     final_audio = os.path.join(temp_dir, 'final_audio.wav')
     raw_video = os.path.join(temp_dir, 'raw_video.mp4')
 
-    print(f"🎙️ Step 1/3: Synthesizing Azure Neural Voice [{voice_name}] for '{clean_title}'...", flush=True)
+    print(f"🎙️ Step 1/3: Synthesizing Azure Neural Voice [{voice_name}] (Preset: {voice_preset}) for '{clean_title}'...", flush=True)
     tts_text = clean_script_for_tts(script)
     if not tts_text:
         tts_text = f"Welcome to Neural Pulse AI. Today we analyze: {clean_title}."
 
-    duration = asyncio.run(synthesize_speech(tts_text, voice_wav, ffmpeg_bin, voice_name=voice_name))
+    duration = asyncio.run(synthesize_speech(tts_text, voice_wav, ffmpeg_bin, voice_name=voice_name, voice_preset=voice_preset))
     if not is_long and duration > 58.0:
         duration = 58.0
     elif not is_long and duration < 24.0:
@@ -1252,6 +1277,16 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 draw.text((bx1 + 52, by1 + 12), "SUBSCRIBED", font=font_brand, fill=(210, 220, 235))
                 paste_icon(img_pil, icon_bell_36, (bx1 - 42, by1 + 9))
 
+            if binge_teaser and t_sec >= (duration - 3.2):
+                btw = 640
+                btx1 = (W - btw) // 2
+                bty1 = cy1 + card_h + 16
+                draw.rounded_rectangle([btx1, bty1, btx1 + btw, bty1 + 46], radius=14, fill=(12, 18, 30, 235), outline=(0, 240, 255, 180), width=2)
+                teaser_txt = f">> {binge_teaser.upper()} <<"
+                f_t = get_font(20, bold=True)
+                tw = draw.textlength(teaser_txt, font=f_t) if hasattr(draw, 'textlength') else 380
+                draw.text(((W - int(tw)) // 2, bty1 + 12), teaser_txt, font=f_t, fill=(0, 240, 255))
+
         audio_sample_idx = min(len(mixed_audio) - 1, int(t_sec * sr))
         win = mixed_audio[max(0, audio_sample_idx - 512):min(len(mixed_audio), audio_sample_idx + 512)]
         vol = float(np.mean(np.abs(win))) if len(win) > 0 else 0.05
@@ -1350,6 +1385,7 @@ def main():
     parser.add_argument('--voice', type=str, default=None, help="Azure Neural Voice name")
     parser.add_argument('--host', type=str, default=None, help="Host Avatar name or path")
     parser.add_argument('--music-mood', type=str, default=None, help="Background music mood preset")
+    parser.add_argument('--voice-preset', type=str, default=None, help="Voice emotion and pace preset")
     args = parser.parse_args()
 
     if args.json:
@@ -1370,7 +1406,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood)
+    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood, voice_preset_override=args.voice_preset)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

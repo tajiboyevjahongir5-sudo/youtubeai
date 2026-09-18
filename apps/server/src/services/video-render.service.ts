@@ -75,6 +75,7 @@ export class VideoRenderService {
       const voiceModel = (item as any).voiceModel || wsSettings.voiceModel || 'en-US-ChristopherNeural';
       const hostAvatar = (item as any).hostAvatar || wsSettings.hostAvatar || 'alex';
       const musicMood = (item as any).backgroundMusicMood || (item as any).musicMood || wsSettings.backgroundMusicMood || 'neon_pulse';
+      const voicePreset = (item as any).voiceEmotionPreset || (item as any).voicePreset || wsSettings.voiceEmotionPreset || 'energetic';
 
       // Execute python script
       const pythonProcess = spawn(pythonBin, [
@@ -83,7 +84,8 @@ export class VideoRenderService {
         '--output', outputPath,
         '--voice', voiceModel,
         '--host', hostAvatar,
-        '--music-mood', musicMood
+        '--music-mood', musicMood,
+        '--voice-preset', voicePreset
       ]);
 
       let stdoutData = '';
