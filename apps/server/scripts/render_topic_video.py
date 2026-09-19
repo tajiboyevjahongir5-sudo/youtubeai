@@ -846,10 +846,11 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     else:
         host_scaled = np.zeros((H, W, 3), dtype=np.uint8)
 
-    # Video B-Rolls
+    # Video B-Rolls Pool (Real 60FPS Video Footage)
     datacenter_path = find_file([
         os.path.join(os.path.dirname(__file__), '../public/assets/clip_datacenter.mp4'),
         r'C:\Users\user\Downloads\clip_datacenter.mp4',
+        r'C:\Users\user\Downloads\clip_datacenter.webm',
         os.path.join(os.path.dirname(__file__), '../public/assets/clip_ai.webm'),
         r'C:\Users\user\Downloads\clip_ai.webm'
     ])
@@ -860,6 +861,37 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
         r'C:\Users\user\Downloads\cyberpunk_hailuo.webm'
     ])
     cap_hailuo = cv2.VideoCapture(hailuo_path) if hailuo_path else None
+
+    ai_clip_path = find_file([
+        os.path.join(os.path.dirname(__file__), '../public/assets/clip_ai.webm'),
+        r'C:\Users\user\Downloads\clip_ai.webm'
+    ])
+    cap_ai = cv2.VideoCapture(ai_clip_path) if ai_clip_path else None
+
+    storm_path = find_file([
+        r'C:\Users\user\Downloads\stormlight-over-fields.3840x2160.mp4',
+        r'C:\Users\user\Downloads\1774861278.mp4'
+    ])
+    cap_storm = cv2.VideoCapture(storm_path) if storm_path else None
+
+    def read_looped_frame(cap, target_w, target_h):
+        if cap is None:
+            return None
+        ret, frame = cap.read()
+        if not ret or frame is None:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = cap.read()
+        if ret and frame is not None:
+            fh, fw = frame.shape[:2]
+            scale = max(target_w / fw, target_h / fh)
+            nw, nh = int(fw * scale), int(fh * scale)
+            resized = cv2.resize(frame, (nw, nh), interpolation=cv2.INTER_LINEAR)
+            cx, cy = max(0, (nw - target_w) // 2), max(0, (nh - target_h) // 2)
+            crop = resized[cy:cy+target_h, cx:cx+target_w]
+            if crop.shape[0] != target_h or crop.shape[1] != target_w:
+                crop = cv2.resize(crop, (target_w, target_h))
+            return crop
+        return None
 
     icon_alert_36 = load_icon('alert.png', (36, 36))
     icon_zap_36 = load_icon('zap.png', (36, 36))
@@ -964,28 +996,59 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
             if t_sec < sc1_end:
                 prog = t_sec / max(0.1, sc1_end)
                 s_img = topic_scenes.get(1, list(topic_scenes.values())[0])
-                frame = apply_ken_burns(s_img, prog, 0)
                 cur_sc_idx = 0
+                target_cap = cap_hailuo or cap_storm or cap_datacenter
             elif sc1_end <= t_sec < sc2_end:
                 prog = (t_sec - sc1_end) / max(0.1, sc2_end - sc1_end)
                 s_img = topic_scenes.get(2, list(topic_scenes.values())[1 if len(topic_scenes) > 1 else 0])
-                frame = apply_ken_burns(s_img, prog, 1)
                 cur_sc_idx = 1
+                target_cap = cap_datacenter or cap_ai or cap_hailuo
             elif sc2_end <= t_sec < sc3_end:
                 prog = (t_sec - sc2_end) / max(0.1, sc3_end - sc2_end)
                 s_img = topic_scenes.get(3, list(topic_scenes.values())[2 if len(topic_scenes) > 2 else 0])
-                frame = apply_ken_burns(s_img, prog, 2)
                 cur_sc_idx = 2
+                target_cap = cap_ai or cap_datacenter or cap_hailuo
             elif sc3_end <= t_sec < sc4_end:
                 prog = (t_sec - sc3_end) / max(0.1, sc4_end - sc3_end)
                 s_img = topic_scenes.get(4, list(topic_scenes.values())[3 if len(topic_scenes) > 3 else 0])
-                frame = apply_ken_burns(s_img, prog, 1)
                 cur_sc_idx = 3
+                target_cap = cap_storm or cap_datacenter or cap_hailuo
             else:
                 prog = (t_sec - sc4_end) / max(0.1, duration - sc4_end)
                 s_img = topic_scenes.get(5, list(topic_scenes.values())[-1])
-                frame = apply_ken_burns(s_img, prog, 3)
                 cur_sc_idx = 4
+                target_cap = cap_hailuo or cap_ai or cap_datacenter
+
+            # --- REAL 60FPS MOTION VIDEO FOOTAGE INTEGRATION ---
+            motion_frame = read_looped_frame(target_cap, W, H)
+
+            if s_img is not None:
+                kb_frame = apply_ken_burns(s_img, prog, cur_sc_idx % 4)
+                if motion_frame is not None:
+                    # Seamless blend: 55% real 60fps moving video footage + 45% topic-specific visual
+                    # This guarantees real movement (lights shifting, servers flashing, characters moving) in every frame!
+                    frame = cv2.addWeighted(motion_frame, 0.55, kb_frame, 0.45, 0)
+                else:
+                    frame = kb_frame
+            elif motion_frame is not None:
+                frame = motion_frame
+            else:
+                frame = np.zeros((H, W, 3), dtype=np.uint8)
+
+            # Continuous 60FPS procedural cyber particles & live motion
+            for p_idx in range(14):
+                p_seed = (p_idx * 173 + cur_sc_idx * 59) % 1000
+                px = int((p_seed * 11 + t_sec * 60 * (1 if p_idx % 2 == 0 else -1)) % W)
+                py = int((H - ((p_seed * 23 + t_sec * 90) % (H - 280))))
+                p_col = (0, 240, 255) if p_idx % 2 == 0 else (255, 140, 50)
+                cv2.circle(frame, (px, py), 2 if p_idx % 3 == 0 else 1, p_col, -1)
+
+            # White flash transition on beat cuts
+            dist_to_cut = min(abs(t_sec - sc1_end), abs(t_sec - sc2_end), abs(t_sec - sc3_end), abs(t_sec - sc4_end))
+            if dist_to_cut < 0.12 and t_sec > 0.5:
+                flash_alpha = max(0.0, 1.0 - (dist_to_cut / 0.12)) * 0.35
+                white_overlay = np.full((H, W, 3), 255, dtype=np.uint8)
+                cv2.addWeighted(white_overlay, flash_alpha, frame, 1.0 - flash_alpha, 0, frame)
 
             # Subtle top & bottom vignette to enhance subtitle & badge contrast
             grad = np.zeros((H, W, 3), dtype=np.uint8)
@@ -1325,6 +1388,8 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     writer.release()
     if cap_datacenter: cap_datacenter.release()
     if cap_hailuo: cap_hailuo.release()
+    if cap_ai: cap_ai.release()
+    if cap_storm: cap_storm.release()
 
     print("🎬 Video stream rendered. Muxing with FFmpeg...", flush=True)
 
