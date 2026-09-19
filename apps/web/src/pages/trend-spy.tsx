@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -56,6 +56,93 @@ export const TrendSpyPage = () => {
     },
     staleTime: 60000,
   });
+
+  // 3. Competitor Channels & Outliers
+  const [newCompHandle, setNewCompHandle] = useState('');
+  const [isAddingComp, setIsAddingComp] = useState(false);
+
+  const { data: competitorsData, refetch: refetchCompetitors } = useQuery({
+    queryKey: ['competitors', workspaceId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors`, {
+          headers: { 'x-workspace-id': workspaceId }
+        });
+        const data = await res.json();
+        return data.competitors || [];
+      } catch (e) { return []; }
+    }
+  });
+
+  const { data: outliersData, refetch: refetchOutliers } = useQuery({
+    queryKey: ['competitor-outliers', workspaceId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors/outliers`, {
+          headers: { 'x-workspace-id': workspaceId }
+        });
+        const data = await res.json();
+        return data.outliers || [];
+      } catch (e) { return []; }
+    }
+  });
+
+  const competitorsList = competitorsData || [];
+  const outliersList = outliersData || [];
+
+  const handleAddCompetitor = async () => {
+    if (!newCompHandle.trim()) return;
+    setIsAddingComp(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ handle: newCompHandle.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewCompHandle('');
+        refetchCompetitors();
+        refetchOutliers();
+        setToast(`✅ ${newCompHandle} muvaffaqiyatli kuzatuvga qo'shildi!`);
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {}
+    finally { setIsAddingComp(false); }
+  };
+
+  const handleRemoveCompetitor = async (handle: string) => {
+    try {
+      await fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors/${encodeURIComponent(handle)}`, {
+        method: 'DELETE',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      refetchCompetitors();
+      refetchOutliers();
+    } catch (e) {}
+  };
+
+  const handleAdaptCompetitorVideo = async (videoId: string) => {
+    setAdoptingId(videoId);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors/adapt/${videoId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data.success && data.newItem) {
+        setToast(`🎉 "${data.newItem.title.slice(0, 35)}..." loyihasi shakllantirildi!`);
+        setTimeout(() => {
+          navigate(`/content/${data.newItem.id}`);
+        }, 1200);
+      }
+    } catch (e) {
+      setToast('❌ Adaptatsiya qilishda xatolik yuz berdi');
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setAdoptingId(null);
+    }
+  };
 
   const handleAdoptTrend = async (trend: any) => {
     setAdoptingId(trend.id);
@@ -134,7 +221,111 @@ export const TrendSpyPage = () => {
         </div>
       </div>
 
-      {/* SECTION 1: TRENDING COMPETITOR VIDEOS */}
+      {/* SECTION 0: RAQOBATCHILAR KANALLARI & OUTLIER SPY */}
+      <div className="space-y-4 p-5 rounded-3xl bg-gradient-to-br from-[#121424] to-[#0d101c] border border-cyan-500/30 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🕵️‍♂️</span>
+              <h3 className="text-lg font-bold text-white">Raqobatchilar Ayg'oqchisi (Outlier Benchmarking)</h3>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                Ethical Steal Engine
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Raqobatchilar kanallaridagi odatiy ko'rishlardan 3x-5x yuqori natija ko'rsatgan "Outlier" videolarni topish va o'zimizga moslash
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Masalan: @Fireship"
+              value={newCompHandle}
+              onChange={(e) => setNewCompHandle(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/60"
+            />
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={isAddingComp || !newCompHandle.trim()}
+              onClick={handleAddCompetitor}
+              className="text-xs whitespace-nowrap bg-cyan-600 hover:bg-cyan-500 cursor-pointer"
+            >
+              + Kanal Qo'shish
+            </Button>
+          </div>
+        </div>
+
+        {/* Tracked Channels Pills */}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <span className="text-xs text-gray-400 self-center font-medium">Kuzatilayotgan kanallar:</span>
+          {competitorsList.map((comp: any) => (
+            <div
+              key={comp.handle}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2 text-xs text-gray-200"
+            >
+              <Youtube size={14} className="text-red-500" />
+              <strong className="text-white">{comp.title || comp.handle}</strong>
+              <span className="text-[10px] font-mono text-cyan-400">({comp.subscribers})</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveCompetitor(comp.handle)}
+                className="text-gray-400 hover:text-red-400 ml-1 text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Outlier Viral Videos Grid */}
+        <div className="space-y-2 pt-2">
+          <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider block">
+            🔥 Raqobatchilarning Eng Portlovchi (Outlier) Videolari:
+          </span>
+          <div className="grid md:grid-cols-2 gap-4">
+            {outliersList.map((outlier: any) => (
+              <div
+                key={outlier.id}
+                className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between gap-3 shadow-lg"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
+                      <Youtube size={13} className="text-red-500" /> {outlier.channelTitle}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      ⚡ {outlier.outlierScore}x Outlier ({outlier.viewsFormatted} ko'rish)
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white leading-snug">
+                    "{outlier.title}"
+                  </h4>
+                  <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-cyan-400 block">Viral Formulaning Siri:</span>
+                    <p className="text-gray-300 italic">{outlier.hookFormula}</p>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    <strong className="text-gray-300">Tavsiya qilingan adaptatsiya:</strong> {outlier.suggestedAdaptation}
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={adoptingId === outlier.id}
+                  onClick={() => handleAdaptCompetitorVideo(outlier.id)}
+                  className="w-full text-xs font-bold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
+                >
+                  <Sparkles size={13} className={adoptingId === outlier.id ? 'animate-spin' : ''} />
+                  {adoptingId === outlier.id ? 'Loyiha Yaratilmoqda...' : '🎯 Ushbu Mavzuni Bizga Moslab Yaratish'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-white/10">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">

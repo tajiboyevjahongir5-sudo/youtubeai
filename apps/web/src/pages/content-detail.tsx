@@ -48,7 +48,8 @@ import {
   Award,
   Flame,
   Bell,
-  FileText
+  FileText,
+  Vote
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -217,6 +218,70 @@ export const ContentDetailPage = () => {
       }
     } catch (e) { console.error('Performance alerts error:', e); }
     finally { setIsLoadingAlerts(false); }
+  };
+
+  // Growth Suite: AI Visual Thumbnail Studio
+  const [thumbnailVariants, setThumbnailVariants] = useState<any[]>([]);
+  const [isGeneratingThumbs, setIsGeneratingThumbs] = useState(false);
+  const [customThumbHeadline, setCustomThumbHeadline] = useState('');
+  const [customThumbBadge, setCustomThumbBadge] = useState('');
+
+  const handleGenerateThumbnails = async () => {
+    setIsGeneratingThumbs(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/thumbnail-studio/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({
+          contentId,
+          title: metaTitle || videoTitle,
+          format: isLong ? 'landscape' : 'vertical',
+          customHeadline: customThumbHeadline || undefined,
+          customBadge: customThumbBadge || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.variants) {
+        setThumbnailVariants(data.variants);
+        setToast("🎨 3 ta High-CTR muqova varianti muvaffaqiyatli generatsiya qilindi!");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {}
+    finally { setIsGeneratingThumbs(false); }
+  };
+
+  const handleApplyThumbnail = async (thumbUrl: string) => {
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/thumbnail-studio/apply/${contentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ thumbnailUrl: thumbUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast("✅ Yangi muqova video profiliga muvaffaqiyatli biriktirildi!");
+        refetchItem();
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {}
+  };
+
+  // Growth Suite: YouTube Community Tab Autopilot
+  const [communityPosts, setCommunityPosts] = useState<any[]>([]);
+  const [isLoadingCommunityPosts, setIsLoadingCommunityPosts] = useState(false);
+
+  const fetchCommunityPosts = async () => {
+    setIsLoadingCommunityPosts(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/community-autopilot/posts/${contentId}?title=${encodeURIComponent(metaTitle || videoTitle)}`, {
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data.success && data.posts) {
+        setCommunityPosts(data.posts);
+      }
+    } catch (e) {}
+    finally { setIsLoadingCommunityPosts(false); }
   };
 
   // Dynamic titles and metadata based on format and item
@@ -622,6 +687,7 @@ export const ContentDetailPage = () => {
       handleAnalyzeSeo();
       fetchRelaunchStatus();
       fetchPerformanceAlerts();
+      fetchCommunityPosts();
     }
   }, [itemData]);
 
@@ -1175,6 +1241,7 @@ export const ContentDetailPage = () => {
             { id: 'ab_test', label: '🧪 A/B Title & Hook' },
             { id: 'binge_series', label: '🔁 Binge Serial' },
             { id: 'preview_canvas', label: '🎛️ 9:16 Jonli Simulyator' },
+            { id: 'thumbnail_studio', label: '🎨 AI Muqova Studio' },
             { id: 'personaj', label: 'Personaj & Konsistentlik' },
             { id: 'metadata', label: 'SEO Metadata' },
             { id: 'comments', label: '💬 Izohlar & Reply AI' },
@@ -1812,6 +1879,159 @@ export const ContentDetailPage = () => {
           </div>
         </Tabs.Content>
 
+        {/* 🎨 AI Visual Thumbnail Studio */}
+        <Tabs.Content value="thumbnail_studio" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-cyan-500/30">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🎨</span>
+                    <h3 className="text-lg font-bold text-white">
+                      AI Visual Thumbnail Studio (High-CTR Muqova Generatori)
+                    </h3>
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                      3 Proven Formulas
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {isLong ? '16:9 Gorizontal Masterclass (1280x720)' : '9:16 Shorts (1080x1920)'} formati uchun yuqori bosilish foiziga (CTR &gt; 11%) ega muqovalar
+                  </p>
+                </div>
+
+                <Button
+                  variant="primary"
+                  disabled={isGeneratingThumbs}
+                  onClick={handleGenerateThumbnails}
+                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] cursor-pointer text-xs"
+                >
+                  <Sparkles size={15} className={isGeneratingThumbs ? 'animate-spin' : ''} />
+                  {isGeneratingThumbs ? 'Generatsiya qilinmoqda...' : '🎨 3 ta High-CTR Muqova Yaratish'}
+                </Button>
+              </div>
+
+              {/* Customization Inputs */}
+              <div className="grid sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-gray-300 block">Katta Sarlavha (3-so'z qoidasi, ixtiyoriy):</label>
+                  <Input
+                    placeholder="Masalan: STOP CODING NOW"
+                    value={customThumbHeadline}
+                    onChange={(e) => setCustomThumbHeadline(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-gray-300 block">Yuqori Badj Matni (ixtiyoriy):</label>
+                  <Input
+                    placeholder="Masalan: ! CRITICAL 2026 !"
+                    value={customThumbBadge}
+                    onChange={(e) => setCustomThumbBadge(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Thumbnail Variants Display */}
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  {thumbnailVariants.length > 0 ? 'Generatsiya Qilingan Variantlar:' : 'Isbotlangan 3 ta Psixologik Shablondan Tanlang:'}
+                </span>
+
+                <div className="grid md:grid-cols-3 gap-5">
+                  {(thumbnailVariants.length > 0 ? thumbnailVariants : [
+                    {
+                      id: 'thumb_preview_1',
+                      style: 'neon_warning',
+                      styleName: '🚨 Neon Alert & Warning',
+                      headlineText: customThumbHeadline || 'STOP CODING NOW',
+                      badgeText: customThumbBadge || '! CRITICAL 2026 !',
+                      predictedCtr: '12.4% CTR',
+                      colorTheme: { primary: '#ef4444', accent: '#fbbf24', bg: '#0a0d14' },
+                      thumbnailUrl: '/media/thumbnails/sample_neon.jpg'
+                    },
+                    {
+                      id: 'thumb_preview_2',
+                      style: 'split_versus',
+                      styleName: '⚡ Split Screen (Before vs After)',
+                      headlineText: customThumbHeadline || 'OLD WAY ❌ vs AI 10x ⚡',
+                      badgeText: customThumbBadge || '10X PRODUCTIVITY',
+                      predictedCtr: '11.8% CTR',
+                      colorTheme: { primary: '#06b6d4', accent: '#10b981', bg: '#080c16' },
+                      thumbnailUrl: '/media/thumbnails/sample_versus.jpg'
+                    },
+                    {
+                      id: 'thumb_preview_3',
+                      style: 'curiosity_mystery',
+                      styleName: '🕵️ Mystery Curiosity Vault',
+                      headlineText: customThumbHeadline || 'THEY HID THIS FROM US',
+                      badgeText: customThumbBadge || '99% OF DEVS WRONG',
+                      predictedCtr: '13.2% CTR',
+                      colorTheme: { primary: '#a855f7', accent: '#ec4899', bg: '#0d091a' },
+                      thumbnailUrl: '/media/thumbnails/sample_mystery.jpg'
+                    }
+                  ]).map((variant: any) => (
+                    <div
+                      key={variant.id}
+                      className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between gap-4 shadow-xl group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white block truncate">{variant.styleName}</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {variant.predictedCtr}
+                          </span>
+                        </div>
+
+                        {/* Interactive Visual Canvas Container */}
+                        <div 
+                          className={`w-full rounded-xl overflow-hidden border border-white/15 relative flex flex-col items-center justify-between p-4 text-center transition-transform group-hover:scale-[1.02] shadow-inner ${
+                            isLong ? 'h-44' : 'h-64'
+                          }`}
+                          style={{
+                            background: `radial-gradient(circle at 50% 40%, ${variant.colorTheme.primary}40 0%, ${variant.colorTheme.bg} 100%)`
+                          }}
+                        >
+                          {/* Badge */}
+                          <div 
+                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-md"
+                            style={{ backgroundColor: variant.colorTheme.primary }}
+                          >
+                            {variant.badgeText}
+                          </div>
+
+                          {/* Big Headline */}
+                          <div className="my-auto">
+                            <h4 className="text-base sm:text-lg font-black text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] uppercase tracking-wide">
+                              {variant.headlineText}
+                            </h4>
+                          </div>
+
+                          {/* Footer Brand */}
+                          <div 
+                            className="px-3 py-0.5 rounded-md text-[9px] font-bold tracking-widest text-black bg-white/90 shadow-sm"
+                          >
+                            NEURAL PULSE AI • 2026
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleApplyThumbnail(variant.thumbnailUrl)}
+                        className="w-full text-xs font-bold bg-cyan-600 hover:bg-cyan-500 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Check size={14} /> Videoga Muqova Qilib O'rnatish
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Tabs.Content>
+
         {/* Character & Visual Consistency Anchor */}
         <Tabs.Content value="personaj" className="space-y-6 animate-fade-in">
           <Card className="liquid-glass border border-white/10">
@@ -2429,6 +2649,103 @@ export const ContentDetailPage = () => {
                       );
                     })}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* YouTube Community Tab Autopilot Card */}
+          <Card className="liquid-glass border border-purple-500/30">
+            <CardContent className="p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400">
+                    <Vote size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white">YouTube Hamjamiyat (Community Tab) Avtopiloti</h3>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                        Viral Pre-Launch
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Video chiqishidan oldin va keyin kanalda bahs-munozara uyg'otuvchi interaktiv so'rovnoma va teaser postlar
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isLoadingCommunityPosts}
+                  onClick={fetchCommunityPosts}
+                  className="text-xs flex items-center gap-1.5 border-purple-500/30 hover:bg-purple-500/10 text-purple-300 cursor-pointer"
+                >
+                  <RefreshCw size={13} className={isLoadingCommunityPosts ? 'animate-spin' : ''} />
+                  {isLoadingCommunityPosts ? 'Yuklanmoqda...' : 'Qayta Generatsiya'}
+                </Button>
+              </div>
+
+              {communityPosts.length > 0 && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  {communityPosts.map((post: any) => (
+                    <div
+                      key={post.id}
+                      className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between gap-3 shadow-lg"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            post.type === 'poll' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                            post.type === 'teaser' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                            'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          }`}>
+                            {post.type === 'poll' ? '🗳️ So\'rovnoma' : post.type === 'teaser' ? '⚡ Teaser Post' : '💬 Munozara'}
+                          </span>
+                        </div>
+
+                        <span className="text-[11px] font-bold text-amber-300 block">{post.timingLabel}</span>
+                        
+                        <p className="text-xs text-white leading-relaxed font-sans bg-black/40 p-3 rounded-xl border border-white/5">
+                          {post.question}
+                        </p>
+
+                        {post.options && (
+                          <div className="space-y-1.5 pt-1">
+                            {post.options.map((opt: string, oi: number) => (
+                              <div key={oi} className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-[11px] text-gray-300 flex items-center gap-2">
+                                <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-300 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                                  {oi + 1}
+                                </span>
+                                <span className="truncate">{opt}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <span className="text-[10px] text-gray-400 italic block">
+                          🎯 {post.expectedEngagement}
+                        </span>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const copyPayload = post.options
+                            ? `${post.question}\n\nVariantlar:\n${post.options.map((o: string, idx: number) => `${idx + 1}. ${o}`).join('\n')}\n\n#community #shorts #neuralpulseai`
+                            : post.question;
+                          navigator.clipboard.writeText(copyPayload);
+                          setToast("✅ Hamjamiyat posti buferga nusxalandi!");
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className="w-full text-xs font-bold flex items-center justify-center gap-1.5 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 cursor-pointer"
+                      >
+                        <Copy size={13} /> Postni Nusxalash
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

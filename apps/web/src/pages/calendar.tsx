@@ -11,7 +11,10 @@ import {
   Youtube, 
   Play, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Sparkles,
+  Flame,
+  Check
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -46,6 +49,43 @@ const CalendarPage = () => {
     },
     staleTime: 15000,
   });
+
+  const [viewMode, setViewMode] = useState<'weekly' | 'heatmap'>('weekly');
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const { data: heatmapData } = useQuery({
+    queryKey: ['traffic-heatmap', workspaceId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/calendar-matrix/heatmap`, {
+          headers: { 'x-workspace-id': workspaceId }
+        });
+        const data = await res.json();
+        return data.heatmap || [];
+      } catch (e) { return []; }
+    }
+  });
+
+  const handleAutoFill30Days = async () => {
+    setIsAutoFilling(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/calendar-matrix/autofill-30days`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data.success && data.summary) {
+        setToast(`🚀 30 kunlik reja to'ldirildi: ${data.summary.totalShortsCreated} Shorts, ${data.summary.totalLongformCreated} Long-form!`);
+        setTimeout(() => setToast(null), 4000);
+      }
+    } catch (e) {
+      setToast('❌ Rejalashtirishda xatolik yuz berdi');
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
 
   // Calculate current week days (Dushanba - Yakshanba)
   const now = new Date();
@@ -140,43 +180,159 @@ const CalendarPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader 
-        title="Nashr taqvimi" 
-        description="Kunlik 2 ta video rejasi (14:00 UTC va 21:00 UTC oynalari)."
+        title="Nashr taqvimi & 30 Kunlik Matritsa" 
+        description="Kunlik 2 ta Shorts (AQSH eng qizg'in 14:00 va 20:00 UTC) va haftalik 2 ta Long-form avtopilot jadvali."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10">
+              <button
+                type="button"
+                onClick={() => setViewMode('weekly')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'weekly' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Haftalik Jadval
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('heatmap')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'heatmap' ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🔥 7x24 Traffic Heatmap
+              </button>
+            </div>
+
+            <Button 
+              variant="primary" 
+              disabled={isAutoFilling}
+              onClick={handleAutoFill30Days}
+              className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer text-xs"
+            >
+              <Sparkles size={15} className={isAutoFilling ? 'animate-spin' : ''} />
+              {isAutoFilling ? 'Rejalashtirilmoqda...' : '⚡ 30 Kunlik Avtopilotni To\'ldirish'}
+            </Button>
+
             <Link to="/content/new">
-              <Button variant="primary" className="flex items-center gap-2">
-                <Plus size={16} /> Yangi vaqtga rejalashtirish
+              <Button variant="secondary" size="sm" className="flex items-center gap-1.5 text-xs">
+                <Plus size={14} /> Yangi qo'shish
               </Button>
             </Link>
           </div>
         }
       />
 
-      {/* Week Header */}
-      <div className="liquid-glass rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
-            <CalendarIcon size={20} />
-          </div>
-          <div>
-            <h2 className="font-bold text-white text-base">Oktabr 2026, 3-hafta</h2>
-            <p className="text-xs text-gray-400">Toshkent vaqti bilan ko'rsatilmoqda (UTC+5)</p>
-          </div>
+      {toast && (
+        <div className="liquid-glass rounded-2xl p-4 border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 flex items-center gap-3 animate-fade-in text-sm font-semibold shadow-xl">
+          <Check size={20} className="text-emerald-400 flex-shrink-0" />
+          <span>{toast}</span>
         </div>
+      )}
 
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Nashr etilgan
+      {/* HEATMAP VIEW */}
+      {viewMode === 'heatmap' && (
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-[#121424] to-[#0c0f1c] border border-amber-500/30 space-y-4 shadow-2xl animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Flame size={18} className="text-amber-400" />
+                7x24 YouTube Tomoshabinlar Faolligi Issiqlik Xaritasi (Audience Heatmap)
+              </h3>
+              <p className="text-xs text-gray-400">
+                AQSH va Tier-1 mamlakatlari bo'yicha eng yuqori tomosha ko'rsatkichiga ega eng qizg'in soatlar
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-mono">
+              <span className="flex items-center gap-1 text-gray-400">
+                <span className="w-3 h-3 rounded bg-white/5 border border-white/10"></span> Tinch (&lt;50)
+              </span>
+              <span className="flex items-center gap-1 text-teal-400">
+                <span className="w-3 h-3 rounded bg-teal-500/30 border border-teal-500/40"></span> Barqaror (50-80)
+              </span>
+              <span className="flex items-center gap-1 text-amber-300 font-bold">
+                <span className="w-3 h-3 rounded bg-amber-500 text-black"></span> Viral Pik (85+)
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-amber-400">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span> Tasdiqlash kutilmoqda
+
+          <div className="overflow-x-auto">
+            <div className="min-w-[700px] space-y-2">
+              <div className="grid grid-cols-25 gap-1 text-[10px] text-gray-400 font-mono text-center">
+                <span>Kun</span>
+                {Array.from({ length: 24 }).map((_, h) => (
+                  <span key={h} className={h === 14 || h === 20 ? 'text-amber-300 font-bold' : ''}>
+                    {h}h
+                  </span>
+                ))}
+              </div>
+
+              {['Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan', 'Yak'].map((day) => {
+                const daySlots = (heatmapData || []).filter((s: any) => s.day === day);
+                return (
+                  <div key={day} className="grid grid-cols-25 gap-1 items-center">
+                    <span className="text-xs font-bold text-gray-300">{day}</span>
+                    {daySlots.length > 0 ? (
+                      daySlots.map((slot: any) => (
+                        <div
+                          key={slot.hour}
+                          title={`${day} ${slot.hour}:00 UTC — Ball: ${slot.engagementScore}/100 ${slot.isPeak ? '🔥 VIRAL PIK!' : ''}`}
+                          className={`h-7 rounded-md flex items-center justify-center text-[9px] font-mono transition-all cursor-pointer ${
+                            slot.isPeak
+                              ? 'bg-gradient-to-t from-amber-600 to-rose-600 text-white font-black shadow-[0_0_8px_rgba(245,158,11,0.5)] scale-105 z-10'
+                              : slot.engagementScore >= 70
+                              ? 'bg-teal-600/40 text-teal-200 border border-teal-500/30'
+                              : slot.engagementScore >= 50
+                              ? 'bg-white/10 text-gray-300'
+                              : 'bg-white/[0.02] text-gray-600'
+                          }`}
+                        >
+                          {slot.isPeak ? '⚡' : slot.engagementScore}
+                        </div>
+                      ))
+                    ) : (
+                      Array.from({ length: 24 }).map((_, h) => (
+                        <div key={h} className="h-7 rounded-md bg-white/[0.02]"></div>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-blue-400">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span> Rejalashtirilgan
-          </div>
+          <p className="text-[11px] text-amber-300 italic pt-1">
+            💡 <strong>Algoritmik qoida:</strong> Jpilot avtopiloti har kuni aynan <strong>14:00 UTC</strong> (Shorts #1) va <strong>20:00 UTC</strong> (Shorts #2 / Masterclass) da video chiqaradi.
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* WEEKLY HEADER */}
+      {viewMode === 'weekly' && (
+        <>
+          <div className="liquid-glass rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
+                <CalendarIcon size={20} />
+              </div>
+              <div>
+                <h2 className="font-bold text-white text-base">Haftalik Jadval</h2>
+                <p className="text-xs text-gray-400">Toshkent vaqti bilan ko'rsatilmoqda (UTC+5)</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Nashr etilgan
+              </div>
+              <div className="flex items-center gap-1.5 text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span> Tasdiqlash kutilmoqda
+              </div>
+              <div className="flex items-center gap-1.5 text-blue-400">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span> Rejalashtirilgan
+              </div>
+            </div>
+          </div>
 
       {/* 7-Day Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
@@ -250,6 +406,8 @@ const CalendarPage = () => {
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   );
 };
