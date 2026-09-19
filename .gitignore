@@ -68,4 +68,6 @@ packages/api-client/src/generated/
 !apps/web/public/assets/**/*
 !apps/web/public/media/*
 !apps/web/public/media/**/*
+apps/server/public/media/videos/
+!apps/server/public/media/thumbnails/*
 !apps/web/public/favicon.ico

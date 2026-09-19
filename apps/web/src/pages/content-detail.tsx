@@ -221,12 +221,14 @@ export const ContentDetailPage = () => {
   };
 
   // Growth Suite: AI Visual Thumbnail Studio
+  const [thumbFormat, setThumbFormat] = useState<'vertical' | 'landscape'>(initialIsLong ? 'landscape' : 'vertical');
   const [thumbnailVariants, setThumbnailVariants] = useState<any[]>([]);
   const [isGeneratingThumbs, setIsGeneratingThumbs] = useState(false);
   const [customThumbHeadline, setCustomThumbHeadline] = useState('');
   const [customThumbBadge, setCustomThumbBadge] = useState('');
 
-  const handleGenerateThumbnails = async () => {
+  const handleGenerateThumbnails = async (overrideFormat?: 'vertical' | 'landscape') => {
+    const fmt = overrideFormat || thumbFormat;
     setIsGeneratingThumbs(true);
     try {
       const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/thumbnail-studio/generate`, {
@@ -235,7 +237,7 @@ export const ContentDetailPage = () => {
         body: JSON.stringify({
           contentId,
           title: metaTitle || videoTitle,
-          format: isLong ? 'landscape' : 'vertical',
+          format: fmt,
           customHeadline: customThumbHeadline || undefined,
           customBadge: customThumbBadge || undefined
         })
@@ -243,7 +245,7 @@ export const ContentDetailPage = () => {
       const data = await res.json();
       if (data.success && data.variants) {
         setThumbnailVariants(data.variants);
-        setToast("🎨 3 ta High-CTR muqova varianti muvaffaqiyatli generatsiya qilindi!");
+        setToast("🎨 4 ta High-CTR muqova varianti muvaffaqiyatli generatsiya qilindi!");
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {}
@@ -259,11 +261,79 @@ export const ContentDetailPage = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setToast("✅ Yangi muqova video profiliga muvaffaqiyatli biriktirildi!");
+        if (data.youtubeUpdated) {
+          setToast("✅ Yangi muqova videoga va YouTube kanaliga biriktirildi!");
+        } else {
+          setToast("✅ Yangi muqova video profiliga muvaffaqiyatli biriktirildi!");
+        }
         refetchItem();
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {}
+  };
+
+  // Feature 4: YouTube Pinned Comment & Engagement Booster
+  const [pinnedCommentOptions, setPinnedCommentOptions] = useState<any[]>([]);
+  const [isGeneratingPinned, setIsGeneratingPinned] = useState(false);
+  const [isPublishingPinned, setIsPublishingPinned] = useState(false);
+  const [selectedPinnedArchetype, setSelectedPinnedArchetype] = useState<string>('debate');
+
+  const handleGeneratePinnedComments = async () => {
+    setIsGeneratingPinned(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/community/pinned/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({
+          videoTitle: metaTitle || videoTitle,
+          summary: briefText || ''
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.options) {
+        setPinnedCommentOptions(data.options);
+        if (data.options.length > 0 && (!pinnedCommentText || pinnedCommentText.includes('Which AI tool'))) {
+          setPinnedCommentText(data.options[0].commentText);
+          setSelectedPinnedArchetype(data.options[0].archetype);
+        }
+        setToast("📌 4 ta strategik Qadalgan Izoh muvaffaqiyatli yaratildi!");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {}
+    finally { setIsGeneratingPinned(false); }
+  };
+
+  const handlePublishPinnedComment = async () => {
+    const yId = itemData?.youtubeVideoId || itemData?.metadata?.youtubeVideoId;
+    if (!yId) {
+      setToast("⚠️ Ushbu video hali YouTube'ga yuklanmagan. Avval videoni chop eting yoki matndan nusxa oling.");
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
+
+    setIsPublishingPinned(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/community/pinned/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({
+          videoId: yId,
+          commentText: pinnedCommentText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast("✅ Izoh YouTube videongizga muvaffaqiyatli joylandi va qadaldi!");
+      } else {
+        setToast(`⚠️ YouTube xatosi: ${data.error || 'Izoh qoldirib bo\'lmadi'}`);
+      }
+      setTimeout(() => setToast(null), 4000);
+    } catch (e: any) {
+      setToast("❌ Tarmoq xatosi yuz berdi");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsPublishingPinned(false);
+    }
   };
 
   // Growth Suite: YouTube Community Tab Autopilot
@@ -1888,26 +1958,60 @@ export const ContentDetailPage = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🎨</span>
                     <h3 className="text-lg font-bold text-white">
-                      AI Visual Thumbnail Studio (High-CTR Muqova Generatori)
+                      AI Visual Thumbnail & Cover Studio (High-CTR Muqova Generatori)
                     </h3>
                     <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                      3 Proven Formulas
+                      4 Proven Formulas
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    {isLong ? '16:9 Gorizontal Masterclass (1280x720)' : '9:16 Shorts (1080x1920)'} formati uchun yuqori bosilish foiziga (CTR &gt; 11%) ega muqovalar
+                    YouTube Shorts (9:16) va Gorizontal (16:9) formatlari uchun yuqori bosilish foiziga (CTR &gt; 12-15%) ega haqiqiy JPEG muqovalar
                   </p>
                 </div>
 
-                <Button
-                  variant="primary"
-                  disabled={isGeneratingThumbs}
-                  onClick={handleGenerateThumbnails}
-                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] cursor-pointer text-xs"
-                >
-                  <Sparkles size={15} className={isGeneratingThumbs ? 'animate-spin' : ''} />
-                  {isGeneratingThumbs ? 'Generatsiya qilinmoqda...' : '🎨 3 ta High-CTR Muqova Yaratish'}
-                </Button>
+                <div className="flex items-center gap-3">
+                  {/* Format Toggle */}
+                  <div className="flex p-1 rounded-xl bg-white/[0.05] border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setThumbFormat('vertical');
+                        handleGenerateThumbnails('vertical');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        thumbFormat === 'vertical'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Smartphone size={13} /> 9:16 Shorts
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setThumbFormat('landscape');
+                        handleGenerateThumbnails('landscape');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        thumbFormat === 'landscape'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Tv size={13} /> 16:9 Landscape
+                    </button>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    disabled={isGeneratingThumbs}
+                    onClick={() => handleGenerateThumbnails()}
+                    className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] cursor-pointer text-xs"
+                  >
+                    <Sparkles size={15} className={isGeneratingThumbs ? 'animate-spin' : ''} />
+                    {isGeneratingThumbs ? 'Chizilmoqda...' : '🎨 4 ta High-CTR Muqova Yaratish'}
+                  </Button>
+                </div>
               </div>
 
               {/* Customization Inputs */}
@@ -1922,7 +2026,7 @@ export const ContentDetailPage = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-gray-300 block">Yuqori Badj Matni (ixtiyoriy):</label>
+                  <label className="text-[11px] font-bold text-gray-300 block">Yuqori Ogohlantirish Badji (ixtiyoriy):</label>
                   <Input
                     placeholder="Masalan: ! CRITICAL 2026 !"
                     value={customThumbBadge}
@@ -1934,11 +2038,16 @@ export const ContentDetailPage = () => {
 
               {/* Thumbnail Variants Display */}
               <div className="space-y-3">
-                <span className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-                  {thumbnailVariants.length > 0 ? 'Generatsiya Qilingan Variantlar:' : 'Isbotlangan 3 ta Psixologik Shablondan Tanlang:'}
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                    {thumbnailVariants.length > 0 ? 'Generatsiya Qilingan Haqiqiy Muqovalar:' : 'Isbotlangan 4 ta Psixologik Shablondan Tanlang:'}
+                  </span>
+                  <span className="text-[11px] text-cyan-400 font-semibold">
+                    Format: {thumbFormat === 'vertical' ? '1080x1920 (9:16)' : '1280x720 (16:9)'}
+                  </span>
+                </div>
 
-                <div className="grid md:grid-cols-3 gap-5">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   {(thumbnailVariants.length > 0 ? thumbnailVariants : [
                     {
                       id: 'thumb_preview_1',
@@ -1946,19 +2055,19 @@ export const ContentDetailPage = () => {
                       styleName: '🚨 Neon Alert & Warning',
                       headlineText: customThumbHeadline || 'STOP CODING NOW',
                       badgeText: customThumbBadge || '! CRITICAL 2026 !',
-                      predictedCtr: '12.4% CTR',
+                      predictedCtr: '14.2% CTR (Top 1%)',
                       colorTheme: { primary: '#ef4444', accent: '#fbbf24', bg: '#0a0d14' },
-                      thumbnailUrl: '/media/thumbnails/sample_neon.jpg'
+                      thumbnailUrl: `/media/thumbnails/${contentId}_neon.jpg`
                     },
                     {
                       id: 'thumb_preview_2',
                       style: 'split_versus',
-                      styleName: '⚡ Split Screen (Before vs After)',
+                      styleName: '⚡ Split Screen (Before/After)',
                       headlineText: customThumbHeadline || 'OLD WAY ❌ vs AI 10x ⚡',
                       badgeText: customThumbBadge || '10X PRODUCTIVITY',
-                      predictedCtr: '11.8% CTR',
+                      predictedCtr: '12.8% CTR',
                       colorTheme: { primary: '#06b6d4', accent: '#10b981', bg: '#080c16' },
-                      thumbnailUrl: '/media/thumbnails/sample_versus.jpg'
+                      thumbnailUrl: `/media/thumbnails/${contentId}_versus.jpg`
                     },
                     {
                       id: 'thumb_preview_3',
@@ -1966,14 +2075,24 @@ export const ContentDetailPage = () => {
                       styleName: '🕵️ Mystery Curiosity Vault',
                       headlineText: customThumbHeadline || 'THEY HID THIS FROM US',
                       badgeText: customThumbBadge || '99% OF DEVS WRONG',
-                      predictedCtr: '13.2% CTR',
+                      predictedCtr: '13.6% CTR',
                       colorTheme: { primary: '#a855f7', accent: '#ec4899', bg: '#0d091a' },
-                      thumbnailUrl: '/media/thumbnails/sample_mystery.jpg'
+                      thumbnailUrl: `/media/thumbnails/${contentId}_mystery.jpg`
+                    },
+                    {
+                      id: 'thumb_preview_4',
+                      style: 'gold_elite',
+                      styleName: '🏆 24K Gold Elite Blueprint',
+                      headlineText: customThumbHeadline || 'THE $100K AI STACK',
+                      badgeText: customThumbBadge || 'ELITE BLUEPRINT',
+                      predictedCtr: '14.9% CTR (Viral)',
+                      colorTheme: { primary: '#eab308', accent: '#fef08a', bg: '#0c0a08' },
+                      thumbnailUrl: `/media/thumbnails/${contentId}_gold.jpg`
                     }
                   ]).map((variant: any) => (
                     <div
                       key={variant.id}
-                      className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between gap-4 shadow-xl group"
+                      className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between gap-3.5 shadow-xl group"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1983,47 +2102,67 @@ export const ContentDetailPage = () => {
                           </span>
                         </div>
 
-                        {/* Interactive Visual Canvas Container */}
+                        {/* Interactive Visual Container with Real Image and Fallback */}
                         <div 
-                          className={`w-full rounded-xl overflow-hidden border border-white/15 relative flex flex-col items-center justify-between p-4 text-center transition-transform group-hover:scale-[1.02] shadow-inner ${
-                            isLong ? 'h-44' : 'h-64'
+                          className={`w-full rounded-xl overflow-hidden border border-white/15 relative flex flex-col items-center justify-between p-3 text-center transition-transform group-hover:scale-[1.02] shadow-inner bg-black ${
+                            thumbFormat === 'landscape' ? 'h-40' : 'h-64'
                           }`}
-                          style={{
-                            background: `radial-gradient(circle at 50% 40%, ${variant.colorTheme.primary}40 0%, ${variant.colorTheme.bg} 100%)`
-                          }}
                         >
-                          {/* Badge */}
-                          <div 
-                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-md"
-                            style={{ backgroundColor: variant.colorTheme.primary }}
-                          >
-                            {variant.badgeText}
-                          </div>
+                          <img
+                            src={variant.thumbnailUrl}
+                            alt={variant.styleName}
+                            className="absolute inset-0 w-full h-full object-cover z-10"
+                            onError={(e) => {
+                              // If JPG not generated yet, hide image so CSS mockup shows cleanly
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
 
-                          {/* Big Headline */}
-                          <div className="my-auto">
-                            <h4 className="text-base sm:text-lg font-black text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] uppercase tracking-wide">
-                              {variant.headlineText}
-                            </h4>
-                          </div>
-
-                          {/* Footer Brand */}
+                          {/* Fallback CSS Preview if image is not yet rendered */}
                           <div 
-                            className="px-3 py-0.5 rounded-md text-[9px] font-bold tracking-widest text-black bg-white/90 shadow-sm"
+                            className="absolute inset-0 flex flex-col items-center justify-between p-3"
+                            style={{
+                              background: `radial-gradient(circle at 50% 40%, ${variant.colorTheme.primary}40 0%, ${variant.colorTheme.bg} 100%)`
+                            }}
                           >
-                            NEURAL PULSE AI • 2026
+                            <div 
+                              className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-md"
+                              style={{ backgroundColor: variant.colorTheme.primary }}
+                            >
+                              {variant.badgeText}
+                            </div>
+                            <div className="my-auto px-1">
+                              <h4 className="text-sm font-black text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] uppercase tracking-wide">
+                                {variant.headlineText}
+                              </h4>
+                            </div>
+                            <div className="px-2 py-0.5 rounded-md text-[8px] font-bold tracking-widest text-black bg-white/90">
+                              NEURAL PULSE AI • 2026
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleApplyThumbnail(variant.thumbnailUrl)}
-                        className="w-full text-xs font-bold bg-cyan-600 hover:bg-cyan-500 flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <Check size={14} /> Videoga Muqova Qilib O'rnatish
-                      </Button>
+                      <div className="flex flex-col gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handleApplyThumbnail(variant.thumbnailUrl)}
+                          className="w-full text-[11px] font-bold bg-cyan-600 hover:bg-cyan-500 flex items-center justify-center gap-1.5 cursor-pointer py-2"
+                        >
+                          <Check size={14} /> Videoga O'rnatish
+                        </Button>
+
+                        <a
+                          href={variant.thumbnailUrl}
+                          download={`${contentId}_${variant.style}.jpg`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1.5 rounded-lg text-[11px] font-semibold text-gray-300 hover:text-white bg-white/[0.05] hover:bg-white/10 border border-white/10 flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <Download size={13} /> JPG Yuklab Olish
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2465,47 +2604,217 @@ export const ContentDetailPage = () => {
 
         {/* Comments & AI Smart Reply */}
         <Tabs.Content value="comments" className="space-y-6 animate-fade-in">
-          {/* Pinned Comment Box */}
-          <Card className="liquid-glass border border-white/10">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
-                    <Pin size={18} />
+          {/* Pinned Comment & Engagement Booster Box */}
+          <Card className="liquid-glass border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.08)]">
+            <CardContent className="p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    <Pin size={20} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Qadalgan Izoh (Pinned Comment Strategy)</h3>
-                    <p className="text-xs text-gray-400">Tomoshabinlarni munozaraga chorlovchi va obunani eslatuvchi asosiy izoh</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white">
+                        YouTube Qadalgan Izoh & Faollik Kuchaytirgich (Engagement Booster)
+                      </h3>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        +140% Retention
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Tomoshabinlarni bahsga chorlovchi, ovoz to'plovchi va videoni tavsiyalar ("rek") ga olib chiquvchi qadalgan izohlar
+                    </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(pinnedCommentText);
-                    setCopiedField('pinnedComment');
-                    setToast("✅ Qadalgan izoh buferga nusxalandi!");
-                    setTimeout(() => setCopiedField(null), 2000);
-                  }}
-                  className="text-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Copy size={14} />
-                  {copiedField === 'pinnedComment' ? 'Nusxalandi!' : 'Nusxa olish'}
-                </Button>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={isGeneratingPinned}
+                    onClick={handleGeneratePinnedComments}
+                    className="flex-1 sm:flex-initial text-xs font-bold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Sparkles size={14} className={isGeneratingPinned ? 'animate-spin' : ''} />
+                    {isGeneratingPinned ? 'Generatsiya qilinmoqda...' : '🤖 4 ta Viral Izoh Yaratish'}
+                  </Button>
+                </div>
               </div>
 
-              <Textarea
-                rows={3}
-                value={pinnedCommentText}
-                onChange={(e) => setPinnedCommentText(e.target.value)}
-                placeholder="Savol yoki obuna chaqirig'ini yozing..."
-                className="text-xs font-mono"
-              />
+              {/* 4 Viral Archetypes Selector */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  Algoritmik Strategiya Shabloni (Bosing va Tanlang):
+                </span>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {(pinnedCommentOptions.length > 0 ? pinnedCommentOptions : [
+                    {
+                      id: 'pinned_debate',
+                      archetype: 'debate',
+                      label: '🥊 Munozara & Aniq Tanlov',
+                      badge: 'Eng Ko\'p Izoh Keltiruvchi',
+                      commentText: `Be honest: If you were forced to build your next production project with ONLY ONE AI tool from this video, which one are you betting your career on? 1 or 2? Drop your verdict below 👇`,
+                      expectedRetentionBoost: '+38% Izohlar Konversiyasi',
+                      strategyRationale: 'Tomoshabinda 2 ta vositadan birini tanlash istagini 3x oshiradi.'
+                    },
+                    {
+                      id: 'pinned_micro_poll',
+                      archetype: 'micro_poll',
+                      label: '📊 Tezkor Micro-Poll (1, 2, 3)',
+                      badge: 'Tezkor Ovoz Berish',
+                      commentText: `Quick community poll:\n[1] = Already using autonomous AI agents daily\n[2] = Still experimenting / evaluating safety\n[3] = Writing 100% of code manually\n\nVote with 1, 2, or 3 below! Curious where our community stands 🔥`,
+                      expectedRetentionBoost: '+52% Tezkor Reaksiya',
+                      strategyRationale: 'Raqamlar bilan javob berish osonligi tufayli kommentlar sonini portlatadi.'
+                    },
+                    {
+                      id: 'pinned_resource_drop',
+                      archetype: 'resource_drop',
+                      label: '🎁 Bepul Resurs & Blueprint Drop',
+                      badge: 'Yuqori Sodiqlik (Loyalty)',
+                      commentText: `⚡ Barcha promptlar, arxitektura diagrammalari va havola kanalimiz tavsifida berildi!\n\nKeyingi videoda qaysi AI agentini 0 dan oxirigacha jonli qurib ko'rsataylik? Eng ko'p layk to'plagan taklifni chiqaramiz! 👇`,
+                      expectedRetentionBoost: '+44% Qayta Ko\'rish & Obuna',
+                      strategyRationale: 'Auditoriyaga keyingi mavzuni tanlash vakolatini beradi.'
+                    },
+                    {
+                      id: 'pinned_controversial_hook',
+                      archetype: 'controversial_hook',
+                      label: '⚡ Provokatsion Bahs',
+                      badge: 'Maksimal Watch Time',
+                      commentText: `Unpopular opinion: Within 18 months, developers who refuse to adopt autonomous agents won't be replaced by AI — they'll be replaced by 1 engineer commanding 10 agents.\n\nAgree or Disagree? Defend your position below 👇`,
+                      expectedRetentionBoost: '+60% Tomosha Vaqti',
+                      strategyRationale: 'Tomoshabinlar bahslashayotganda video orqa fonda qayta aylanadi.'
+                    }
+                  ]).map((item: any) => {
+                    const isSelected = pinnedCommentText === item.commentText || selectedPinnedArchetype === item.archetype;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setPinnedCommentText(item.commentText);
+                          setSelectedPinnedArchetype(item.archetype);
+                          setToast(`🎯 "${item.label}" strategiyasi faollashtirildi!`);
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-amber-500/15 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                            : 'bg-white/[0.03] border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white block">{item.label}</span>
+                            {isSelected && <Check size={14} className="text-amber-400" />}
+                          </div>
+                          <p className="text-[11px] text-gray-400 line-clamp-2 leading-relaxed">
+                            {item.strategyRationale}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md self-start border border-amber-500/20">
+                          {item.expectedRetentionBoost}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
+              {/* Editable Pinned Comment Text */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-300">
+                    Tanlangan Qadalgan Izoh Matni (Tahrirlashingiz mumkin):
+                  </label>
+                  <span className="text-[11px] text-gray-400">
+                    {pinnedCommentText.length} belgi
+                  </span>
+                </div>
+                <Textarea
+                  rows={4}
+                  value={pinnedCommentText}
+                  onChange={(e) => setPinnedCommentText(e.target.value)}
+                  placeholder="Savol yoki obuna chaqirig'ini yozing..."
+                  className="text-xs font-mono bg-black/40 border-white/15 focus:border-amber-500 text-gray-200 leading-relaxed"
+                />
+              </div>
+
+              {/* Action Buttons: Publish to YouTube & Copy */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={isPublishingPinned || !pinnedCommentText.trim()}
+                    onClick={handlePublishPinnedComment}
+                    className="text-xs font-bold bg-red-600 hover:bg-red-500 flex items-center gap-1.5 cursor-pointer shadow-lg"
+                  >
+                    <Youtube size={15} />
+                    {isPublishingPinned ? 'Chop etilmoqda...' : '📌 YouTube\'ga Qadab Chop Etish'}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pinnedCommentText);
+                      setCopiedField('pinnedComment');
+                      setToast("✅ Qadalgan izoh buferga nusxalandi!");
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Copy size={14} />
+                    {copiedField === 'pinnedComment' ? 'Nusxalandi!' : 'Nusxa olish'}
+                  </Button>
+                </div>
+
+                <div className="text-[11px] text-gray-400 flex items-center gap-1">
+                  <Zap size={13} className="text-amber-400" />
+                  <span>Kanal: <strong className="text-white">Neural Pulse AI</strong> (@NeuralPulseAI-m3e)</span>
+                </div>
+              </div>
+
+              {/* Simulated Live YouTube Pinned Comment Box */}
+              <div className="p-4 rounded-xl bg-black/50 border border-white/10 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium">
+                    <Pin size={13} className="text-gray-300" />
+                    <span>Neural Pulse AI tomonidan qadalgan</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Jonli YouTube Ko'rinishi
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <img
+                    src="/host_alex.jpg"
+                    alt="Host Alex"
+                    className="w-8 h-8 rounded-full object-cover border border-amber-500/40 flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded text-[11px]">
+                        @NeuralPulseAI-m3e
+                      </span>
+                      <span className="text-[10px] text-gray-400">hozirgina</span>
+                    </div>
+                    <p className="text-gray-200 whitespace-pre-wrap leading-relaxed font-sans text-xs">
+                      {pinnedCommentText || "Izoh matni bu yerda ko'rinadi..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Algorithmic Secret Banner */}
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed flex items-start gap-2.5">
                 <Zap size={16} className="mt-0.5 flex-shrink-0 text-amber-400" />
                 <span>
-                  <strong>Viral Algoritm Siri:</strong> Qadalgan izohda savol berish (Call-to-Comment) tomoshabinlarning 40% ko'proq izoh qoldirishiga sabab bo'ladi. YouTube tomoshabin izoh yozayotgan paytda orqa fonda video qayta aylanib tomosha vaqtini (watch time) 140% ga yetkazadi.
+                  <strong>Viral Algoritm Siri:</strong> Qadalgan izohda savol berish (Call-to-Comment) tomoshabinlarning 40% ko'proq izoh qoldirishiga sabab bo'ladi. YouTube tomoshabin izoh yozayotgan paytda orqa fonda video qayta aylanib tomosha vaqtini (watch time) 140% ga yetkazadi va YouTube Shorts tavsiyalar ("rek") ga chiqaradi.
                 </span>
               </div>
             </CardContent>

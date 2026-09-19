@@ -65,14 +65,15 @@ router.post('/thumbnail-studio/generate', (req, res) => {
   res.json({ success: true, variants });
 });
 
-router.post('/thumbnail-studio/apply/:contentId', (req, res) => {
+router.post('/thumbnail-studio/apply/:contentId', async (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
   const { contentId } = req.params;
   const { thumbnailUrl } = req.body || {};
   if (!thumbnailUrl) {
     return res.status(400).json({ success: false, error: 'thumbnailUrl talab qilinadi' });
   }
-  const applied = thumbnailStudioService.applyThumbnailToContent(contentId, thumbnailUrl);
-  res.json({ success: applied });
+  const result = await thumbnailStudioService.applyThumbnailToContent(contentId, thumbnailUrl, workspaceId);
+  res.json({ success: result.success, youtubeUpdated: result.youtubeUpdated });
 });
 
 // ==========================================

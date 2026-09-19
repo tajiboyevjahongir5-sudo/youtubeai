@@ -17,6 +17,8 @@ export interface IYouTubeService {
   isAuthenticated(workspaceId: string): boolean;
   clearTokens(workspaceId: string): void;
   updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean>;
+  postComment(workspaceId: string, videoId: string, commentText: string): Promise<{ success: boolean; commentId?: string; error?: string }>;
+  setThumbnail(workspaceId: string, videoId: string, imagePath: string): Promise<{ success: boolean; error?: string }>;
 }
 
 const OWNER_WORKSPACE_ID = 'ws_j7ktjxw0';
@@ -478,6 +480,57 @@ export class YouTubeService implements IYouTubeService {
       return false;
     }
   }
+
+  async postComment(workspaceId: string, videoId: string, commentText: string): Promise<{ success: boolean; commentId?: string; error?: string }> {
+    try {
+      const auth = this.getClient(workspaceId);
+      const youtube = google.youtube({ version: 'v3', auth });
+
+      const res = await youtube.commentThreads.insert({
+        part: ['snippet'],
+        requestBody: {
+          snippet: {
+            videoId: videoId,
+            topLevelComment: {
+              snippet: {
+                textOriginal: commentText
+              }
+            }
+          }
+        }
+      });
+
+      const commentId = res.data.id || undefined;
+      console.log(`✅ [YouTube API - ${workspaceId}] Izoh muvaffaqiyatli chop etildi: ${commentId} (Video: ${videoId})`);
+      return { success: true, commentId };
+    } catch (e: any) {
+      console.error(`❌ [YouTube API - ${workspaceId}] postComment xatolik:`, e?.message || e);
+      return { success: false, error: e?.message || 'Izoh qoldirishda xatolik yuz berdi' };
+    }
+  }
+
+  async setThumbnail(workspaceId: string, videoId: string, imagePath: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!fs.existsSync(imagePath)) {
+        return { success: false, error: 'Muqova fayli diskda topilmadi: ' + imagePath };
+      }
+      const auth = this.getClient(workspaceId);
+      const youtube = google.youtube({ version: 'v3', auth });
+
+      await youtube.thumbnails.set({
+        videoId: videoId,
+        media: {
+          mimeType: 'image/jpeg',
+          body: fs.createReadStream(imagePath)
+        }
+      });
+      console.log(`✅ [YouTube API - ${workspaceId}] Video ${videoId} uchun yangi muqova muvaffaqiyatli o'rnatildi`);
+      return { success: true };
+    } catch (e: any) {
+      console.error(`❌ [YouTube API - ${workspaceId}] setThumbnail xatolik:`, e?.message || e);
+      return { success: false, error: e?.message || 'Muqovani yangilashda xatolik' };
+    }
+  }
 }
 
 export class MockYouTubeService implements IYouTubeService {
@@ -508,6 +561,14 @@ export class MockYouTubeService implements IYouTubeService {
   async updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean> {
     console.log(`[MockYouTube - ${workspaceId}] Sarlavha yangilandi: ${videoId} -> ${newTitle}`);
     return true;
+  }
+  async postComment(workspaceId: string, videoId: string, commentText: string): Promise<{ success: boolean; commentId?: string; error?: string }> {
+    console.log(`[MockYouTube - ${workspaceId}] Pinned Comment chop etildi: ${videoId} -> ${commentText}`);
+    return { success: true, commentId: 'mock_comment_' + Date.now() };
+  }
+  async setThumbnail(workspaceId: string, videoId: string, imagePath: string): Promise<{ success: boolean; error?: string }> {
+    console.log(`[MockYouTube - ${workspaceId}] Muqova o'rnatildi: ${videoId} -> ${imagePath}`);
+    return { success: true };
   }
 }
 

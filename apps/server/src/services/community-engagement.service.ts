@@ -1,6 +1,7 @@
-﻿import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../env';
 import { getWorkspaceSettings } from './workspace-settings.service';
+import { youtubeService } from './youtube.service';
 
 export interface CommunityPoll {
   id: string;
@@ -19,6 +20,16 @@ export interface CommentReplySuggestion {
     label: string;
     text: string;
   }[];
+}
+
+export interface PinnedCommentOption {
+  id: string;
+  archetype: 'debate' | 'micro_poll' | 'resource_drop' | 'controversial_hook';
+  label: string;
+  badge: string;
+  commentText: string;
+  expectedRetentionBoost: string;
+  strategyRationale: string;
 }
 
 export class CommunityEngagementService {
@@ -164,6 +175,98 @@ Return strictly JSON format:
         }
       ]
     };
+  }
+
+  public async generatePinnedComments(workspaceId: string, videoTitle: string, transcriptSummary?: string): Promise<PinnedCommentOption[]> {
+    const cleanTitle = (videoTitle || 'AI Video').replace(/#\w+/g, '').trim();
+
+    if (this.genAI) {
+      try {
+        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const prompt = `You are a viral YouTube Shorts growth strategist.
+For this video: "${cleanTitle}", generate 4 high-converting Pinned Comment strategies designed to trigger replies and keep viewers retention over 100%:
+1. Debate (sparks friendly controversy/choice)
+2. Micro Poll (numbered options 1, 2, 3)
+3. Resource Drop (free blueprint/tools link in bio)
+4. Controversial Hook (unpopular opinion / future forecast)
+
+Return strictly a JSON array of 4 items with structure:
+[
+  {
+    "id": "pinned_debate",
+    "archetype": "debate",
+    "label": "🥊 Munozara & Tanlov",
+    "badge": "Eng Yuqori Izohlar",
+    "commentText": "...",
+    "expectedRetentionBoost": "+35% Izohlar Faolligi",
+    "strategyRationale": "Tomoshabinlarni 2 ta vositadan birini tanlashga undaydi."
+  },
+  ...
+]`;
+        const res = await model.generateContent(prompt);
+        const text = res.response.text();
+        const start = text.indexOf('[');
+        const end = text.lastIndexOf(']') + 1;
+        if (start !== -1 && end > start) {
+          const parsed = JSON.parse(text.slice(start, end));
+          if (Array.isArray(parsed) && parsed.length >= 3) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Pinned comment AI error, using algorithmic defaults:', e);
+      }
+    }
+
+    return [
+      {
+        id: 'pinned_debate',
+        archetype: 'debate',
+        label: '🥊 Munozara & Aniq Tanlov',
+        badge: 'Eng Ko\'p Izoh Keltiruvchi',
+        commentText: `Be honest: If you were forced to build your next production project with ONLY ONE AI tool from this video, which one are you betting your career on? 1 or 2? Drop your verdict below 👇`,
+        expectedRetentionBoost: '+38% Izohlar Konversiyasi',
+        strategyRationale: 'Ikkita vosita o\'rtasida aniq tanlov qo\'yish tomoshabinda o\'z fikrini bildirish istagini 3x oshiradi.'
+      },
+      {
+        id: 'pinned_micro_poll',
+        archetype: 'micro_poll',
+        label: '📊 Tezkor Micro-Poll (1, 2, 3)',
+        badge: 'Tezkor Ovoz Berish',
+        commentText: `Quick community poll:\n[1] = Already using autonomous AI agents daily\n[2] = Still experimenting / evaluating safety\n[3] = Writing 100% of code manually\n\nVote with 1, 2, or 3 below! Curious where our community stands 🔥`,
+        expectedRetentionBoost: '+52% Tezkor Reaksiya',
+        strategyRationale: 'Raqamlar bilan javob berish juda oson, bu YouTube algoritmiga video juda qizg\'in muhokama qilinayotganini ko\'rsatadi.'
+      },
+      {
+        id: 'pinned_resource_drop',
+        archetype: 'resource_drop',
+        label: '🎁 Bepul Resurs & Blueprint Drop',
+        badge: 'Yuqori Sodiqlik (Loyalty)',
+        commentText: `⚡ Barcha promptlar, arxitektura diagrammalari va havola kanalimiz tavsifida berildi!\n\nKeyingi videoda qaysi AI agentini 0 dan oxirigacha jonli qurib ko'rsataylik? Eng ko'p layk to'plagan taklifni chiqaramiz! 👇`,
+        expectedRetentionBoost: '+44% Qayta Ko\'rish & Obuna',
+        strategyRationale: 'Keyingi kontent mavzusini auditoriyaga topshirish ularni kanalga bog\'laydi.'
+      },
+      {
+        id: 'pinned_controversial_hook',
+        archetype: 'controversial_hook',
+        label: '⚡ Provokatsion Bahs (Retention Magnet)',
+        badge: 'Maksimal Tomosha Vaqti',
+        commentText: `Unpopular opinion: Within 18 months, developers who refuse to adopt autonomous agents won't be replaced by AI — they'll be replaced by 1 engineer commanding 10 agents.\n\nAgree or Disagree? Defend your position below 👇`,
+        expectedRetentionBoost: '+60% Tomosha Vaqti (Watch Time)',
+        strategyRationale: 'Tomoshabinlar izoh yozish yoki boshqalarning bahsini o\'qish paytida video fonda qayta aylanib tomosha vaqtini 140% ga yetkazadi.'
+      }
+    ];
+  }
+
+  public async publishPinnedComment(workspaceId: string, videoId: string, commentText: string): Promise<{ success: boolean; commentId?: string; error?: string }> {
+    if (!videoId) {
+      return { success: false, error: 'YouTube Video ID mavjud emas. Video avval YouTube\'ga yuklangan bo\'lishi kerak.' };
+    }
+    if (!commentText || !commentText.trim()) {
+      return { success: false, error: 'Izoh matni bo\'sh bo\'lishi mumkin emas.' };
+    }
+
+    return await youtubeService.postComment(workspaceId, videoId, commentText);
   }
 }
 
