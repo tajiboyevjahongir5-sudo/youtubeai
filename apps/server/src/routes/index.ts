@@ -21,6 +21,7 @@ import abTestingRoutes from './ab-testing.routes';
 import seriesRoutes from './series.routes';
 import seoRankRoutes from './seo-rank.routes';
 import videoRelaunchRoutes from './video-relaunch.routes';
+import smartToolsRoutes from './smart-tools.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -59,6 +60,7 @@ workspaceRouter.use('/ab-tests', abTestingRoutes);
 workspaceRouter.use('/series', seriesRoutes);
 workspaceRouter.use('/seo-rank', seoRankRoutes);
 workspaceRouter.use('/video-relaunch', videoRelaunchRoutes);
+workspaceRouter.use('/smart-tools', smartToolsRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity
@@ -66,3 +68,4 @@ workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity
 router.use('/workspaces/:id', workspaceRouter);
 
 export default router;
+

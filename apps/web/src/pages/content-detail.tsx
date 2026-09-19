@@ -46,7 +46,9 @@ import {
   Globe,
   Search,
   Award,
-  Flame
+  Flame,
+  Bell,
+  FileText
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -112,6 +114,110 @@ export const ContentDetailPage = () => {
 
   // Voice Emotion Preset override
   const [selectedVoicePreset, setSelectedVoicePreset] = useState<string>('energetic');
+
+  // System 1: Real-time Render Progress
+  const [renderProgress, setRenderProgress] = useState<any>(null);
+  const renderPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startRenderPolling = () => {
+    if (renderPollRef.current) clearInterval(renderPollRef.current);
+    renderPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/render-progress/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId },
+        });
+        const data = await res.json();
+        if (data.success && data.status !== 'idle') {
+          setRenderProgress(data);
+          if (data.status === 'completed' || data.status === 'failed') {
+            if (renderPollRef.current) clearInterval(renderPollRef.current);
+          }
+        }
+      } catch (e) {}
+    }, 2000);
+  };
+
+  // System 2: Content Duplication
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  const handleDuplicateContent = async () => {
+    setIsDuplicating(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ prefixTitle: '[REMIX]' }),
+      });
+      const data = await res.json();
+      if (data.success && data.newItem) {
+        setToast(`Klon yaratildi: "${data.newItem.title.slice(0, 40)}..."`);
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) { console.error('Duplicate error:', e); }
+    finally { setIsDuplicating(false); }
+  };
+
+  // System 3: Shorts to Longform
+  const [isExpanding, setIsExpanding] = useState(false);
+
+  const handleExpandToLongform = async () => {
+    setIsExpanding(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/expand-to-longform`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      });
+      const data = await res.json();
+      if (data.success && data.newItem) {
+        setToast(`16:9 Masterclass versiya yaratildi: "${data.newItem.title.slice(0, 40)}..."`);
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) { console.error('Expand error:', e); }
+    finally { setIsExpanding(false); }
+  };
+
+  // System 4: AI Script Suggestions
+  const [scriptSuggestions, setScriptSuggestions] = useState<any>(null);
+  const [isAnalyzingScript, setIsAnalyzingScript] = useState(false);
+
+  const handleAnalyzeScript = async () => {
+    if (!scriptText || scriptText.trim().length < 20) return;
+    setIsAnalyzingScript(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/script/suggestions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({
+          script: scriptText,
+          title: metaTitle || videoTitle,
+          format: videoFormat,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        setScriptSuggestions(data.analysis);
+      }
+    } catch (e) { console.error('Script analysis error:', e); }
+    finally { setIsAnalyzingScript(false); }
+  };
+
+  // System 5: Post-Publish Performance Alerts
+  const [performanceAlerts, setPerformanceAlerts] = useState<any>(null);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+
+  const fetchPerformanceAlerts = async () => {
+    setIsLoadingAlerts(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/performance-alerts?hours=12&views=140&ctr=4.2&retention=72&comments=3&likes=12&subGain=2`, {
+        headers: { 'x-workspace-id': workspaceId },
+      });
+      const data = await res.json();
+      if (data.success && data.report) {
+        setPerformanceAlerts(data.report);
+      }
+    } catch (e) { console.error('Performance alerts error:', e); }
+    finally { setIsLoadingAlerts(false); }
+  };
 
   // Dynamic titles and metadata based on format and item
   const isLong = videoFormat === 'long_form';
@@ -515,6 +621,7 @@ export const ContentDetailPage = () => {
       fetchSeriesData();
       handleAnalyzeSeo();
       fetchRelaunchStatus();
+      fetchPerformanceAlerts();
     }
   }, [itemData]);
 
@@ -681,6 +788,7 @@ export const ContentDetailPage = () => {
   const handleStartGeneration = async () => {
     setStatus('generating');
     setGenProgress(15);
+    startRenderPolling();
     setGenStep(isLong 
       ? '1/3: Microsoft Azure Neural diktor ovozi (en-US-ChristopherNeural) yozilmoqda...' 
       : '1/3: Azure Neural Christopher (+14% pacing) diktor ovozi sintez qilinmoqda...');
@@ -705,6 +813,7 @@ export const ContentDetailPage = () => {
 
       clearTimeout(timer1);
       clearTimeout(timer2);
+      if (renderPollRef.current) clearInterval(renderPollRef.current);
       setGenProgress(100);
 
       if (res && res.videoUrl) {
@@ -727,6 +836,7 @@ export const ContentDetailPage = () => {
     } catch (err: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      if (renderPollRef.current) clearInterval(renderPollRef.current);
       console.error('Video render error:', err);
       setStatus('ready_for_review');
       setToast("✅ Video tayyorlandi!");
@@ -999,24 +1109,52 @@ export const ContentDetailPage = () => {
           </p>
         </div>
 
-        {/* Format Quick Switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10">
-          <button
-            onClick={() => setVideoFormat('shorts')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-              !isLong ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
+        {/* Format Quick Switcher & Smart Action Tools */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10">
+            <button
+              onClick={() => setVideoFormat('shorts')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                !isLong ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Smartphone size={13} /> Shorts (9:16)
+            </button>
+            <button
+              onClick={() => setVideoFormat('long_form')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                isLong ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Tv size={13} /> 16:9 Katta format
+            </button>
+          </div>
+
+          {/* System 2: Remix / Duplicate */}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isDuplicating}
+            onClick={handleDuplicateContent}
+            className="text-xs flex items-center gap-1.5 border-white/10 hover:bg-white/10 text-gray-200 cursor-pointer"
           >
-            <Smartphone size={13} /> Shorts (9:16)
-          </button>
-          <button
-            onClick={() => setVideoFormat('long_form')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-              isLong ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Tv size={13} /> 16:9 Katta format
-          </button>
+            <Copy size={13} className={isDuplicating ? 'animate-spin' : ''} />
+            {isDuplicating ? 'Klonlanmoqda...' : '🔁 Klonlash (Remix)'}
+          </Button>
+
+          {/* System 3: Shorts-to-Longform Masterclass */}
+          {!isLong && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isExpanding}
+              onClick={handleExpandToLongform}
+              className="text-xs flex items-center gap-1.5 border-blue-500/30 hover:bg-blue-500/10 text-blue-300 cursor-pointer"
+            >
+              <Sparkles size={13} className={isExpanding ? 'animate-spin' : ''} />
+              {isExpanding ? 'Kengaytirilmoqda...' : '📺 16:9 Masterclassga Aylantirish'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1135,6 +1273,115 @@ export const ContentDetailPage = () => {
                 >
                   {isSaving ? 'Saqlanmoqda...' : "O'zgarishlarni saqlash"}
                 </Button>
+              </div>
+
+              {/* AI Script Retention & Hook Suggestions Panel */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0e1626] to-[#121c32] border border-cyan-500/30 space-y-4 shadow-xl mt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white">AI Skript Tahrirchisi & Retention Maslahatchisi</h4>
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                          In-Line Suggestions
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-400">
+                        Skriptdagi uzun jumlalar, hook kuchi, power words zichligi va tomoshabin chiqib ketish xavfini real-vaqtda tahlil qilish
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    disabled={isAnalyzingScript}
+                    onClick={handleAnalyzeScript}
+                    className="text-xs flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
+                  >
+                    <Search size={14} className={isAnalyzingScript ? 'animate-spin' : ''} />
+                    {isAnalyzingScript ? 'Tahlil qilinmoqda...' : '🔍 Skriptni AI Tahlil Qilish'}
+                  </Button>
+                </div>
+
+                {scriptSuggestions && (
+                  <div className="space-y-3 animate-fade-in">
+                    {/* Score Bar */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Skript Balli</span>
+                          <span className="text-xl font-black text-white">{scriptSuggestions.overallScore}/100</span>
+                        </div>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                          scriptSuggestions.overallScore >= 80 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          scriptSuggestions.overallScore >= 60 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                          'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}>
+                          {scriptSuggestions.overallScore >= 80 ? 'Ajoyib' : scriptSuggestions.overallScore >= 60 ? 'O\'rtacha' : 'Xavfli'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Retention Xavfi</span>
+                        <span className={`text-sm font-bold block mt-1 ${
+                          scriptSuggestions.retentionRisk === 'low' ? 'text-emerald-400' :
+                          scriptSuggestions.retentionRisk === 'medium' ? 'text-amber-400' : 'text-red-400'
+                        }`}>
+                          {scriptSuggestions.retentionRisk === 'low' ? 'Past (Xavfsiz)' :
+                           scriptSuggestions.retentionRisk === 'medium' ? 'O\'rtacha Xavf' : 'Yuqori Chiqib Ketish!'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">So'zlar Soni</span>
+                        <span className="text-sm font-bold text-white block mt-1">{scriptSuggestions.wordCount} ta so'z</span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Taxminiy Vaqt</span>
+                        <span className="text-sm font-bold text-cyan-400 block mt-1">~{scriptSuggestions.estimatedDuration}</span>
+                      </div>
+                    </div>
+
+                    {/* Suggestions List */}
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                        <Sparkles size={13} className="text-cyan-400" />
+                        Topilgan Tavsiyalar ({scriptSuggestions.suggestions.length} ta):
+                      </span>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {scriptSuggestions.suggestions.map((sug: any) => (
+                          <div
+                            key={sug.id}
+                            className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start justify-between gap-2.5 text-xs ${
+                              sug.severity === 'critical' ? 'bg-red-500/10 border-red-500/30 text-red-200' :
+                              sug.severity === 'warning' ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' :
+                              'bg-white/[0.03] border-white/10 text-gray-300'
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  sug.severity === 'critical' ? 'bg-red-500/20 text-red-300' :
+                                  sug.severity === 'warning' ? 'bg-amber-500/20 text-amber-300' :
+                                  'bg-cyan-500/20 text-cyan-300'
+                                }`}>
+                                  {sug.lineRange}
+                                </span>
+                                <strong className="text-white">{sug.suggestion}</strong>
+                              </div>
+                              <p className="text-[11px] text-gray-400 italic">{sug.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -2752,19 +2999,32 @@ export const ContentDetailPage = () => {
                 <RefreshCw size={32} className="animate-spin" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-white">{genStep}</h3>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-500/15 text-red-300 border border-red-500/30">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                  Real-time Render Monitoring
+                </div>
+                <h3 className="text-xl font-black text-white">
+                  {renderProgress?.currentStep || genStep}
+                </h3>
                 <p className="text-xs text-gray-400">
-                  {isLong ? "16:9 Katta formatli video render qilinmoqda. Biroz kuting..." : "Neural Pulse AI video dvigateli ishlamoqda. Biroz kuting..."}
+                  {renderProgress 
+                    ? `Qadam: ${renderProgress.stepsCompleted}/${renderProgress.totalSteps} • O'tgan vaqt: ${renderProgress.elapsedSeconds}s • Qolgan: ~${renderProgress.estimatedRemainingSeconds}s`
+                    : (isLong ? "16:9 Katta formatli video render qilinmoqda. Biroz kuting..." : "Neural Pulse AI video dvigateli ishlamoqda. Biroz kuting...")}
                 </p>
               </div>
               <div className="max-w-md mx-auto space-y-2">
                 <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
                   <div 
                     className="bg-gradient-to-r from-red-600 to-rose-500 h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(255,0,0,0.8)]"
-                    style={{ width: `${genProgress}%` }}
+                    style={{ width: `${renderProgress?.percent ?? genProgress}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-gray-400 block">{genProgress}% bajarildi</span>
+                <div className="flex justify-between items-center text-xs font-bold text-gray-400 px-1">
+                  <span>{renderProgress?.percent ?? genProgress}% bajarildi</span>
+                  {renderProgress?.estimatedRemainingSeconds !== undefined && (
+                    <span className="text-cyan-400 font-mono">~{renderProgress.estimatedRemainingSeconds}s qoldi</span>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -3257,6 +3517,81 @@ export const ContentDetailPage = () => {
                           EBU R128 (-14 LUFS) & Custom Thumb Faol
                         </span>
                       </div>
+
+                      {/* Post-Publish Performance Alerts Card (System 5) */}
+                      {performanceAlerts && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#12162a] via-[#101c2e] to-[#0c1424] border border-blue-500/30 space-y-3.5 shadow-xl">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                <Bell size={18} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-white">Post-Publish Avtomatik Diagnostika</h4>
+                                  <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                                    performanceAlerts.overallHealth === 'excellent' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                                    performanceAlerts.overallHealth === 'good' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                                    performanceAlerts.overallHealth === 'at_risk' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                    'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+                                  }`}>
+                                    {performanceAlerts.checkpointLabel}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400">
+                                  Keyingi tekshiruv: <strong className="text-cyan-300">{performanceAlerts.nextCheckIn}</strong> • Salomatlik holati: <strong className="text-white uppercase">{performanceAlerts.overallHealth}</strong>
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={isLoadingAlerts}
+                              onClick={fetchPerformanceAlerts}
+                              className="text-xs flex items-center gap-1.5 border-blue-500/30 hover:bg-blue-500/10 text-blue-300 cursor-pointer"
+                            >
+                              <RefreshCw size={13} className={isLoadingAlerts ? 'animate-spin' : ''} />
+                              Yangilash
+                            </Button>
+                          </div>
+
+                          {/* Alerts List */}
+                          <div className="space-y-2">
+                            {performanceAlerts.alerts.map((al: any) => (
+                              <div
+                                key={al.id}
+                                className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs ${
+                                  al.severity === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' :
+                                  al.severity === 'critical' ? 'bg-red-500/10 border-red-500/30 text-red-200' :
+                                  al.severity === 'warning' ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' :
+                                  'bg-white/[0.03] border-white/10 text-gray-300'
+                                }`}
+                              >
+                                <div className="space-y-0.5">
+                                  <span className="font-bold text-white block">{al.title}</span>
+                                  <p className="text-[11px] text-gray-300 leading-relaxed">{al.message}</p>
+                                </div>
+                                {al.actionLabel && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      if (al.actionType === 'change_title') setActiveTab('metadata');
+                                      else if (al.actionType === 'relaunch') handleTriggerRelaunch();
+                                      else if (al.actionType === 'pin_comment') setActiveTab('comments');
+                                      else if (al.actionType === 'change_thumbnail') setActiveTab('preview_canvas');
+                                    }}
+                                    className="text-[11px] h-7 px-3 whitespace-nowrap border-white/20 hover:bg-white/10 text-white cursor-pointer"
+                                  >
+                                    {al.actionLabel} →
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Viral Relaunch Engine Card */}
                       <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1a111a] via-[#161224] to-[#12182b] border border-rose-500/30 space-y-3.5 shadow-xl">
