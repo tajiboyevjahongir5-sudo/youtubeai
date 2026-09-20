@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { competitorSpyService } from '../services/competitor-spy.service';
 import { thumbnailStudioService } from '../services/thumbnail-studio.service';
 import { communityAutopilotService } from '../services/community-autopilot.service';
@@ -8,6 +8,11 @@ import { generateSmartSfxTimeline, buildDuckingTimeline, DUCKING_PRESETS } from 
 import { get24HourVelocity, getRetentionCurve, evaluateABSplitTest } from '../services/youtube-analytics-ab.service';
 import { getDailyTrends } from '../services/daily-trend-autopilot.service';
 import { buildMultiPlatformPackages } from '../services/multi-platform-export.service';
+import { searchBRoll, matchBRollForScenes } from '../services/broll-manager.service';
+import { getVideoComments, generateReplyForComment } from '../services/comment-autopilot.service';
+import { stitchShortsToLongForm } from '../services/shorts-stitching.service';
+import { calculateEarningsForecast } from '../services/monetization-forecaster.service';
+import { getCustomVoices, saveCustomVoice } from '../services/voice-clone.service';
 
 const router = Router();
 
@@ -213,6 +218,96 @@ router.post('/analytics/ab-evaluate', (req, res) => {
 router.get('/daily-trends', (req, res) => {
   const data = getDailyTrends();
   res.json({ success: true, ...data });
+});
+
+// ==========================================
+// 10. SMART B-ROLL FOOTAGE MANAGER
+// ==========================================
+
+router.get('/broll/list', (req, res) => {
+  const query = req.query.query as string | undefined;
+  const category = req.query.category as string | undefined;
+  const list = searchBRoll(query, category);
+  res.json({ success: true, footages: list });
+});
+
+router.post('/broll/match', (req, res) => {
+  const { scenes } = req.body || {};
+  const matched = matchBRollForScenes(scenes || []);
+  res.json({ success: true, matched });
+});
+
+// ==========================================
+// 11. AI SMART REPLY & COMMENT AUTOPILOT
+// ==========================================
+
+router.get('/comments/list/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const comments = getVideoComments(contentId);
+  res.json({ success: true, comments });
+});
+
+router.post('/comments/reply', (req, res) => {
+  const { commentText, tone } = req.body || {};
+  if (!commentText) {
+    return res.status(400).json({ success: false, error: 'commentText kiritilishi shart' });
+  }
+  const reply = generateReplyForComment(commentText, tone);
+  res.json({ success: true, reply });
+});
+
+// ==========================================
+// 12. SHORTS-TO-LONGFORM STITCHER
+// ==========================================
+
+router.post('/shorts-stitching/stitch', (req, res) => {
+  const { shortsList, customTheme } = req.body || {};
+  if (!shortsList || !Array.isArray(shortsList) || shortsList.length === 0) {
+    return res.status(400).json({ success: false, error: 'Kamida 2 ta Shorts loyihasi talab qilinadi' });
+  }
+  const project = stitchShortsToLongForm({ shortsList, customTheme });
+  res.json({ success: true, project });
+});
+
+// ==========================================
+// 13. MONETIZATION & REAL RPM FORECASTER
+// ==========================================
+
+router.get('/monetization/forecast/:contentId', (req, res) => {
+  const format = (req.query.format as any) || 'shorts';
+  const durationSec = Number(req.query.durationSec) || 50;
+  const primaryCountry = req.query.country as string | undefined;
+
+  const forecast = calculateEarningsForecast({ durationSec, format, primaryCountry });
+  res.json({ success: true, ...forecast });
+});
+
+// ==========================================
+// 14. CUSTOM VOICE AVATAR STUDIO
+// ==========================================
+
+router.get('/voice-clones', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const voices = getCustomVoices(workspaceId);
+  res.json({ success: true, voices });
+});
+
+router.post('/voice-clones', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const { name, language, gender, baseVoiceModel, fineTunePitch, fineTuneRate, clarityBoost } = req.body || {};
+  if (!name) {
+    return res.status(400).json({ success: false, error: 'Ovoz nomi talab qilinadi' });
+  }
+  const avatar = saveCustomVoice(workspaceId, {
+    name,
+    language: language || 'uz',
+    gender: gender || 'male',
+    baseVoiceModel: baseVoiceModel || 'uz-UZ-SardorNeural',
+    fineTunePitch: fineTunePitch || '+0Hz',
+    fineTuneRate: fineTuneRate || '+10%',
+    clarityBoost: clarityBoost !== false
+  });
+  res.json({ success: true, avatar });
 });
 
 export default router;
