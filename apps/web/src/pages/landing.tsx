@@ -91,13 +91,13 @@ const LandingPage = () => {
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-8 text-sm font-semibold text-zinc-300">
-            <a href="#how-it-works" className="hover:text-white transition-colors">Qanday Ishlaydi</a>
-            <a href="#monetization" className="hover:text-white transition-colors flex items-center gap-1.5 text-emerald-400">
-              <DollarSign size={15} /> Daromad Mexanizmi
+          <div className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs xl:text-sm font-semibold text-zinc-300">
+            <a href="#how-it-works" className="hover:text-white transition-colors">Jarayon</a>
+            <a href="#monetization" className="hover:text-white transition-colors flex items-center gap-1 text-emerald-400">
+              <DollarSign size={14} /> Daromad
             </a>
             <a href="#features" className="hover:text-white transition-colors">Funksiyalar</a>
-            <a href="#schedule" className="hover:text-white transition-colors">Avtopilot Jadvali</a>
+            <a href="#schedule" className="hover:text-white transition-colors">Jadval</a>
             <a href="#pricing" className="hover:text-white transition-colors">Tariflar</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </div>
@@ -214,12 +214,12 @@ const LandingPage = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-white">Neural Pulse AI</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> LIVE
+                  <h3 className="text-base font-bold text-white">Sizning YouTube Kanalingiz</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> DEMO NAMUNA
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400 font-medium">Ulangan • Global (AQSH/EN) • 2 video/kun avtopilot</p>
+                <p className="text-xs text-zinc-400 font-medium">O'z kanalingizni ulang • Global (AQSH/EN) • 2 video/kun avtopilot</p>
               </div>
             </div>
 
@@ -239,7 +239,7 @@ const LandingPage = () => {
               <span className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
                 <Clock size={14} className="text-cyan-400" /> Bugungi 1-Video (Shorts)
               </span>
-              <div className="text-sm font-bold text-white line-clamp-1">5 Secret AI Websites That Feel Illegal to Know</div>
+              <div className="text-sm font-bold text-white line-clamp-1">AI & Texnologiya Trend Shorts (Namuna)</div>
               <div className="flex items-center justify-between text-xs pt-2">
                 <span className="text-emerald-400 font-semibold flex items-center gap-1">
                   <CheckCircle2 size={12} /> Render qilindi (100%)
@@ -252,7 +252,7 @@ const LandingPage = () => {
               <span className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
                 <Clock size={14} className="text-amber-400" /> Bugungi 2-Video (Long-form)
               </span>
-              <div className="text-sm font-bold text-white line-clamp-1">Building a Full Stack SaaS with AI Step-by-Step</div>
+              <div className="text-sm font-bold text-white line-clamp-1">Avtomatlashtirilgan Masterclass Video (Namuna)</div>
               <div className="flex items-center justify-between text-xs pt-2">
                 <span className="text-amber-400 font-semibold flex items-center gap-1">
                   <Clock size={12} /> Ssenariy tayyor (92% SEO)
@@ -265,7 +265,7 @@ const LandingPage = () => {
               <span className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
                 <Headphones size={14} className="text-rose-400" /> Alex AI Studio Ovoz
               </span>
-              <div className="text-sm font-bold text-white">ChristopherNeural (US)</div>
+              <div className="text-sm font-bold text-white">ChristopherNeural (AQSH)</div>
               <div className="flex items-center justify-between text-xs pt-2">
                 <span className="text-zinc-400">Tezlik: +14% • Pitch: +1Hz</span>
                 <span className="text-emerald-400 font-bold">42ms DSP</span>
@@ -276,7 +276,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: MONETIZATION & DAROMAD MEXANIZMI */}
-      <section id="monetization" className="py-24 bg-gradient-to-b from-black/60 to-[#07070a] border-y border-white/10 relative z-10">
+      <section id="monetization" className="scroll-mt-24 py-24 bg-gradient-to-b from-black/60 to-[#07070a] border-y border-white/10 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
@@ -335,7 +335,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: 6-STEP PIPELINE */}
-      <section id="how-it-works" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
+      <section id="how-it-works" className="scroll-mt-24 py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
           <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
             6 Bosqichli Avtonom Ishlash Sxemasi
@@ -418,7 +418,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: PUBLISHING SCHEDULE */}
-      <section id="schedule" className="py-24 bg-white/[0.01] border-y border-white/10 relative z-10">
+      <section id="schedule" className="scroll-mt-24 py-24 bg-white/[0.01] border-y border-white/10 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
@@ -475,7 +475,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: FEATURES LIST */}
-      <section id="features" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
+      <section id="features" className="scroll-mt-24 py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
           <span className="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
             Platforma Imkoniyatlari
@@ -552,7 +552,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: PRICING */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
+      <section id="pricing" className="scroll-mt-24 py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
           <span className="text-xs font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
             Shaffof va Qulay Narxlar
@@ -659,7 +659,7 @@ const LandingPage = () => {
       </section>
 
       {/* SECTION: FREQUENTLY ASKED QUESTIONS (FAQ) */}
-      <section id="faq" className="py-24 bg-white/[0.01] border-y border-white/10 relative z-10">
+      <section id="faq" className="scroll-mt-24 py-24 bg-white/[0.01] border-y border-white/10 relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
