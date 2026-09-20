@@ -615,6 +615,23 @@ export const AdminPage = () => {
         description="Foydalanuvchilar bazasi, oylik 60 000 so'm obunalar, to'lov kartasi va CardXabar/HumoCard Telegram integratsiyasi."
         actions={
           <div className="flex items-center gap-3">
+            <Button variant="destructive" size="sm" onClick={async () => {
+              try {
+                const res = await window.fetch('/api/admin/purge-leaked-channels', {
+                  method: 'POST',
+                  headers: getAuthHeaders(),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  showNotification(data.message);
+                  loadAdminData();
+                }
+              } catch (e) {
+                showNotification('Tozalashda xatolik yuz berdi');
+              }
+            }} className="flex items-center gap-1.5 bg-red-700/80 hover:bg-red-600 text-xs">
+              <ShieldCheck size={14} /> Leaked Kanallarni Tozalash
+            </Button>
             <Button variant="secondary" size="sm" onClick={loadAdminData} className="flex items-center gap-1.5">
               <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} /> Yangilash
             </Button>

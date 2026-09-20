@@ -445,5 +445,108 @@ router.post('/cleanup-test-data', (req: Request, res: Response) => {
   res.json(result);
 });
 
+/**
+ * CRITICAL SECURITY: Purge leaked YouTube tokens/channels from ALL non-owner workspaces.
+ * The old fallback bug had copied the owner's channel data to stranger workspaces.
+ * This endpoint removes those leaked files so strangers can no longer see/control the owner's channel.
+ */
+router.post('/purge-leaked-channels', (req: Request, res: Response) => {
+  try {
+    const OWNER_WORKSPACE_ID = 'ws_j7ktjxw0';
+    const dataDir = process.env.DATA_PATH || require('path').resolve(process.cwd(), 'data');
+    const tokensDir = require('path').join(dataDir, 'tokens');
+    const channelsDir = require('path').join(dataDir, 'channels');
+    const fs = require('fs');
+
+    const purged: string[] = [];
+
+    // Purge leaked token files for non-owner workspaces
+    if (fs.existsSync(tokensDir)) {
+      for (const file of fs.readdirSync(tokensDir)) {
+        if (!file.endsWith('.json')) continue;
+        const wsId = file.replace('.json', '');
+        if (wsId === OWNER_WORKSPACE_ID) continue; // Keep owner's tokens
+        
+        // Check if this workspace's token references the owner's refresh token
+        try {
+          const tokenData = JSON.parse(fs.readFileSync(require('path').join(tokensDir, file), 'utf-8'));
+          // If this token was saved from fallback (same refresh_token as owner), purge it
+          const ownerTokenPath = require('path').join(tokensDir, `${OWNER_WORKSPACE_ID}.json`);
+          if (fs.existsSync(ownerTokenPath)) {
+            const ownerToken = JSON.parse(fs.readFileSync(ownerTokenPath, 'utf-8'));
+            if (tokenData.refresh_token && tokenData.refresh_token === ownerToken.refresh_token) {
+              fs.unlinkSync(require('path').join(tokensDir, file));
+              purged.push(`token:${wsId}`);
+              console.log(`🗑️ [SECURITY] Purged leaked token file for workspace: ${wsId}`);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Purge leaked channel files for non-owner workspaces
+    if (fs.existsSync(channelsDir)) {
+      for (const file of fs.readdirSync(channelsDir)) {
+        if (!file.endsWith('.json')) continue;
+        const wsId = file.replace('.json', '');
+        if (wsId === OWNER_WORKSPACE_ID) continue; // Keep owner's channel
+
+        try {
+          const channelData = JSON.parse(fs.readFileSync(require('path').join(channelsDir, file), 'utf-8'));
+          // If this channel data matches the owner's channel ID, it's leaked
+          const ownerChannelPath = require('path').join(channelsDir, `${OWNER_WORKSPACE_ID}.json`);
+          if (fs.existsSync(ownerChannelPath)) {
+            const ownerChannel = JSON.parse(fs.readFileSync(ownerChannelPath, 'utf-8'));
+            if (channelData.id && channelData.id === ownerChannel.id) {
+              fs.unlinkSync(require('path').join(channelsDir, file));
+              purged.push(`channel:${wsId}`);
+              console.log(`🗑️ [SECURITY] Purged leaked channel file for workspace: ${wsId}`);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Also remove legacy fallback files to prevent future leaks
+    const legacyToken = require('path').join(dataDir, 'youtube_token.json');
+    const legacyChannel = require('path').join(dataDir, 'youtube_channel.json');
+    if (fs.existsSync(legacyToken)) {
+      fs.unlinkSync(legacyToken);
+      purged.push('legacy:youtube_token.json');
+    }
+    if (fs.existsSync(legacyChannel)) {
+      fs.unlinkSync(legacyChannel);
+      purged.push('legacy:youtube_channel.json');
+    }
+
+    res.json({
+      success: true,
+      purgedCount: purged.length,
+      purgedItems: purged,
+      message: purged.length > 0
+        ? `${purged.length} ta leaked fayl muvaffaqiyatli o'chirildi! Sizning kanalingiz endi faqat ${OWNER_WORKSPACE_ID} workspace'da ko'rinadi.`
+        : 'Hech qanday leaked fayl topilmadi — tizim toza.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Force disconnect a specific workspace's YouTube channel (admin only)
+ */
+router.post('/users/:workspaceId/disconnect-youtube', (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    youtubeService.clearTokens(workspaceId);
+    res.json({
+      success: true,
+      message: `${workspaceId} uchun YouTube kanal ulanishi uzildi va tokenlar o'chirildi.`
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;
 
