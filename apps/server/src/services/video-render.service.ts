@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { contentStore, ContentItemRecord } from './content-store.service';
-
+import { videoInspectorService } from './video-inspector.service';
 import { getWorkspaceSettings } from './workspace-settings.service';
 
 export class VideoRenderService {
@@ -77,6 +77,9 @@ export class VideoRenderService {
       const musicMood = (item as any).backgroundMusicMood || (item as any).musicMood || wsSettings.backgroundMusicMood || 'neon_pulse';
       const voicePreset = (item as any).voiceEmotionPreset || (item as any).voicePreset || wsSettings.voiceEmotionPreset || 'energetic';
 
+      const isLong = item.videoFormat === 'long_form';
+      const formatArg = isLong ? 'landscape' : 'portrait';
+
       // Execute python script
       const pythonProcess = spawn(pythonBin, [
         scriptPath,
@@ -86,6 +89,7 @@ export class VideoRenderService {
         '--host', hostAvatar,
         '--music-mood', musicMood,
         '--voice-preset', voicePreset,
+        '--format', formatArg,
         '--beat-sync', 'true'
       ]);
 
@@ -101,7 +105,7 @@ export class VideoRenderService {
         stderrData += data.toString();
       });
 
-      pythonProcess.on('close', (code) => {
+      pythonProcess.on('close', async (code) => {
         // Clean up temp input
         try {
           if (fs.existsSync(tempInputPath)) fs.unlinkSync(tempInputPath);
@@ -138,10 +142,19 @@ export class VideoRenderService {
             status: 'review'
           });
 
+          // Automatically inspect the newly rendered video
+          try {
+            const updatedItem = contentStore.getById(item.id, item.workspaceId) || item;
+            await videoInspectorService.inspectVideo(updatedItem);
+            console.log(`🤖 [AI Video Inspector] "${item.title}" yangi video sifati avtomat tekshirildi va saqlandi.`);
+          } catch (inspErr) {
+            console.warn('⚠️ Auto-inspection notice:', inspErr);
+          }
+
           resolve({
             success: true,
             videoUrl,
-            duration: item.durationSeconds || 55
+            duration: item.durationSeconds || (isLong ? 615 : 55)
           });
         } else {
           console.error(`❌ Video render failed with code ${code}. Error: ${stderrData}`);

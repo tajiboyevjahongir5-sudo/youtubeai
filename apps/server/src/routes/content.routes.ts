@@ -7,6 +7,7 @@ import { aiService } from '../services/ai.service';
 import { youtubeService } from '../services/youtube.service';
 import { contentStore } from '../services/content-store.service';
 import { videoRenderService } from '../services/video-render.service';
+import { videoInspectorService } from '../services/video-inspector.service';
 
 const router = Router({ mergeParams: true });
 
@@ -241,6 +242,47 @@ router.post('/:contentId/localize', async (req: Request, res: Response, next: Ne
   } catch (error: any) {
     console.error('Localization error:', error);
     res.status(500).json({ error: error.message || 'Localization failed' });
+  }
+});
+
+// AI Video Inspector & Quality Analysis (Gemini Multimodal & Neural Pulse QA)
+router.post('/:contentId/ai-inspect', async (req: Request, res: Response, next: NextFunction) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Content item not found' });
+  }
+
+  try {
+    console.log(`🔍 [AI Video Inspector] "${item.title}" videoni tahlil qilish boshlandi...`);
+    const report = await videoInspectorService.inspectVideo(item);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    console.error('AI Video Inspector error:', err);
+    res.status(500).json({ error: err.message || 'AI Video inspection failed' });
+  }
+});
+
+router.get('/:contentId/ai-inspect', async (req: Request, res: Response, next: NextFunction) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Content item not found' });
+  }
+
+  if (item.aiQualityReport) {
+    return res.json({ success: true, report: item.aiQualityReport });
+  }
+
+  try {
+    const report = await videoInspectorService.inspectVideo(item);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Inspection failed' });
   }
 });
 

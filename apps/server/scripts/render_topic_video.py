@@ -458,6 +458,8 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
 
     scenes_res = {}
 
+    is_landscape = (W > H)
+
     for s_idx in range(1, 6):
         canvas = np.zeros((H, W, 3), dtype=np.uint8)
         for y in range(H):
@@ -467,13 +469,15 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
             b = int(bg_top[2] * (1 - ratio) + bg_bot[2] * ratio)
             canvas[y, :] = (r, g, b)
 
-        for gy in range(800, H, 60):
-            p_val = (gy - 800) / float(H - 800)
+        grid_start = int(H * 0.45) if is_landscape else 800
+        for gy in range(grid_start, H, 50 if is_landscape else 60):
+            p_val = (gy - grid_start) / float(max(1, H - grid_start))
             col_grid = (int(secondary[0] * 0.25 * p_val), int(secondary[1] * 0.25 * p_val), int(secondary[2] * 0.25 * p_val))
             cv2.line(canvas, (0, gy), (W, gy), col_grid, 1)
+        
+        vanish_x = W // 2
+        vanish_y = int(H * 0.40) if is_landscape else 750
         for gx in range(0, W + 1, 90):
-            vanish_x = W // 2
-            vanish_y = 750
             col_grid = (int(primary[0] * 0.18), int(primary[1] * 0.18), int(primary[2] * 0.18))
             cv2.line(canvas, (vanish_x, vanish_y), (gx, H), col_grid, 1)
 
@@ -481,110 +485,168 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
         draw = ImageDraw.Draw(img_pil, 'RGBA')
 
         if s_idx == 1:
-            cx, cy = W // 2, 600
-            for radius in [260, 220, 180, 140]:
+            cx, cy = (int(W * 0.28), int(H * 0.48)) if is_landscape else (W // 2, 600)
+            for radius in ([200, 160, 120] if is_landscape else [260, 220, 180, 140]):
                 draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], outline=(*primary, 80), width=2)
-            draw.ellipse([cx - 90, cy - 90, cx + 90, cy + 90], fill=(*bg_top, 220), outline=(*accent, 220), width=3)
+            draw.ellipse([cx - 80, cy - 80, cx + 80, cy + 80], fill=(*bg_top, 220), outline=(*accent, 220), width=3)
             
-            draw.line([(cx - 300, cy), (cx + 300, cy)], fill=(*primary, 90), width=2)
-            draw.line([(cx, cy - 300), (cx, cy + 300)], fill=(*primary, 90), width=2)
+            line_ext = 220 if is_landscape else 300
+            draw.line([(cx - line_ext, cy), (cx + line_ext, cy)], fill=(*primary, 90), width=2)
+            draw.line([(cx, cy - line_ext), (cx, cy + line_ext)], fill=(*primary, 90), width=2)
 
-            draw.rounded_rectangle([cx - 240, cy - 35, cx + 240, cy + 35], radius=18, fill=(10, 12, 20, 230), outline=(*primary, 240), width=2)
-            draw.text((cx - 180, cy - 14), "! RESTRICTED INTEL 2026 !", font=font_badge, fill=(*primary, 255))
+            draw.rounded_rectangle([cx - 200, cy - 30, cx + 200, cy + 30], radius=16, fill=(10, 12, 20, 230), outline=(*primary, 240), width=2)
+            draw.text((cx - 150, cy - 12), "! RESTRICTED INTEL 2026 !", font=font_badge, fill=(*primary, 255))
 
-            draw.rounded_rectangle([70, 920, W - 70, 1220], radius=24, fill=(12, 16, 26, 230), outline=(*primary, 160), width=2)
-            draw.rounded_rectangle([95, 945, 340, 990], radius=12, fill=(*primary, 40), outline=(*primary, 200), width=1)
-            draw.text((115, 955), "TARGET TOPIC", font=font_badge, fill=(*primary, 255))
+            card_box = [int(W * 0.52), int(H * 0.18), int(W * 0.94), int(H * 0.82)] if is_landscape else [70, 920, W - 70, 1220]
+            draw.rounded_rectangle(card_box, radius=24, fill=(12, 16, 26, 230), outline=(*primary, 160), width=2)
+            tag_box = [card_box[0] + 25, card_box[1] + 25, card_box[0] + 240, card_box[1] + 68]
+            draw.rounded_rectangle(tag_box, radius=12, fill=(*primary, 40), outline=(*primary, 200), width=1)
+            draw.text((tag_box[0] + 20, tag_box[1] + 10), "TARGET TOPIC", font=font_badge, fill=(*primary, 255))
             
             clean_t = sanitize_text(title).upper()
             w_words = clean_t.split()
             lines = []
             cur_line = ""
+            max_line_w = card_box[2] - card_box[0] - 50
             for word in w_words:
                 test = f"{cur_line} {word}".strip()
-                if get_text_width(draw, test, font_title) < (W - 200):
+                if get_text_width(draw, test, font_title) < max_line_w:
                     cur_line = test
                 else:
                     if cur_line: lines.append(cur_line)
                     cur_line = word
             if cur_line: lines.append(cur_line)
-            lines = lines[:3]
+            lines = lines[:4 if is_landscape else 3]
             for li, line_str in enumerate(lines):
-                draw.text((95, 1015 + li * 48), line_str, font=font_title, fill=(255, 255, 255))
+                draw.text((card_box[0] + 25, card_box[1] + 90 + li * 48), line_str, font=font_title, fill=(255, 255, 255))
 
         elif s_idx == 2:
-            draw.rounded_rectangle([70, 260, W - 70, 580], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
-            draw.text((105, 290), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
-            cx, cy = W // 2, 440
-            for r in [110, 80, 50]:
-                draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
-            draw.line([(cx - 130, cy), (cx + 130, cy)], fill=(*secondary, 100), width=1)
-            draw.line([(cx, cy - 130), (cx, cy + 130)], fill=(*secondary, 100), width=1)
-            draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
+            if is_landscape:
+                cx, cy = int(W * 0.26), int(H * 0.48)
+                draw.rounded_rectangle([60, int(H * 0.16), int(W * 0.48), int(H * 0.84)], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
+                draw.text((90, int(H * 0.20)), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
+                for r in [130, 95, 60]:
+                    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
+                draw.line([(cx - 160, cy), (cx + 160, cy)], fill=(*secondary, 100), width=1)
+                draw.line([(cx, cy - 160), (cx, cy + 160)], fill=(*secondary, 100), width=1)
+                draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
 
-            kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
-            kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
-            draw.rounded_rectangle([70, 630, W - 70, 800], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
-            draw.text((105, 655), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
-            draw.text((105, 715), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
-            draw.text((W - 240, 680), "99.4%", font=font_hero, fill=(*primary, 255))
+                kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
+                kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
+                draw.rounded_rectangle([int(W * 0.52), int(H * 0.16), int(W * 0.94), int(H * 0.48)], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
+                draw.text((int(W * 0.52) + 35, int(H * 0.20)), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
+                draw.text((int(W * 0.52) + 35, int(H * 0.28)), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
+                draw.text((int(W * 0.94) - 180, int(H * 0.24)), "99.4%", font=font_hero, fill=(*primary, 255))
 
-            draw.rounded_rectangle([70, 840, W - 70, 1010], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
-            draw.text((105, 865), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
-            draw.text((105, 925), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
-            draw.text((W - 240, 890), "100%", font=font_hero, fill=(*secondary, 255))
+                draw.rounded_rectangle([int(W * 0.52), int(H * 0.52), int(W * 0.94), int(H * 0.84)], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
+                draw.text((int(W * 0.52) + 35, int(H * 0.56)), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
+                draw.text((int(W * 0.52) + 35, int(H * 0.64)), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
+                draw.text((int(W * 0.94) - 180, int(H * 0.60)), "100%", font=font_hero, fill=(*secondary, 255))
+            else:
+                draw.rounded_rectangle([70, 260, W - 70, 580], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
+                draw.text((105, 290), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
+                cx, cy = W // 2, 440
+                for r in [110, 80, 50]:
+                    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
+                draw.line([(cx - 130, cy), (cx + 130, cy)], fill=(*secondary, 100), width=1)
+                draw.line([(cx, cy - 130), (cx, cy + 130)], fill=(*secondary, 100), width=1)
+                draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
+
+                kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
+                kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
+                draw.rounded_rectangle([70, 630, W - 70, 800], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
+                draw.text((105, 655), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
+                draw.text((105, 715), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
+                draw.text((W - 240, 680), "99.4%", font=font_hero, fill=(*primary, 255))
+
+                draw.rounded_rectangle([70, 840, W - 70, 1010], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
+                draw.text((105, 865), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
+                draw.text((105, 925), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
+                draw.text((W - 240, 890), "100%", font=font_hero, fill=(*secondary, 255))
 
         elif s_idx == 3:
-            draw.rounded_rectangle([70, 260, W - 70, 1100], radius=26, fill=(10, 14, 24, 235), outline=(*primary, 160), width=2)
-            draw.text((105, 290), "NEURAL REASONING ARCHITECTURE", font=font_title, fill=(*primary, 255))
-            draw.text((105, 345), "Real-time Multi-agent Cognitive Core", font=font_sub, fill=(180, 200, 220))
+            card_box = [60, int(H * 0.16), W - 60, int(H * 0.84)] if is_landscape else [70, 260, W - 70, 1100]
+            draw.rounded_rectangle(card_box, radius=26, fill=(10, 14, 24, 235), outline=(*primary, 160), width=2)
+            draw.text((card_box[0] + 35, card_box[1] + 30), "NEURAL REASONING ARCHITECTURE", font=font_title, fill=(*primary, 255))
+            draw.text((card_box[0] + 35, card_box[1] + 80), "Real-time Multi-agent Cognitive Core", font=font_sub, fill=(180, 200, 220))
 
-            nodes = [
-                (200, 480), (200, 620), (200, 760), (200, 900),
-                (540, 420), (540, 560), (540, 700), (540, 840), (540, 980),
-                (880, 520), (880, 680), (880, 840)
-            ]
-            for n1 in nodes[:4]:
-                for n2 in nodes[4:9]:
-                    draw.line([n1, n2], fill=(*secondary, 60), width=2)
-            for n1 in nodes[4:9]:
-                for n2 in nodes[9:]:
-                    draw.line([n1, n2], fill=(*primary, 60), width=2)
-            for (nx, ny) in nodes:
-                draw.ellipse([nx - 22, ny - 22, nx + 22, ny + 22], fill=(*bg_top, 240), outline=(*accent, 230), width=3)
-                draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
+            if is_landscape:
+                nodes = [
+                    (180, 420), (180, 580), (180, 740),
+                    (540, 360), (540, 500), (540, 640), (540, 780),
+                    (960, 380), (960, 540), (960, 700),
+                    (1380, 420), (1380, 600), (1380, 760),
+                    (1740, 520), (1740, 680)
+                ]
+                for n1 in nodes[:3]:
+                    for n2 in nodes[3:7]:
+                        draw.line([n1, n2], fill=(*secondary, 50), width=2)
+                for n1 in nodes[3:7]:
+                    for n2 in nodes[7:10]:
+                        draw.line([n1, n2], fill=(*primary, 50), width=2)
+                for n1 in nodes[7:10]:
+                    for n2 in nodes[10:13]:
+                        draw.line([n1, n2], fill=(*accent, 50), width=2)
+                for n1 in nodes[10:13]:
+                    for n2 in nodes[13:]:
+                        draw.line([n1, n2], fill=(*primary, 60), width=2)
+                for (nx, ny) in nodes:
+                    draw.ellipse([nx - 22, ny - 22, nx + 22, ny + 22], fill=(*bg_top, 240), outline=(*accent, 230), width=3)
+                    draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
+            else:
+                nodes = [
+                    (200, 480), (200, 620), (200, 760), (200, 900),
+                    (540, 420), (540, 560), (540, 700), (540, 840), (540, 980),
+                    (880, 520), (880, 680), (880, 840)
+                ]
+                for n1 in nodes[:4]:
+                    for n2 in nodes[4:9]:
+                        draw.line([n1, n2], fill=(*secondary, 60), width=2)
+                for n1 in nodes[4:9]:
+                    for n2 in nodes[9:]:
+                        draw.line([n1, n2], fill=(*primary, 60), width=2)
+                for (nx, ny) in nodes:
+                    draw.ellipse([nx - 22, ny - 22, nx + 22, ny + 22], fill=(*bg_top, 240), outline=(*accent, 230), width=3)
+                    draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
 
         elif s_idx == 4:
-            draw.rounded_rectangle([70, 260, W - 70, 1140], radius=24, fill=(6, 12, 10, 245), outline=(*accent, 160), width=2)
-            draw.ellipse([105, 290, 125, 310], fill=(255, 70, 70))
-            draw.ellipse([140, 290, 160, 310], fill=(255, 200, 50))
-            draw.ellipse([175, 290, 195, 310], fill=(50, 220, 100))
-            draw.text((220, 288), "terminal://neuralpulse/benchmark", font=font_mono, fill=(120, 180, 140))
-            draw.line([(70, 330), (W - 70, 330)], fill=(*accent, 80), width=1)
+            card_box = [60, int(H * 0.16), W - 60, int(H * 0.84)] if is_landscape else [70, 260, W - 70, 1140]
+            draw.rounded_rectangle(card_box, radius=24, fill=(6, 12, 10, 245), outline=(*accent, 160), width=2)
+            draw.ellipse([card_box[0] + 35, card_box[1] + 30, card_box[0] + 55, card_box[1] + 50], fill=(255, 70, 70))
+            draw.ellipse([card_box[0] + 70, card_box[1] + 30, card_box[0] + 90, card_box[1] + 50], fill=(255, 200, 50))
+            draw.ellipse([card_box[0] + 105, card_box[1] + 30, card_box[0] + 125, card_box[1] + 50], fill=(50, 220, 100))
+            draw.text((card_box[0] + 150, card_box[1] + 28), "terminal://neuralpulse/benchmark", font=font_mono, fill=(120, 180, 140))
+            draw.line([(card_box[0], card_box[1] + 65), (card_box[2], card_box[1] + 65)], fill=(*accent, 80), width=1)
 
             t_lines = [
-                (f"$ run-engine --topic \"{sanitize_text(title)[:22]}\"", (*primary, 255)),
+                (f"$ run-engine --topic \"{sanitize_text(title)[:32]}\"", (*primary, 255)),
                 ("[INIT] Loading neural weights & models...", (180, 190, 200)),
-                ("[BENCHMARK] Executing throughput test...", (*secondary, 255)),
-                ("[PASSED] 128 / 128 Test Suites Succeeded", (50, 255, 120)),
-                ("[STATUS] Zero-latency inference active", (50, 255, 120)),
-                ("[DEPLOY] Live production cluster ready", (*accent, 255)),
+                ("[BENCHMARK] Executing high-throughput test...", (*secondary, 255)),
+                ("[PASSED] 128 / 128 Test Suites Succeeded in 18ms", (50, 255, 120)),
+                ("[STATUS] Zero-latency distributed inference active", (50, 255, 120)),
+                ("[DEPLOY] Live production cluster ready and verified", (*accent, 255)),
                 (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
             ]
-            for li, (txt, col) in enumerate(t_lines):
-                draw.text((105, 380 + li * 95), txt, font=font_mono, fill=col)
+            line_spacing = 65 if is_landscape else 95
+            for li, (txt, col) in enumerate(t_lines[:6 if is_landscape else 7]):
+                draw.text((card_box[0] + 35, card_box[1] + 95 + li * line_spacing), txt, font=font_mono, fill=col)
 
         else:
-            cx, cy = W // 2, 540
-            draw.rounded_rectangle([cx - 240, cy - 180, cx + 240, cy + 180], radius=32, fill=(16, 12, 24, 235), outline=(255, 50, 70, 200), width=3)
-            draw.polygon([(cx - 40, cy - 55), (cx - 40, cy + 55), (cx + 55, cy)], fill=(255, 50, 70))
+            cx, cy = (W // 2, int(H * 0.44)) if is_landscape else (W // 2, 540)
+            box_hw = 360 if is_landscape else 240
+            box_hh = 130 if is_landscape else 180
+            draw.rounded_rectangle([cx - box_hw, cy - box_hh, cx + box_hw, cy + box_hh], radius=32, fill=(16, 12, 24, 235), outline=(255, 50, 70, 200), width=3)
+            draw.polygon([(cx - 40, cy - 45), (cx - 40, cy + 45), (cx + 55, cy)], fill=(255, 50, 70))
             
-            draw.rounded_rectangle([100, 800, W - 100, 930], radius=22, fill=(14, 18, 30, 240), outline=(*primary, 180), width=2)
-            draw.text((140, 835), "WHICH TOOL WILL YOU TEST FIRST?", font=font_title, fill=(255, 255, 255))
-            draw.text((140, 880), "Comment your favorite below!", font=font_sub, fill=(*accent, 240))
+            q_box = [cx - box_hw, cy + box_hh + 20, cx + box_hw, cy + box_hh + 120] if is_landscape else [100, 800, W - 100, 930]
+            draw.rounded_rectangle(q_box, radius=22, fill=(14, 18, 30, 240), outline=(*primary, 180), width=2)
+            draw.text((q_box[0] + 30, q_box[1] + 25), "WHICH TOOL WILL YOU TEST FIRST?", font=font_title, fill=(255, 255, 255))
+            draw.text((q_box[0] + 30, q_box[1] + 70), "Comment your favorite below!", font=font_sub, fill=(*accent, 240))
 
-            draw.rounded_rectangle([140, 980, W - 140, 1080], radius=24, fill=(255, 40, 60, 240))
-            draw.text((W // 2 - 130, 1005), "SUBSCRIBE NOW", font=font_title, fill=(255, 255, 255))
+            sub_btn = [cx - 200, q_box[1] + 130, cx + 200, q_box[1] + 200] if not is_landscape else [cx - 180, cy + box_hh + 135, cx + 180, cy + box_hh + 185]
+            if not is_landscape:
+                draw.rounded_rectangle([140, 980, W - 140, 1080], radius=24, fill=(255, 40, 60, 240))
+                draw.text((W // 2 - 130, 1005), "SUBSCRIBE NOW", font=font_title, fill=(255, 255, 255))
 
         out_rgb = img_pil.convert('RGB')
         out_bgr = cv2.cvtColor(np.array(out_rgb), cv2.COLOR_RGB2BGR)
@@ -611,7 +673,8 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     - Prominent Host Alex placement with edge lighting
     - High-CTR ROI badge
     """
-    W_T, H_T = 1080, 1920
+    is_long = data.get('videoFormat') == 'long_form'
+    W_T, H_T = (1920, 1080) if is_long else (1080, 1920)
     canvas = Image.new('RGB', (W_T, H_T), (10, 12, 20))
     draw = ImageDraw.Draw(canvas, 'RGBA')
 
@@ -630,7 +693,7 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
         b = int(24 + prog * 28)
         draw.line([(0, y), (W_T, y)], fill=(r, g, b))
 
-    cx, cy = W_T // 2, 680
+    cx, cy = (int(W_T * 0.72), int(H_T * 0.50)) if is_long else (W_T // 2, 680)
     for rad in range(380, 40, -25):
         alpha = int(35 * (1.0 - rad / 380))
         draw.ellipse([cx - rad, cy - rad, cx + rad, cy + rad], fill=(*pri, alpha))
@@ -638,11 +701,11 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
     if host_path and os.path.exists(host_path):
         try:
             h_img = Image.open(host_path).convert('RGBA')
-            target_h = int(H_T * 0.58)
+            target_h = int(H_T * 0.92) if is_long else int(H_T * 0.58)
             ratio = target_h / h_img.height
             target_w = int(h_img.width * ratio)
             h_resized = h_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-            pos_x = (W_T - target_w) // 2
+            pos_x = (W_T - target_w - 60) if is_long else ((W_T - target_w) // 2)
             pos_y = H_T - target_h
             canvas.paste(h_resized, (pos_x, pos_y), h_resized if h_resized.mode == 'RGBA' else None)
         except Exception:
@@ -650,20 +713,23 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
 
     draw = ImageDraw.Draw(canvas, 'RGBA')
 
-    for y in range(0, 580):
-        alpha = int(230 * (1.0 - y / 580))
+    grad_top_h = int(H_T * 0.28) if is_long else 580
+    for y in range(0, grad_top_h):
+        alpha = int(230 * (1.0 - y / grad_top_h))
         draw.line([(0, y), (W_T, y)], fill=(8, 10, 16, alpha))
 
-    for y in range(1380, H_T):
-        alpha = int(240 * ((y - 1380) / (H_T - 1380)))
+    grad_bot_y = int(H_T * 0.78) if is_long else 1380
+    for y in range(grad_bot_y, H_T):
+        alpha = int(240 * ((y - grad_bot_y) / (H_T - grad_bot_y)))
         draw.line([(0, y), (W_T, y)], fill=(8, 10, 16, alpha))
 
-    pill_text = "! 2026 AI BLUEPRINT !"
+    pill_text = "! 2026 AI MASTERCLASS !" if is_long else "! 2026 AI BLUEPRINT !"
     f_badge = get_font(34, bold=True)
     tw = draw.textlength(pill_text, font=f_badge) if hasattr(draw, 'textlength') else 380
-    px = W_T // 2 - int(tw) // 2
-    draw.rounded_rectangle([px - 40, 120, px + int(tw) + 40, 190], radius=24, fill=(230, 25, 45, 240), outline=(255, 220, 50, 240), width=3)
-    draw.text((px, 134), pill_text, font=f_badge, fill=(255, 255, 255))
+    px = 80 if is_long else (W_T // 2 - int(tw) // 2)
+    py = 80 if is_long else 120
+    draw.rounded_rectangle([px - 20, py, px + int(tw) + 20, py + 70], radius=24, fill=(230, 25, 45, 240), outline=(255, 220, 50, 240), width=3)
+    draw.text((px, py + 14), pill_text, font=f_badge, fill=(255, 255, 255))
 
     raw_title = sanitize_text(data.get('title', 'Top AI Tools That Work While You Sleep'))
     clean_title_no_tags = re.sub(r'#\w+', '', raw_title).strip()
@@ -678,44 +744,61 @@ def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str 
         lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper(), " ".join(words[6:9]).upper()]
     lines = [l for l in lines if l.strip()]
 
-    f_huge = get_font(74, bold=True)
-    y_start = 240
+    f_huge = get_font(74 if not is_long else 68, bold=True)
+    y_start = 220 if is_long else 240
+    max_title_w = int(W_T * 0.58) if is_long else (W_T - 140)
+
     for i, line in enumerate(lines[:3]):
         lw = draw.textlength(line, font=f_huge) if hasattr(draw, 'textlength') else 500
         curr_f = f_huge
-        if lw > W_T - 140:
-            scale_f_size = int(74 * (W_T - 140) / max(1, lw))
-            curr_f = get_font(max(44, scale_f_size), bold=True)
-            lw = draw.textlength(line, font=curr_f) if hasattr(draw, 'textlength') else (W_T - 140)
+        if lw > max_title_w:
+            scale_f_size = int(68 * max_title_w / max(1, lw))
+            curr_f = get_font(max(38, scale_f_size), bold=True)
+            lw = draw.textlength(line, font=curr_f) if hasattr(draw, 'textlength') else max_title_w
 
-        lx = (W_T - int(lw)) // 2
-        ly = y_start + i * 105
+        lx = 80 if is_long else ((W_T - int(lw)) // 2)
+        ly = y_start + i * (95 if is_long else 105)
 
         for off in range(6, 0, -1):
             draw.text((lx + off, ly + off), line, font=curr_f, fill=(0, 0, 0, 240))
         fill_color = (255, 255, 255) if i == 0 else ((*pri, 255) if i == 1 else (255, 225, 40))
         draw.text((lx, ly), line, font=curr_f, fill=fill_color, stroke_width=4, stroke_fill=(10, 10, 15))
 
-    proof_text = ">>> 100% AUTONOMOUS <<<"
-    f_proof = get_font(32, bold=True)
+    proof_text = ">>> 100% PRODUCTION MASTERCLASS <<<" if is_long else ">>> 100% AUTONOMOUS <<<"
+    f_proof = get_font(30 if is_long else 32, bold=True)
     pw = draw.textlength(proof_text, font=f_proof) if hasattr(draw, 'textlength') else 360
-    draw.rounded_rectangle([W_T // 2 - int(pw)//2 - 35, 1720, W_T // 2 + int(pw)//2 + 35, 1795], radius=20, fill=(15, 25, 45, 230), outline=(*pri, 220), width=3)
-    draw.text((W_T // 2 - int(pw)//2, 1738), proof_text, font=f_proof, fill=(*pri, 255))
+    p_box_x = 80 if is_long else (W_T // 2 - int(pw)//2)
+    p_box_y = int(H_T * 0.82) if is_long else 1720
+    draw.rounded_rectangle([p_box_x - 15, p_box_y, p_box_x + int(pw) + 25, p_box_y + 75], radius=20, fill=(15, 25, 45, 230), outline=(*pri, 220), width=3)
+    draw.text((p_box_x, p_box_y + 18), proof_text, font=f_proof, fill=(*pri, 255))
 
     os.makedirs(os.path.dirname(output_thumb_path), exist_ok=True)
     canvas.save(output_thumb_path, format='JPEG', quality=95)
-    print(f"🖼️ [Smart Thumbnail] 1080x1920 High-CTR Thumbnail saqlandi: {output_thumb_path}", flush=True)
+    print(f"🖼️ [Smart Thumbnail] {W_T}x{H_T} High-CTR Thumbnail saqlandi: {output_thumb_path}", flush=True)
 
     landscape_path = output_thumb_path.replace('_thumb.jpg', '_thumb_landscape.jpg')
-    try:
-        crop_area = canvas.crop((0, 140, 1080, 1080 + 140)).resize((1280, 720), Image.Resampling.LANCZOS)
-        crop_area.save(landscape_path, format='JPEG', quality=92)
-    except Exception:
-        pass
+    if not is_long:
+        try:
+            crop_area = canvas.crop((0, 140, 1080, 1080 + 140)).resize((1280, 720), Image.Resampling.LANCZOS)
+            crop_area.save(landscape_path, format='JPEG', quality=92)
+        except Exception:
+            pass
+    else:
+        try:
+            canvas.resize((1280, 720), Image.Resampling.LANCZOS).save(landscape_path, format='JPEG', quality=92)
+        except Exception:
+            pass
 
-def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None, voice_preset_override: str = None, beat_sync: bool = True):
+def render_video(data: dict, output_mp4: str, voice_override: str = None, host_override: str = None, music_mood_override: str = None, voice_preset_override: str = None, beat_sync: bool = True, format_override: str = None):
+    global W, H
     ffmpeg_bin = get_ffmpeg_bin()
-    is_long = data.get('videoFormat') == 'long_form'
+    is_long = (format_override == 'landscape') or (data.get('videoFormat') == 'long_form')
+    if is_long:
+        W, H = 1920, 1080
+        print(f"📺 [16:9 Long-Form Masterclass Mode] Rendering Full HD {W}x{H} Landscape Video...", flush=True)
+    else:
+        W, H = 1080, 1920
+        print(f"⚡ [9:16 Shorts Mode] Rendering Ultra-HD {W}x{H} Vertical Video...", flush=True)
     
     title = data.get('title', 'Neural Pulse AI')
     clean_title = sanitize_text(title)
@@ -937,7 +1020,7 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
             if len(topic_scenes) >= 3:
                 break
 
-    if len(topic_scenes) < 3 and not is_long:
+    if len(topic_scenes) < 3:
         scenes_data_init = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
         high_cpm_init = data.get('highCpmKeywords', []) if isinstance(data.get('highCpmKeywords'), list) else []
         topic_scenes = generate_topic_procedural_scenes(item_id, clean_title, scenes_data_init, high_cpm_init, topic_scenes_dirs[:3])
@@ -1052,20 +1135,22 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
 
             # Subtle top & bottom vignette to enhance subtitle & badge contrast
             grad = np.zeros((H, W, 3), dtype=np.uint8)
-            cv2.rectangle(grad, (0, 0), (W, 200), (0, 0, 0), -1)
-            cv2.rectangle(grad, (0, 1320), (W, H), (0, 0, 0), -1)
+            cv2.rectangle(grad, (0, 0), (W, int(H * 0.14)), (0, 0, 0), -1)
+            cv2.rectangle(grad, (0, int(H * 0.74)), (W, H), (0, 0, 0), -1)
             cv2.addWeighted(grad, 0.42, frame, 0.58, 0, frame)
 
             img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(img_pil, 'RGBA')
 
             # Dynamic Top Scene Pill
-            sc_title = get_scene_title(cur_sc_idx, f"SCENE {cur_sc_idx + 1}")
+            sc_title = get_scene_title(cur_sc_idx, f"CHAPTER {cur_sc_idx + 1}" if is_long else f"SCENE {cur_sc_idx + 1}")
             bw = get_text_width(draw, sc_title, font_brand) + 80
             bx1 = (W - bw) // 2
-            draw.rounded_rectangle([bx1, 75, bx1 + bw, 135], radius=18, fill=(12, 16, 26, 225), outline=(255, 60, 80, 210) if cur_sc_idx == 0 else (0, 220, 255, 190), width=2)
-            paste_icon(img_pil, icon_alert_36 if cur_sc_idx == 0 else icon_zap_36, (bx1 + 18, 86))
-            draw.text((bx1 + 62, 91), sc_title, font=font_brand, fill=(255, 255, 255))
+            pill_y1 = int(H * 0.04)
+            pill_y2 = pill_y1 + 56
+            draw.rounded_rectangle([bx1, pill_y1, bx1 + bw, pill_y2], radius=18, fill=(12, 16, 26, 225), outline=(255, 60, 80, 210) if cur_sc_idx == 0 else (0, 220, 255, 190), width=2)
+            paste_icon(img_pil, icon_alert_36 if cur_sc_idx == 0 else icon_zap_36, (bx1 + 18, pill_y1 + 10))
+            draw.text((bx1 + 62, pill_y1 + 15), sc_title, font=font_brand, fill=(255, 255, 255))
         else:
             if t_sec < sc1_end or t_sec >= sc6_start:
                 if t_sec < sc1_end:
@@ -1316,14 +1401,15 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 break
 
         if cur_sub:
-            sub_y = 1450 if t_sec < sc6_start else 1310
-            draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=880)
+            sub_y = int(H * 0.83) if (is_long or t_sec < sc6_start) else 1310
+            max_cap_w = int(W * 0.80) if is_long else 880
+            draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w)
 
         if t_sec >= sc6_start:
-            card_w = 780
+            card_w = min(780, int(W * 0.44)) if is_long else 780
             card_h = 88
-            cx1 = (W - card_w) // 2
-            cy1 = 1430
+            cx1 = (W - card_w - 60) if is_long else (W - card_w) // 2
+            cy1 = int(H * 0.78) if is_long else 1430
             draw.rounded_rectangle([cx1, cy1, cx1 + card_w, cy1 + card_h], radius=24, fill=(18, 22, 35, 240), outline=(255, 255, 255, 50), width=2)
             paste_icon(img_pil, icon_youtube, (cx1 + 20, cy1 + 22))
             draw.text((cx1 + 75, cy1 + 28), "@NeuralPulseAI-m3e", font=font_brand, fill=(255, 255, 255))
@@ -1347,33 +1433,34 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 paste_icon(img_pil, icon_bell_36, (bx1 - 42, by1 + 9))
 
             if binge_teaser and t_sec >= (duration - 3.2):
-                btw = 640
-                btx1 = (W - btw) // 2
-                bty1 = cy1 + card_h + 16
+                btw = min(640, int(W * 0.44))
+                btx1 = cx1 if is_long else (W - btw) // 2
+                bty1 = cy1 - 54 if is_long else (cy1 + card_h + 16)
                 draw.rounded_rectangle([btx1, bty1, btx1 + btw, bty1 + 46], radius=14, fill=(12, 18, 30, 235), outline=(0, 240, 255, 180), width=2)
                 teaser_txt = f">> {binge_teaser.upper()} <<"
                 f_t = get_font(20, bold=True)
                 tw = draw.textlength(teaser_txt, font=f_t) if hasattr(draw, 'textlength') else 380
-                draw.text(((W - int(tw)) // 2, bty1 + 12), teaser_txt, font=f_t, fill=(0, 240, 255))
+                draw.text(((btx1 + (btw - int(tw)) // 2), bty1 + 12), teaser_txt, font=f_t, fill=(0, 240, 255))
 
         audio_sample_idx = min(len(mixed_audio) - 1, int(t_sec * sr))
         win = mixed_audio[max(0, audio_sample_idx - 512):min(len(mixed_audio), audio_sample_idx + 512)]
         vol = float(np.mean(np.abs(win))) if len(win) > 0 else 0.05
 
-        num_bars = 36
-        bar_w = 16
+        num_bars = 48 if is_long else 36
+        bar_w = 18 if is_long else 16
         spacing = 10
         start_x = (W - (num_bars * (bar_w + spacing))) // 2
+        base_eq_y = int(H * 0.97)
 
         for b in range(num_bars):
             bar_factor = math.sin(b * 0.38 + t_sec * 14.0) * 0.5 + 0.5
-            bh = int(12 + vol * 380 * bar_factor)
+            bh = int(8 + vol * (200 if is_long else 380) * bar_factor)
             bx = start_x + b * (bar_w + spacing)
-            by = 1810 - bh
+            by = base_eq_y - bh
             c_r = int(255 * (b / num_bars))
             c_g = int(220 * (1 - b / num_bars) + 40)
             c_b = int(255 * (1 - b / num_bars))
-            draw.rounded_rectangle([bx, by, bx + bar_w, 1810], radius=6, fill=(c_r, c_g, c_b, 230))
+            draw.rounded_rectangle([bx, by, bx + bar_w, base_eq_y], radius=6, fill=(c_r, c_g, c_b, 230))
 
         frame_final = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
 
@@ -1457,6 +1544,7 @@ def main():
     parser.add_argument('--host', type=str, default=None, help="Host Avatar name or path")
     parser.add_argument('--music-mood', type=str, default=None, help="Background music mood preset")
     parser.add_argument('--voice-preset', type=str, default=None, help="Voice emotion and pace preset")
+    parser.add_argument('--format', type=str, default=None, help="Video format: landscape (16:9) or portrait (9:16)")
     parser.add_argument('--beat-sync', type=lambda x: str(x).lower() in ['true', '1', 'yes'], default=True, help="Enable beat-synced jumpcuts")
     args = parser.parse_args()
 
@@ -1478,7 +1566,7 @@ def main():
                     data = v
                     break
 
-    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood, voice_preset_override=args.voice_preset, beat_sync=args.beat_sync)
+    dur = render_video(data, args.output, voice_override=args.voice, host_override=args.host, music_mood_override=args.music_mood, voice_preset_override=args.voice_preset, beat_sync=args.beat_sync, format_override=args.format)
     print(json.dumps({"success": True, "output": args.output, "duration": dur}))
 
 if __name__ == '__main__':

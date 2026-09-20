@@ -51,6 +51,7 @@ export interface ContentItemRecord {
   abTestStatus?: 'initial' | 'testing' | 'switched' | 'completed';
   abTestSwitchedAt?: string;
   originalTitle?: string;
+  aiQualityReport?: any;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
