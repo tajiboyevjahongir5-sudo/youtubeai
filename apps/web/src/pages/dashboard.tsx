@@ -25,7 +25,11 @@ import {
   Zap,
   Shield,
   Play,
-  Check
+  Check,
+  Film,
+  Volume2,
+  Users,
+  Video
 } from 'lucide-react';
 import { useDashboard } from '../lib/query';
 import { Link, useNavigate } from 'react-router';
@@ -130,47 +134,90 @@ const DashboardPage = () => {
   return (
     <div className="space-y-8">
       {/* Top Banner with Studio Vibe */}
-      <div className="relative overflow-hidden rounded-3xl liquid-glass-red p-6 sm:p-8 border border-red-500/20 shadow-2xl animate-scale-in animate-pulse-glow">
+      <div className="relative overflow-hidden rounded-3xl liquid-glass-red p-6 sm:p-8 border border-red-500/25 shadow-2xl animate-scale-in animate-pulse-glow">
+        {/* Subtle decorative mesh glow */}
+        <div className="absolute -top-24 -left-24 w-72 h-72 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-              isChannelConnected 
-                ? 'bg-red-500/20 border border-red-500/30 text-red-300' 
-                : 'bg-amber-500/20 border border-amber-500/30 text-amber-300'
-            }`}>
-              <Youtube size={14} className={isChannelConnected ? "fill-red-500 text-red-500" : "text-amber-400"} />
-              {isChannelConnected ? 'YouTube Studio Autopilot' : 'Kanal ulanmagan'}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${
+                isChannelConnected 
+                  ? 'bg-red-500/15 border border-red-500/30 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
+                  : 'bg-amber-500/15 border border-amber-500/30 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+              }`}>
+                {isChannelConnected ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    <Youtube size={14} className="fill-red-500 text-red-500" />
+                    YouTube Studio Autopilot 2.0 • Live
+                  </>
+                ) : (
+                  <>
+                    <Youtube size={14} className="text-amber-400" />
+                    Kanal ulanmagan
+                  </>
+                )}
+              </div>
+              {isChannelConnected && (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Faol bog'langan
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
               {channel.title}
             </h1>
+
             {isChannelConnected ? (
-              <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
-                Kunlik 2 ta ingliz tilidagi video avtomatlashgan rejimda rejalashtirilgan. Barcha materiallar inson tasdig'idan so'ng rasmiy YouTube API orqali chiqariladi.
-              </p>
+              <>
+                <p className="text-sm text-gray-300 max-w-2xl leading-relaxed font-normal">
+                  Kunlik 2 ta ingliz tilidagi video avtomatlashgan rejimda rejalashtirilgan. Barcha materiallar inson tasdig'idan so'ng rasmiy YouTube API orqali chiqariladi.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-gray-300">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10">
+                    <Users size={13} className="text-red-400" />
+                    <span className="text-gray-400">Obunachilar:</span>
+                    <span className="font-bold text-white font-sans">{Number(channel.subscriberCount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10">
+                    <Video size={13} className="text-red-400" />
+                    <span className="text-gray-400">Videolar:</span>
+                    <span className="font-bold text-white font-sans">{channel.videoCount || 0} ta</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10">
+                    <Zap size={13} className="text-amber-400" />
+                    <span className="text-gray-400">Autopilot Salomatligi:</span>
+                    <span className="font-bold text-emerald-400 font-sans">99.4% (Optimal)</span>
+                  </div>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-amber-300 max-w-2xl leading-relaxed">
                 YouTube kanalingiz hali ulanmagan. O'z kanalingizni ulang va videolarni avtomatik nashr qilishni boshlang.
               </p>
             )}
           </div>
+
           <div className="flex flex-wrap items-center gap-3">
             {isChannelConnected ? (
               <>
                 <Link to="/content/new">
-                  <Button variant="primary" className="flex items-center gap-2 shadow-lg">
+                  <Button variant="primary" className="flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,50,0.35)] px-5 py-2.5 rounded-xl font-bold">
                     <Sparkles size={16} /> AI bilan g'oya yaratish
                   </Button>
                 </Link>
                 <Link to="/analytics">
-                  <Button variant="secondary" className="flex items-center gap-2">
+                  <Button variant="secondary" className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold border-white/15 hover:border-white/30">
                     <TrendingUp size={16} /> Analitika
                   </Button>
                 </Link>
               </>
             ) : (
               <Link to="/integrations">
-                <Button variant="primary" className="flex items-center gap-2 shadow-lg">
+                <Button variant="primary" className="flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,50,0.35)] px-5 py-2.5 rounded-xl font-bold">
                   <Link2 size={16} /> O'z kanalingizni ulang
                 </Button>
               </Link>
@@ -181,65 +228,76 @@ const DashboardPage = () => {
 
       {/* Toast Notification */}
       {dashboardToast && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in">
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in backdrop-blur-xl">
           <Check size={16} className="text-emerald-400" />
           {dashboardToast}
         </div>
       )}
 
       {/* 🤖 To'liq Avtomatik "Hands-Free" Jadval (Autonomous Content Factory) */}
-      <div className="rounded-2xl liquid-glass border border-cyan-500/30 p-5 bg-gradient-to-r from-cyan-950/20 via-black/40 to-blue-950/20 shadow-lg space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-              <Bot size={22} />
+      <div className="rounded-3xl liquid-glass border border-cyan-500/25 p-6 bg-gradient-to-r from-cyan-950/20 via-slate-900/50 to-blue-950/20 shadow-2xl space-y-5 relative overflow-hidden">
+        {/* Subtle ambient light */}
+        <div className="absolute -right-16 -top-16 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)] flex-shrink-0">
+              <Bot size={24} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-white">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
                   To'liq Avtomatik "Hands-Free" Jadval (Autonomous Content Factory)
                 </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                <span className="text-xs font-semibold px-3 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-sans flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                   Avtopilot: Faol
                 </span>
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-300 mt-1 max-w-2xl leading-relaxed">
                 Har kuni 09:00 va 18:00 da trendni topadi, Alex ovozini beradi, B-roll va subtitrlarni montaj qilib, YouTube'ga avtomatik rejalashtiradi.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start lg:self-auto flex-shrink-0">
             <Button
               size="sm"
               variant="primary"
               disabled={isTriggeringHandsfree}
               onClick={handleTriggerHandsfreeNow}
-              className="text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-cyan-500 text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+              className="text-xs font-bold bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 border-none text-white flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.3)] py-2.5 px-4 rounded-xl transition-all"
             >
-              <Zap size={13} className={isTriggeringHandsfree ? 'animate-spin' : ''} />
-              {isTriggeringHandsfree ? 'Avtopilot ishlamoqda...' : '⚡ Hozirgi Trendni Chiqarish (Run Now)'}
+              <Zap size={14} className={isTriggeringHandsfree ? 'animate-spin' : 'fill-white'} />
+              {isTriggeringHandsfree ? 'Avtopilot ishlamoqda...' : 'Hozirgi Trendni Chiqarish (Run Now)'}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/10 text-xs">
-          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-            <span className="text-[11px] text-gray-400">Jadval Vaqtlari:</span>
-            <p className="font-bold text-white font-mono">09:00 & 18:00 (Peak)</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10 text-xs relative z-10">
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1 hover:border-cyan-500/30 transition-all">
+            <span className="text-[11px] text-gray-400 flex items-center gap-1.5">
+              <Clock size={13} className="text-cyan-400" /> Jadval Vaqtlari:
+            </span>
+            <p className="font-bold text-white text-sm">09:00 & 18:00 <span className="text-[10px] text-cyan-400 font-normal">(Peak)</span></p>
           </div>
-          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-            <span className="text-[11px] text-gray-400">Avto-Montaj:</span>
-            <p className="font-bold text-cyan-400 font-mono">60FPS B-Roll + Karaoke</p>
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1 hover:border-cyan-500/30 transition-all">
+            <span className="text-[11px] text-gray-400 flex items-center gap-1.5">
+              <Film size={13} className="text-cyan-400" /> Avto-Montaj:
+            </span>
+            <p className="font-bold text-cyan-400 text-sm">60FPS B-Roll + Karaoke</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-            <span className="text-[11px] text-gray-400">Ducking & SFX:</span>
-            <p className="font-bold text-amber-400 font-mono">Sub-drop + Bell</p>
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1 hover:border-cyan-500/30 transition-all">
+            <span className="text-[11px] text-gray-400 flex items-center gap-1.5">
+              <Volume2 size={13} className="text-amber-400" /> Ducking & SFX:
+            </span>
+            <p className="font-bold text-amber-400 text-sm">Sub-drop + Bell</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-            <span className="text-[11px] text-gray-400">Jami Ishlab Chiqarildi:</span>
-            <p className="font-bold text-emerald-400 font-mono">{handsfreeConfig?.totalGenerated || 14} ta video</p>
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1 hover:border-cyan-500/30 transition-all">
+            <span className="text-[11px] text-gray-400 flex items-center gap-1.5">
+              <Layers size={13} className="text-emerald-400" /> Jami Ishlab Chiqarildi:
+            </span>
+            <p className="font-bold text-emerald-400 text-sm">{handsfreeConfig?.totalGenerated || 14} ta video</p>
           </div>
         </div>
       </div>
@@ -251,7 +309,8 @@ const DashboardPage = () => {
           value={data?.stats?.scheduled ?? (isChannelConnected ? 2 : 0)} 
           description={isChannelConnected ? "Kunlik maqsad: 2 ta video" : "Kanal ulanmagan"} 
           icon={<Calendar size={22} />}
-          trend={isChannelConnected ? "+100% bugun" : undefined}
+          trend={isChannelConnected ? "100% bugun" : undefined}
+          accent="cyan"
           delay={50}
         />
         <StatCard 
@@ -259,6 +318,7 @@ const DashboardPage = () => {
           value={data?.stats?.needsApproval ?? (isChannelConnected ? 1 : 0)} 
           description={isChannelConnected ? "Ko'rib chiqish kutilyapti" : "0 ta kutilmoqda"} 
           icon={<Clock size={22} />}
+          accent="amber"
           delay={100}
         />
         <StatCard 
@@ -266,6 +326,7 @@ const DashboardPage = () => {
           value={data?.stats?.inProgress ?? (isChannelConnected ? 1 : 0)} 
           description={isChannelConnected ? "Skript va SEO tayyorlanmoqda" : "Jarayon mavjud emas"} 
           icon={<FileText size={22} />}
+          accent="violet"
           delay={150}
         />
         <StatCard 
@@ -273,7 +334,8 @@ const DashboardPage = () => {
           value={data?.stats?.publishedThisWeek ?? 0} 
           description={isChannelConnected ? "100% rasmiy API orqali" : "Kanal ulanmagan"} 
           icon={<CheckCircle size={22} />}
-          trend={isChannelConnected && (data?.stats?.publishedThisWeek || 0) > 0 ? `+${data?.stats?.publishedThisWeek} yangi` : undefined}
+          trend={isChannelConnected && (data?.stats?.publishedThisWeek || 0) > 0 ? `${data?.stats?.publishedThisWeek} yangi` : undefined}
+          accent="emerald"
           delay={200}
         />
       </div>
@@ -289,7 +351,7 @@ const DashboardPage = () => {
               Google Trends va YouTube algoritmlari skanerlanib, bugun eng yuqori ko'rish to'playdigan tayyor skriptli loyihalar
             </p>
           </div>
-          <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/25 flex items-center gap-1.5 self-start sm:self-auto shadow-[0_0_12px_rgba(16,185,129,0.15)]">
             <Sparkles size={13} /> Har kuni 08:00 da avtomatik yangilanadi
           </span>
         </div>
@@ -327,34 +389,36 @@ const DashboardPage = () => {
               searchVolumeGrowth: '+340% global qidiruv'
             }
           ]).map((trend: any, idx: number) => (
-            <Card key={trend.id || idx} className="liquid-glass border border-amber-500/20 hover:border-amber-500/40 transition-all flex flex-col justify-between">
-              <CardContent className="p-5 space-y-3.5 flex flex-col justify-between h-full">
-                <div className="space-y-2.5">
+            <Card key={trend.id || idx} className="liquid-glass border border-white/10 hover:border-amber-500/40 transition-all duration-300 rounded-3xl flex flex-col justify-between overflow-hidden group">
+              <CardContent className="p-5 sm:p-6 space-y-4 flex flex-col justify-between h-full">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
                       {trend.category}
                     </span>
-                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                      🔥 {trend.predictedViralScore}% Viral Score
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                      <Flame size={12} className="fill-amber-400 text-amber-400" /> {trend.predictedViralScore}% Viral Score
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-snug">
+                  <h3 className="font-bold text-white text-base leading-snug group-hover:text-amber-300 transition-colors">
                     {trend.title}
                   </h3>
 
-                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Gipnozli Hook:</span>
-                    <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed font-medium">
+                  <div className="p-3 rounded-2xl bg-black/40 border-l-2 border-l-amber-500 border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block flex items-center gap-1">
+                      <Zap size={10} className="fill-amber-400" /> Gipnozli Hook:
+                    </span>
+                    <p className="text-xs text-gray-200 line-clamp-2 leading-relaxed font-medium">
                       {trend.hookHeadline}
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-white/5 space-y-2.5">
-                  <div className="flex items-center justify-between text-[11px]">
+                <div className="pt-3 border-t border-white/10 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-400">Prognoz RPM:</span>
-                    <span className="text-emerald-400 font-bold font-mono">{trend.estimatedRpm}</span>
+                    <span className="text-emerald-400 font-bold font-sans">{trend.estimatedRpm}</span>
                   </div>
                   <Button
                     variant="primary"
@@ -362,9 +426,9 @@ const DashboardPage = () => {
                     onClick={() => {
                       navigate(`/content/new?title=${encodeURIComponent(trend.title)}&brief=${encodeURIComponent(trend.script)}`);
                     }}
-                    className="w-full text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black border-amber-500 flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    className="w-full text-xs font-extrabold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black border-none flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.25)] py-2.5 rounded-xl cursor-pointer transition-all"
                   >
-                    <Sparkles size={13} /> 🚀 1-Klikda Loyiha Yaratish
+                    <Sparkles size={13} /> 1-Klikda Loyiha Yaratish
                   </Button>
                 </div>
               </CardContent>
@@ -384,7 +448,7 @@ const DashboardPage = () => {
               Fireship, Matthew Berman va boshqa yetakchi global kanallarda odatdagidan 3-5x tezroq ko'rilayotgan yangi videolarni ushlaydi
             </p>
           </div>
-          <span className="text-[11px] font-mono text-violet-300 bg-violet-500/10 px-3 py-1 rounded-full border border-violet-500/20 font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <span className="text-xs font-semibold text-violet-300 bg-violet-500/10 px-3.5 py-1.5 rounded-full border border-violet-500/25 flex items-center gap-1.5 self-start sm:self-auto shadow-[0_0_12px_rgba(139,92,246,0.15)]">
             <Radio size={12} className="animate-pulse text-violet-400" /> Jonli Monitoring (4 ta Global Kanal)
           </span>
         </div>
@@ -426,37 +490,37 @@ const DashboardPage = () => {
               }
             }
           ]).map((outlier: any) => (
-            <Card key={outlier.id} className="liquid-glass border border-violet-500/25 hover:border-violet-500/50 transition-all">
-              <CardContent className="p-5 space-y-4">
+            <Card key={outlier.id} className="liquid-glass border border-violet-500/25 hover:border-violet-500/50 transition-all rounded-3xl overflow-hidden group">
+              <CardContent className="p-5 sm:p-6 space-y-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl p-2 rounded-xl bg-violet-500/10 border border-violet-500/20">{outlier.channelAvatar}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl p-2.5 rounded-2xl bg-violet-500/10 border border-violet-500/20 shadow-inner">{outlier.channelAvatar}</span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-white">{outlier.channelName}</h4>
-                        <span className="text-[10px] text-gray-400">{outlier.publishedHoursAgo} soat oldin</span>
+                        <h4 className="text-sm font-bold text-white">{outlier.channelName}</h4>
+                        <span className="text-[11px] text-gray-400">{outlier.publishedHoursAgo} soat oldin</span>
                       </div>
-                      <span className="text-[11px] font-mono text-violet-300 font-semibold">{outlier.velocityPerHour}</span>
+                      <span className="text-xs font-semibold text-violet-300">{outlier.velocityPerHour}</span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 px-2.5 py-1 rounded-full border border-violet-500/30">
+                  <span className="text-xs font-bold bg-violet-500/20 text-violet-300 px-3 py-1 rounded-full border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
                     {outlier.outlierMultiplier}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
                   <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Raqobatchi Videosi:</span>
                   <p className="text-xs font-medium text-gray-200">"{outlier.videoTitle}"</p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-violet-950/20 border border-violet-500/20 space-y-2">
+                <div className="p-4 rounded-2xl bg-violet-950/25 border border-violet-500/20 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
-                      <Sparkles size={12} /> Bizning Muqobil "Counter-Attack" Mavzumiz:
+                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <Sparkles size={13} /> Bizning Muqobil "Counter-Attack" Mavzumiz:
                     </span>
                   </div>
-                  <h5 className="text-xs font-bold text-white">{outlier.counterAttackIdea.recommendedTitle}</h5>
-                  <p className="text-[11px] text-gray-300 leading-relaxed italic">
+                  <h5 className="text-xs sm:text-sm font-bold text-white">{outlier.counterAttackIdea.recommendedTitle}</h5>
+                  <p className="text-xs text-gray-300 leading-relaxed italic">
                     "{outlier.counterAttackIdea.patternInterruptHook}"
                   </p>
                 </div>
@@ -468,9 +532,9 @@ const DashboardPage = () => {
                     onClick={() => {
                       navigate(`/content/new?title=${encodeURIComponent(outlier.counterAttackIdea.recommendedTitle)}&brief=${encodeURIComponent(outlier.counterAttackIdea.patternInterruptHook)}`);
                     }}
-                    className="w-full text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border-violet-500 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    className="w-full text-xs font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 border-none text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(139,92,246,0.25)] py-2.5 rounded-xl"
                   >
-                    <Sparkles size={13} /> 🚀 Ushbu Mavzuda Yaxshiroq Video Yaratish
+                    <Sparkles size={13} /> Ushbu Mavzuda Yaxshiroq Video Yaratish
                   </Button>
                 </div>
               </CardContent>
@@ -502,39 +566,39 @@ const DashboardPage = () => {
                   const isDone = item.status === 'published' || item.status === 'approved';
                   const isReview = item.status === 'review' || item.status === 'idea' || item.status === 'awaiting_generation';
                   return (
-                    <div key={item.id} className="liquid-glass rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10 hover:border-red-500/40 transition-all animate-fade-in-up" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <div key={item.id} className="liquid-glass rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10 hover:border-red-500/40 transition-all animate-fade-in-up group" style={{ animationDelay: `${idx * 100}ms` }}>
                       <div className="flex items-center gap-4">
-                        <div className="w-16 h-12 rounded-xl bg-gradient-to-tr from-red-950 to-slate-900 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                          <Youtube size={24} className="text-red-500/60" />
-                          <span className="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded font-mono">{item.duration || (isShort ? '0:56' : '10:15')}</span>
+                        <div className="w-16 h-12 rounded-2xl bg-gradient-to-tr from-red-950 to-slate-900 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden group-hover:border-red-500/40 transition-colors">
+                          <Youtube size={24} className="text-red-500/70" />
+                          <span className="absolute bottom-1 right-1 text-[9px] bg-black/90 backdrop-blur-md text-white px-1.5 py-0.5 rounded-md font-semibold font-sans">{item.duration || (isShort ? '0:56' : '10:15')}</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isShort ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isShort ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
                               {isShort ? '#Shorts' : '16:9 Long-form'}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-gray-400 font-medium">
                               {item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Rejalashtirilgan'}
                             </span>
                           </div>
-                          <h3 className="font-bold text-white text-sm sm:text-base hover:text-red-400 transition-colors">
+                          <h3 className="font-bold text-white text-sm sm:text-base group-hover:text-red-400 transition-colors">
                             {item.title}
                           </h3>
                           <p className="text-xs text-gray-400 mt-0.5">High retention • {item.contentPillar || 'AI Texnologiya'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full border shadow-sm ${
                           isDone 
-                            ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' 
+                            ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20 shadow-[0_0_10px_rgba(16,185,129,0.15)]' 
                             : isReview
-                            ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
-                            : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+                            ? 'text-amber-400 bg-amber-400/10 border-amber-400/20 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                            : 'text-blue-400 bg-blue-400/10 border-blue-400/20 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
                         }`}>
                           {item.status === 'published' ? 'Nashr etildi' : (isDone ? 'Tasdiqlangan' : 'Tasdiqlash kutilmoqda')}
                         </span>
                         <Link to={`/content/${item.id}`}>
-                          <Button size="sm" variant="secondary">Ko'rib chiqish</Button>
+                          <Button size="sm" variant="secondary" className="rounded-xl font-semibold border-white/10 hover:border-white/25">Ko'rib chiqish</Button>
                         </Link>
                       </div>
                     </div>
@@ -588,16 +652,18 @@ const DashboardPage = () => {
           </div>
 
           {/* Action Box */}
-          <div className="liquid-glass rounded-2xl p-5 border border-red-500/30 bg-gradient-to-br from-red-950/40 via-black/50 to-black/60 shadow-xl space-y-3 animate-fade-in-up stagger-6 animate-border-glow">
-            <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
-              <Sparkles size={16} />
-              AI Tavsiyasi
+          <div className="liquid-glass rounded-3xl p-6 border border-red-500/30 bg-gradient-to-br from-red-950/40 via-black/50 to-black/60 shadow-2xl space-y-3.5 animate-fade-in-up stagger-6 animate-border-glow relative overflow-hidden">
+            <div className="flex items-center gap-2.5 text-red-400 font-bold text-sm">
+              <span className="p-1.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30">
+                <Sparkles size={16} />
+              </span>
+              AI Strategik Tavsiyasi
             </div>
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <p className="text-xs text-gray-300 leading-relaxed font-normal">
               Oxirgi videolarda CTR 4.8% ga chiqdi. Ertangi 2 ta videoda raqamlar va savol uslubidagi sarlavhalardan foydalanish tavsiya etiladi.
             </p>
-            <Link to="/strategy" className="block">
-              <Button size="sm" variant="primary" className="w-full">
+            <Link to="/strategy" className="block pt-1">
+              <Button size="sm" variant="primary" className="w-full text-xs font-bold py-2.5 rounded-xl shadow-[0_0_15px_rgba(255,0,50,0.3)]">
                 Strategiyani ko'rish
               </Button>
             </Link>
