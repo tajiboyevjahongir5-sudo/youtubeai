@@ -469,10 +469,190 @@ export const ContentDetailPage = () => {
     }
   };
 
-  // Global Dubbing State
-  const [selectedDubLang, setSelectedDubLang] = useState('es');
+  // Multi-Voice Global Dubbing State
+  const [selectedDubLang, setSelectedDubLang] = useState('uz');
+  const [selectedVoiceModel, setSelectedVoiceModel] = useState('uz-UZ-MadinaNeural');
+  const [selectedDubRate, setSelectedDubRate] = useState('+14%');
+  const [selectedDubPitch, setSelectedDubPitch] = useState('+0Hz');
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const [audioPreviewPlayer, setAudioPreviewPlayer] = useState<HTMLAudioElement | null>(null);
   const [isDubbing, setIsDubbing] = useState(false);
   const [dubbedResult, setDubbedResult] = useState<any | null>(null);
+  const [isSavingDubbing, setIsSavingDubbing] = useState(false);
+  const [customVoiceSampleText, setCustomVoiceSampleText] = useState('');
+
+  const dubbingLanguages = [
+    {
+      code: 'uz',
+      name: "O'zbekcha",
+      native: "O'zbek tili (Lotin)",
+      flag: '🇺🇿',
+      market: "O'zbekiston & Markaziy Osiyo (36M+)",
+      rpm: '$0.40 - $0.90',
+      voices: [
+        {
+          id: 'uz-UZ-MadinaNeural',
+          name: 'Madina',
+          gender: 'Ayol',
+          badge: 'Muloyim & Ravon',
+          desc: "Ravon, muloyim va aniq talaffuzli ayol ovozi. Texnologiya va tushuntirish uchun a'lo.",
+          sampleUrl: '/audio/sample_uz-UZ-MadinaNeural.mp3'
+        },
+        {
+          id: 'uz-UZ-SardorNeural',
+          name: 'Sardor',
+          gender: 'Erkak',
+          badge: "Kuchli & Qat'iyatli",
+          desc: "Baquvvat, qat'iyatli va ishonchli erkak ovozi. Dinamik Shorts va yangiliklar uchun zo'r.",
+          sampleUrl: '/audio/sample_uz-UZ-SardorNeural.mp3'
+        }
+      ]
+    },
+    {
+      code: 'ru',
+      name: 'Ruscha',
+      native: 'Русский язык',
+      flag: '🇷🇺',
+      market: 'MDH & Sharqiy Yevropa (220M+)',
+      rpm: '$1.20 - $2.40',
+      voices: [
+        {
+          id: 'ru-RU-DmitryNeural',
+          name: 'Дмитрий',
+          gender: 'Erkak',
+          badge: 'Professional & Chuqur',
+          desc: 'Глубокий, авторитетный мужской голос для технологических обзоров.',
+          sampleUrl: '/audio/sample_ru-RU-DmitryNeural.mp3'
+        },
+        {
+          id: 'ru-RU-SvetlanaNeural',
+          name: 'Светлана',
+          gender: 'Ayol',
+          badge: 'Jonli & Ekspressiv',
+          desc: 'Выразительный женский голос, удерживающий высокий retention.',
+          sampleUrl: '/audio/sample_ru-RU-SvetlanaNeural.mp3'
+        }
+      ]
+    },
+    {
+      code: 'en',
+      name: 'Inglizcha',
+      native: 'English (US)',
+      flag: '🇺🇸',
+      market: 'AQSh, UK & Global (High CPM)',
+      rpm: '$3.50 - $6.50',
+      voices: [
+        {
+          id: 'en-US-ChristopherNeural',
+          name: 'Christopher (Alex Standarti)',
+          gender: 'Erkak',
+          badge: 'Viral & Energetik',
+          desc: 'Crisp, confident, authoritative American voice. Standard voice of Host Alex.',
+          sampleUrl: '/audio/sample_en-US-ChristopherNeural.mp3'
+        },
+        {
+          id: 'en-US-GuyNeural',
+          name: 'Guy (Hikoyachi)',
+          gender: 'Erkak',
+          badge: 'Tabiiy & Podkast',
+          desc: 'Natural podcast-style delivery, deep tone and friendly clarity.',
+          sampleUrl: '/audio/sample_en-US-GuyNeural.mp3'
+        },
+        {
+          id: 'en-US-JennyNeural',
+          name: 'Jenny (Tech Review)',
+          gender: 'Ayol',
+          badge: 'Aniq & Professional',
+          desc: 'Polished Silicon Valley style voice for SaaS and tech reviews.',
+          sampleUrl: '/audio/sample_en-US-JennyNeural.mp3'
+        }
+      ]
+    },
+    {
+      code: 'es',
+      name: 'Ispancha',
+      native: 'Español',
+      flag: '🇪🇸',
+      market: 'Ispaniya & Lotin Amerikasi (500M+)',
+      rpm: '$1.80 - $3.20',
+      voices: [
+        {
+          id: 'es-ES-AlvaroNeural',
+          name: 'Álvaro',
+          gender: 'Erkak',
+          badge: "Jo'shqin & Dinamik",
+          desc: 'Voz masculina enérgica y rápida, optimizada para YouTube Shorts.',
+          sampleUrl: '/audio/sample_es-ES-AlvaroNeural.mp3'
+        }
+      ]
+    },
+    {
+      code: 'de',
+      name: 'Nemischa',
+      native: 'Deutsch',
+      flag: '🇩🇪',
+      market: 'Germaniya & Shveytsariya (Ultra CPM)',
+      rpm: '$4.50 - $7.80',
+      voices: [
+        {
+          id: 'de-DE-KillianNeural',
+          name: 'Killian',
+          gender: 'Erkak',
+          badge: "Aniq & Qat'iy",
+          desc: 'Präzise und souveräne deutsche Stimme für hochwertige Tech-Inhalte.',
+          sampleUrl: '/audio/sample_de-DE-KillianNeural.mp3'
+        }
+      ]
+    }
+  ];
+
+  const handlePlayVoicePreview = async (voiceId: string, sampleUrl?: string) => {
+    if (audioPreviewPlayer) {
+      audioPreviewPlayer.pause();
+      if (previewingVoice === voiceId) {
+        setPreviewingVoice(null);
+        setAudioPreviewPlayer(null);
+        return;
+      }
+    }
+
+    setPreviewingVoice(voiceId);
+    let src = sampleUrl;
+    if (!src || customVoiceSampleText) {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/dubbing/preview-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+          body: JSON.stringify({
+            voiceModel: voiceId,
+            sampleText: customVoiceSampleText || undefined,
+            rate: selectedDubRate,
+            pitch: selectedDubPitch
+          })
+        });
+        const data = await res.json();
+        if (data.audioUrl) {
+          src = data.audioUrl;
+        }
+      } catch (e) {}
+    }
+
+    if (src) {
+      const audio = new Audio(src);
+      audio.onended = () => {
+        setPreviewingVoice(null);
+        setAudioPreviewPlayer(null);
+      };
+      audio.onerror = () => {
+        setPreviewingVoice(null);
+        setAudioPreviewPlayer(null);
+      };
+      audio.play().catch(() => {});
+      setAudioPreviewPlayer(audio);
+    } else {
+      setPreviewingVoice(null);
+    }
+  };
 
   const handleTranslateAndDub = async () => {
     setIsDubbing(true);
@@ -485,6 +665,9 @@ export const ContentDetailPage = () => {
         },
         body: JSON.stringify({
           targetLanguage: selectedDubLang,
+          voiceModel: selectedVoiceModel,
+          rate: selectedDubRate,
+          pitch: selectedDubPitch,
           title: metaTitle || videoTitle,
           description: metaDescription,
           script: scriptText,
@@ -495,13 +678,45 @@ export const ContentDetailPage = () => {
       const data = await res.json();
       if (data.success && data.dubbedPackage) {
         setDubbedResult(data.dubbedPackage);
-        setToast(`🎉 Video ${data.dubbedPackage.languageName} tiliga to'liq dublyaj qilindi!`);
+        setToast(`🎉 Video ${data.dubbedPackage.languageName} tiliga to'liq dublyaj qilindi va audio yaratildi!`);
         setTimeout(() => setToast(null), 3500);
+      } else {
+        setToast("⚠️ Dublyaj yaratishda xatolik yuz berdi");
+        setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {
       console.error('Dubbing error:', e);
+      setToast("❌ Tarmoq xatosi yuz berdi");
+      setTimeout(() => setToast(null), 3000);
     } finally {
       setIsDubbing(false);
+    }
+  };
+
+  const handleApplyDubbing = async () => {
+    if (!dubbedResult) return;
+    setIsSavingDubbing(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/dubbing/apply/${contentId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': workspaceId,
+        },
+        body: JSON.stringify({
+          dubbedPackage: dubbedResult,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`✅ ${dubbedResult.languageName} dublyaji video loyihasiga muvaffaqiyatli saqlandi!`);
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+      setToast("❌ Saqlashda xatolik yuz berdi");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsSavingDubbing(false);
     }
   };
 
@@ -3198,72 +3413,53 @@ export const ContentDetailPage = () => {
         {/* Multi-Language Global Dubbing */}
         <Tabs.Content value="dubbing" className="space-y-6 animate-fade-in">
           <Card className="liquid-glass border border-blue-500/30">
-            <CardContent className="p-6 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400">
-                    <Globe size={20} />
+                  <div className="p-2.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                    <Globe size={22} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Multi-Language Global Dubbing Studio</h3>
-                    <p className="text-xs text-gray-400">Videoni professional AI diksiya bilan boshqa xalqaro tillarga 1-klikda o'giring</p>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Multi-Voice & Ko'p Tilli Ovoz Studiyasi
+                      <span className="text-[10px] font-mono bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 font-semibold">
+                        Neural TTS 2026
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400">Videoni professional AI diktorlar bilan 5 ta tilga va turli ovozlarda dublyaj qiling</p>
                   </div>
                 </div>
-                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400">
-                  Global Reach Booster
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
+                    <Sparkles size={13} /> Global RPM Multiplier
+                  </span>
+                </div>
               </div>
 
-              {/* Language Selector Cards */}
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-white block">Maqsadli Tilni Tanlang:</label>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      code: 'es',
-                      name: 'Ispancha',
-                      native: 'Español',
-                      flag: '🇪🇸',
-                      market: 'Ispaniya & Lotin Amerikasi (500M+)',
-                      rpm: '$1.80 - $3.20',
-                      voice: 'es-ES-AlvaroNeural'
-                    },
-                    {
-                      code: 'uz',
-                      name: 'O\'zbekcha',
-                      native: 'O\'zbek tili',
-                      flag: '🇺🇿',
-                      market: 'O\'zbekiston & Markaziy Osiyo (36M+)',
-                      rpm: '$0.40 - $0.90',
-                      voice: 'uz-UZ-SardorNeural'
-                    },
-                    {
-                      code: 'de',
-                      name: 'Nemischa',
-                      native: 'Deutsch',
-                      flag: '🇩🇪',
-                      market: 'Germaniya & Avstriya (High CPM)',
-                      rpm: '$4.50 - $7.80',
-                      voice: 'de-DE-KillianNeural'
-                    },
-                    {
-                      code: 'fr',
-                      name: 'Fransuzcha',
-                      native: 'Français',
-                      flag: '🇫🇷',
-                      market: 'Fransiya & Kanada',
-                      rpm: '$3.20 - $5.50',
-                      voice: 'fr-FR-HenriNeural'
-                    }
-                  ].map((lang) => {
+              {/* Step 1: Language Selection */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <span>1. Maqsadli Tilni Tanlang</span>
+                  </label>
+                  <span className="text-[11px] text-gray-400">Auditoriya va taxminiy RPM bo'yicha saralangan</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {dubbingLanguages.map((lang) => {
                     const isSelected = selectedDubLang === lang.code;
                     return (
                       <div
                         key={lang.code}
-                        onClick={() => setSelectedDubLang(lang.code)}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2.5 ${
+                        onClick={() => {
+                          setSelectedDubLang(lang.code);
+                          if (lang.voices.length > 0) {
+                            setSelectedVoiceModel(lang.voices[0].id);
+                          }
+                        }}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
                           isSelected
-                            ? 'bg-blue-600/15 border-blue-500 text-white shadow-lg ring-1 ring-blue-500/30'
+                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg ring-2 ring-blue-500/40'
                             : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-gray-300'
                         }`}
                       >
@@ -3279,7 +3475,7 @@ export const ContentDetailPage = () => {
                             {isSelected && <CheckCircle2 size={14} className="text-blue-400" />}
                           </h4>
                           <p className="text-[11px] text-gray-400">{lang.native}</p>
-                          <p className="text-[10px] text-gray-400 mt-1 leading-snug">{lang.market}</p>
+                          <p className="text-[10px] text-gray-500 mt-1 line-clamp-1">{lang.market}</p>
                         </div>
                       </div>
                     );
@@ -3287,41 +3483,214 @@ export const ContentDetailPage = () => {
                 </div>
               </div>
 
+              {/* Step 2: Voice Roster Selection for the Chosen Language */}
+              {(() => {
+                const currentLang = dubbingLanguages.find(l => l.code === selectedDubLang) || dubbingLanguages[0];
+                return (
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Volume2 size={15} className="text-blue-400" />
+                        <span>2. AI Diktor Ovozini Tanlang ({currentLang.name})</span>
+                      </label>
+                      <span className="text-[11px] text-gray-400">Har bir ovozni jonli tinglab ko'rishingiz mumkin</span>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {currentLang.voices.map((voice) => {
+                        const isSelectedVoice = selectedVoiceModel === voice.id;
+                        const isPlaying = previewingVoice === voice.id;
+                        return (
+                          <div
+                            key={voice.id}
+                            onClick={() => setSelectedVoiceModel(voice.id)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative ${
+                              isSelectedVoice
+                                ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-2 ring-indigo-500/40'
+                                : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-white">{voice.name}</h4>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                    voice.gender === 'Ayol' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                  }`}>
+                                    {voice.gender === 'Ayol' ? '👩 Ayol' : '👨 Erkak'}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-indigo-400 font-medium block mt-0.5">{voice.badge}</span>
+                              </div>
+                              {isSelectedVoice && (
+                                <span className="bg-indigo-500 text-white p-1 rounded-full">
+                                  <Check size={12} />
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-gray-400 leading-relaxed">{voice.desc}</p>
+
+                            <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayVoicePreview(voice.id, voice.sampleUrl);
+                                }}
+                                className={`text-xs font-semibold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  isPlaying
+                                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse'
+                                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-200'
+                                }`}
+                              >
+                                {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+                                {isPlaying ? "To'xtatish" : "Tinglab ko'rish"}
+                              </button>
+
+                              <span className="text-[10px] font-mono text-gray-500">
+                                {voice.id.split('-')[2]?.replace('Neural', '') || voice.id}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 3: Speed (Rate) and Pitch Tuning */}
+              <div className="pt-2 border-t border-white/10 space-y-3">
+                <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders size={15} className="text-amber-400" />
+                  <span>3. Ovoz Tezligi va Balandligi (Viral Pacing)</span>
+                </label>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Speech Rate */}
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-300">Nutq Tezligi (Rate):</span>
+                      <span className="text-xs font-bold text-blue-400 font-mono">{selectedDubRate}</span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[
+                        { label: 'Sokin', val: '-10%' },
+                        { label: 'Standart', val: '+0%' },
+                        { label: 'Tez', val: '+10%' },
+                        { label: '🔥 Shorts', val: '+14%' },
+                        { label: 'Ultra', val: '+20%' }
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setSelectedDubRate(item.val)}
+                          className={`py-1.5 text-[11px] font-medium rounded-xl border transition-all cursor-pointer flex flex-col items-center ${
+                            selectedDubRate === item.val
+                              ? 'bg-blue-600/30 border-blue-500 text-white font-bold ring-1 ring-blue-500'
+                              : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <span>{item.val}</span>
+                          <span className="text-[9px] opacity-70 mt-0.5">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Speech Pitch */}
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-300">Ovoz Balandligi (Pitch):</span>
+                      <span className="text-xs font-bold text-amber-400 font-mono">{selectedDubPitch}</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { label: 'Past', val: '-5Hz' },
+                        { label: 'Tabiiy', val: '+0Hz' },
+                        { label: '⚡ Yorqin', val: '+1Hz' },
+                        { label: 'Jo\'shqin', val: '+3Hz' }
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setSelectedDubPitch(item.val)}
+                          className={`py-1.5 text-[11px] font-medium rounded-xl border transition-all cursor-pointer flex flex-col items-center ${
+                            selectedDubPitch === item.val
+                              ? 'bg-amber-600/30 border-amber-500 text-white font-bold ring-1 ring-amber-500'
+                              : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <span>{item.val}</span>
+                          <span className="text-[9px] opacity-70 mt-0.5">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Action Button */}
-              <div className="pt-2">
+              <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center gap-3">
                 <Button
                   type="button"
                   variant="primary"
                   disabled={isDubbing}
                   onClick={handleTranslateAndDub}
-                  className="w-full sm:w-auto px-6 text-xs font-bold bg-blue-600 hover:bg-blue-500 border-blue-500 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                  className="w-full sm:w-auto px-7 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 border-blue-500 flex items-center justify-center gap-2 cursor-pointer shadow-xl rounded-xl"
                 >
                   <Sparkles size={16} className={isDubbing ? 'animate-spin' : ''} />
-                  {isDubbing ? 'Dublyaj skripti va audio generatsiya qilinmoqda...' : '🚀 Tanlangan Tilda Dublyaj Qilish'}
+                  {isDubbing ? 'Dublyaj skripti va audio generatsiya qilinmoqda...' : '🎙️ 1-Klikda Tarjima Qilish & Ovoz Berish (Dublyaj)'}
                 </Button>
+                <span className="text-[11px] text-gray-400 text-center sm:text-left">
+                  Tanlangan til: <strong className="text-white">{dubbingLanguages.find(l => l.code === selectedDubLang)?.name}</strong> | Ovoz: <strong className="text-white">{selectedVoiceModel}</strong>
+                </span>
               </div>
 
               {/* Dubbing Output Preview */}
               {dubbedResult && (
-                <div className="space-y-4 pt-4 border-t border-white/10 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-400" />
+                <div className="space-y-4 pt-5 border-t border-white/10 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-white flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-emerald-400" />
                       Tayyor Dublyaj Paketi ({dubbedResult.languageName}):
                     </span>
-                    <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                      Ovoz: {dubbedResult.voiceModel}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">
+                        Ovoz: {dubbedResult.voiceModel} ({dubbedResult.rate})
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 text-xs">
+                  {/* Audio Player for generated track */}
+                  {dubbedResult.audioUrl && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 to-indigo-950/40 border border-blue-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Volume2 size={16} className="text-emerald-400" />
+                          Generatsiya Qilingan Dublyaj Audio Trek (MP3):
+                        </span>
+                        <a
+                          href={dubbedResult.audioUrl}
+                          download={`dubbed_${dubbedResult.languageCode}.mp3`}
+                          className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                        >
+                          <Download size={13} /> Yuklab olish
+                        </a>
+                      </div>
+                      <audio controls src={dubbedResult.audioUrl} className="w-full mt-2 rounded-xl" />
+                    </div>
+                  )}
+
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3.5 text-xs">
                     <div>
                       <span className="text-gray-400 block font-semibold">Tarjima qilingan Sarlavha:</span>
                       <p className="font-bold text-white text-sm mt-0.5">{dubbedResult.translatedTitle}</p>
                     </div>
                     <div>
                       <span className="text-gray-400 block font-semibold">Dublyaj Skripti:</span>
-                      <p className="font-sans text-gray-200 mt-0.5 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap">
+                      <p className="font-sans text-gray-200 mt-0.5 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap max-h-48 overflow-y-auto">
                         {dubbedResult.translatedScript}
                       </p>
                     </div>
@@ -3333,7 +3702,17 @@ export const ContentDetailPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2.5">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      disabled={isSavingDubbing}
+                      onClick={handleApplyDubbing}
+                      className="text-xs flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white cursor-pointer"
+                    >
+                      <Check size={14} />
+                      {isSavingDubbing ? 'Saqlanmoqda...' : '💾 Dublyajni Videoga Biriktirish'}
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -3342,7 +3721,7 @@ export const ContentDetailPage = () => {
                         setToast("✅ Dublyaj skripti nusxalandi!");
                         setTimeout(() => setToast(null), 2500);
                       }}
-                      className="text-xs flex items-center gap-1.5"
+                      className="text-xs flex items-center gap-1.5 cursor-pointer"
                     >
                       <Copy size={13} />
                       Skriptdan nusxa olish
