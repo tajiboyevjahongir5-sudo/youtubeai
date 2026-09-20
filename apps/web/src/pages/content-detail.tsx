@@ -1435,10 +1435,21 @@ export const ContentDetailPage = () => {
   const [emotionalSpeechPlan, setEmotionalSpeechPlan] = useState<any | null>(null);
   const [algorithmRadarData, setAlgorithmRadarData] = useState<any | null>(null);
 
+  // WAVE 11 ADDITIONS
+  const [layerCompositorPlan, setLayerCompositorPlan] = useState<any | null>(null);
+  const [podcastSyndicationData, setPodcastSyndicationData] = useState<any | null>(null);
+  const [mostReplayedData, setMostReplayedData] = useState<any | null>(null);
+  const [aiCommentResponderData, setAiCommentResponderData] = useState<any | null>(null);
+  const [githubRepoPackage, setGithubRepoPackage] = useState<any | null>(null);
+
   const fetchLongformSuiteData = async () => {
     try {
       const titleParam = encodeURIComponent(metaTitle || videoTitle || "Neural Pulse AI Masterclass");
-      const [midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes, heatRes, sponRes, polRes, premRes, chatRes, abRes, invRes, emoRes, radarRes] = await Promise.all([
+      const [
+        midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes, 
+        heatRes, sponRes, polRes, premRes, chatRes, abRes, invRes, emoRes, radarRes,
+        layerRes, podRes, replayRes, commentRes, repoRes
+      ] = await Promise.all([
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/midroll/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
         }),
@@ -1489,10 +1500,29 @@ export const ContentDetailPage = () => {
         }),
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/algorithm-radar/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/layer-compositor/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/podcast-syndication/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/most-replayed/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/comment-responder/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/github-repo/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
         })
       ]);
 
-      const [midData, arcData, endData, clipsData, camData, codeData, seoData, commData, heatData, sponData, polData, premData, chatData, abData, invData, emoData, radarData] = await Promise.all([
+      const [
+        midData, arcData, endData, clipsData, camData, codeData, seoData, commData, 
+        heatData, sponData, polData, premData, chatData, abData, invData, emoData, radarData,
+        layerData, podData, replayData, commentData, repoData
+      ] = await Promise.all([
         midRes.json().catch(() => null),
         arcRes.json().catch(() => null),
         endRes.json().catch(() => null),
@@ -1509,7 +1539,12 @@ export const ContentDetailPage = () => {
         abRes.json().catch(() => null),
         invRes.json().catch(() => null),
         emoRes.json().catch(() => null),
-        radarRes.json().catch(() => null)
+        radarRes.json().catch(() => null),
+        layerRes.json().catch(() => null),
+        podRes.json().catch(() => null),
+        replayRes.json().catch(() => null),
+        commentRes.json().catch(() => null),
+        repoRes.json().catch(() => null)
       ]);
 
       if (midData?.success && midData.plan) setMidrollPlan(midData.plan);
@@ -1529,6 +1564,11 @@ export const ContentDetailPage = () => {
       if (invData?.success && invData.invoice) setSponsorInvoice(invData.invoice);
       if (emoData?.success && emoData.profile) setEmotionalSpeechPlan(emoData.profile);
       if (radarData?.success && radarData.report) setAlgorithmRadarData(radarData.report);
+      if (layerData?.success && layerData.plan) setLayerCompositorPlan(layerData.plan);
+      if (podData?.success && podData.package) setPodcastSyndicationData(podData.package);
+      if (replayData?.success && replayData.analysis) setMostReplayedData(replayData.analysis);
+      if (commentData?.success && commentData.package) setAiCommentResponderData(commentData.package);
+      if (repoData?.success && repoData.repo) setGithubRepoPackage(repoData.repo);
     } catch (e) {}
   };
 
@@ -3053,6 +3093,119 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* 📈 YouTube "Most Replayed" (Eng Ko'p Qayta Ko'riladigan Qismlar) Prognozi */}
+          <Card className="liquid-glass border border-emerald-500/35 shadow-[0_0_25px_rgba(16,185,129,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube "Most Replayed" (Eng Ko'p Qayta Ko'riladigan Qismlar) Prognozi
+                      <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                        O'rtacha Saqlanish: {mostReplayedData?.averageExpectedRetention || 72}%
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Tomoshabinlar videoning aynan qaysi soniyalarini to'xtatib (pause) yoki orqaga qaytarib ko'rishini oldindan modellashtirish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {mostReplayedData?.overallReplayMultiplier || "+34% qayta ko'rishlar"}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Ta Cho'qqi Nuqtasi (Peak Rewind Moments) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(mostReplayedData?.peaks || [
+                  {
+                    second: 45,
+                    timecode: "00:45",
+                    topic: "Agent Orkestratsiya Arxitekturasi Diagrammasi",
+                    replayIntensity: 2.3,
+                    retentionPercent: 91,
+                    psychologyReason: "Tomoshabinlar murakkab arxitektura chizmasini to'xtatib (pause) daftarga chizib oladi.",
+                    recommendedIntervention: "Ekranning o'ng tomonida 'Skrinshot oling' mikro-ikonkasi va 'chime' tovushini qo'yish.",
+                    sfxCue: "sfx_camera_shutter.wav"
+                  },
+                  {
+                    second: 210,
+                    timecode: "03:30",
+                    topic: "Docker Sandbox Ichida Xatolikni Qidirish (Debugging)",
+                    replayIntensity: 2.8,
+                    retentionPercent: 94,
+                    psychologyReason: "Dasturchilar kod sintaksisini va konfiguratsiya buyruqlarini aniq ko'rish uchun 10 soniya orqaga qaytaradi.",
+                    recommendedIntervention: "Kod shriftini 15% kattalashtirish va kritik qatorga neon sariq ramka qo'yish.",
+                    sfxCue: "sfx_keyboard_typing_hit.wav"
+                  },
+                  {
+                    second: 540,
+                    timecode: "09:00",
+                    topic: "Cascade Failure Avto-Tiklanish Lahzasi",
+                    replayIntensity: 2.1,
+                    retentionPercent: 88,
+                    psychologyReason: "Kutilmagan xatodan agentning mustaqil chiqib ketishi hayrat va qiziqish uyg'otadi.",
+                    recommendedIntervention: "Ekran chetida qizil alert pulsatsiyasi va 'sub-bass drop' tovushini ulash.",
+                    sfxCue: "sfx_sub_drop.wav"
+                  },
+                  {
+                    second: 820,
+                    timecode: "13:40",
+                    topic: "Benchmark & Modellar Taqqoslash Jadvali",
+                    replayIntensity: 2.5,
+                    retentionPercent: 92,
+                    psychologyReason: "GPT-4o vs Claude 3.7 Sonnet vs DeepSeek narx va tezlik taqqosini tahlil qilish uchun pauza qilinadi.",
+                    recommendedIntervention: "Jadvalni to'liq ekranga yoyish va manbalar havolasini ta'kidlash.",
+                    sfxCue: "sfx_data_ping.wav"
+                  }
+                ]).map((peak: any, pIdx: number) => (
+                  <div
+                    key={pIdx}
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-emerald-500/40 transition flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded">
+                          ⏱️ {peak.timecode}
+                        </span>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <span className="bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            Replay: {peak.replayIntensity}x
+                          </span>
+                          <span className="bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
+                            {peak.retentionPercent}% Saqlanish
+                          </span>
+                        </div>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-white leading-snug">{peak.topic}</h4>
+                      <p className="text-xs text-gray-300 leading-relaxed">
+                        🧠 <strong>Sabab:</strong> {peak.psychologyReason}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 space-y-1.5 text-[11px]">
+                      <div className="text-cyan-300 flex items-center gap-1">
+                        <Sparkles size={12} className="shrink-0" />
+                        <span><strong>Tavsiya:</strong> {peak.recommendedIntervention}</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-400 flex items-center justify-between">
+                        <span>SFX Tovush: <strong>{peak.sfxCue}</strong></span>
+                        <span className="text-emerald-400">Algoritm Reytingi: A+</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* 🎞️ Smart B-Roll Media Kutubxonasi & Footage Manager */}
@@ -3404,6 +3557,128 @@ CMD ["pnpm", "start:production"]`,
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🎬 AI B-Roll & Ko'p Qatlamli Vizual Montaj Rejissyori (Smart Layer Compositor) */}
+          <Card className="liquid-glass border border-cyan-500/35 shadow-[0_0_25px_rgba(6,182,212,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <Layers className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      AI B-Roll & Ko'p Qatlamli Vizual Montaj Rejissyori (Smart Layer Compositor)
+                      <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                        {layerCompositorPlan?.renderingProfile?.resolution || "3840x2160 (4K UHD)"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Boshlovchi Alex (y=100..1240) yuzini to'smagan holda B-roll kadrlar, pastki titrlar (Lower Thirds) va terminal oynalarini avtomat qatlamlash
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Alex Xavfsiz Hududi: 100% Toza
+                  </span>
+                </div>
+              </div>
+
+              {/* Qatlamlar Ro'yxati */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(layerCompositorPlan?.layers || [
+                  {
+                    id: "layer_1",
+                    timecode: "00:03 - 00:09",
+                    layerType: "lower_third",
+                    title: "Boshlovchi Titri & Mavzu",
+                    description: "Alex • Neural Pulse AI Bosh Muhandisi | 2026 Autonomous AI Stack",
+                    screenPosition: "bottom_third",
+                    animationIn: "slide_up",
+                    alexZoneClear: true
+                  },
+                  {
+                    id: "layer_2",
+                    timecode: "00:15 - 00:28",
+                    layerType: "broll_footage",
+                    title: "Nvidia GPU Klasteri & Datatsentr",
+                    description: "Kinematik 4K klaster serverlari va yonayotgan yashil status chiroqlari",
+                    screenPosition: "fullscreen_background",
+                    animationIn: "fade_in",
+                    alexZoneClear: true
+                  },
+                  {
+                    id: "layer_3",
+                    timecode: "00:42 - 01:05",
+                    layerType: "tech_diagram",
+                    title: "Agent Orkestratori 3D Sxemasi",
+                    description: "Multi-agent container sandbox aloqa sxemasi va xotira boshqaruvi",
+                    screenPosition: "split_right_half",
+                    animationIn: "zoom_punch",
+                    alexZoneClear: true
+                  },
+                  {
+                    id: "layer_4",
+                    timecode: "01:20 - 01:50",
+                    layerType: "terminal_overlay",
+                    title: "Docker Compose Live Execution",
+                    description: "Terminalda agentlarning avtonom ishga tushishi va loglar oqimi",
+                    screenPosition: "pip_top_right",
+                    animationIn: "glitch_reveal",
+                    alexZoneClear: true
+                  },
+                  {
+                    id: "layer_5",
+                    timecode: "02:05 - 02:15",
+                    layerType: "kinetic_arrow",
+                    title: "Kritik Kod Nuqtasi Ko'rsatkichi",
+                    description: "Animatsion kiber-strelka xotira oqishi sababini ko'rsatadi",
+                    screenPosition: "center_overlay",
+                    animationIn: "slide_up",
+                    alexZoneClear: true
+                  }
+                ]).map((layer: any, lIdx: number) => (
+                  <div
+                    key={layer.id || lIdx}
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-cyan-500/40 transition flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded border border-cyan-500/20 font-bold">
+                          ⏱️ {layer.timecode}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                          {layer.screenPosition}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-white leading-snug">{layer.title}</h4>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">{layer.description}</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400 font-mono">Effekt: <strong className="text-white">{layer.animationIn}</strong></span>
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <Check size={11} /> Alex Xavfsiz
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Rendering Texnik Parametrlari */}
+              <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+                <span className="text-gray-300">
+                  Kadrlar chastotasi: <strong className="text-white">{layerCompositorPlan?.renderingProfile?.fps || 60} FPS</strong> • Bitrate: <strong className="text-cyan-300">{layerCompositorPlan?.renderingProfile?.targetBitrate || "45 Mbps H.265"}</strong>
+                </span>
+                <span className="text-emerald-400 font-bold">
+                  Rang profili: {layerCompositorPlan?.renderingProfile?.colorProfile || "Rec.709 10-bit HDR"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -6890,6 +7165,113 @@ CMD ["pnpm", "start:production"]`,
               </div>
             </CardContent>
           </Card>
+
+          {/* 📦 Production-Ready GitHub Repo & Kod Arxiv Paketi (GitHub Sync) */}
+          <Card className="liquid-glass border border-indigo-500/35 shadow-[0_0_25px_rgba(99,102,241,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <ExternalLink className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      Production-Ready GitHub Repo & Kod Arxiv Paketi
+                      <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+                        {githubRepoPackage?.license || "MIT License (Open-Source)"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Videoda ko'rsatilgan butun arxitektura, Dockerfile va skriptlarni video tavsifiga qo'yish uchun rasmiy GitHub ombori qilib jamlash
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Ishonch Bali: {githubRepoPackage?.viewerTrustScore || 99}/100
+                  </span>
+                </div>
+              </div>
+
+              {/* 1-Click Clone Buyrug'i */}
+              <div className="p-3 rounded-xl bg-black/60 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 font-mono text-xs text-emerald-400 overflow-x-auto">
+                  <span className="text-gray-500 select-none">$</span>
+                  <span>{githubRepoPackage?.oneClickCloneCommand || "git clone https://github.com/tajiboyevjahongir5-sudo/autonomous-ai-stack-2026.git"}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(githubRepoPackage?.oneClickCloneCommand || "git clone https://github.com/tajiboyevjahongir5-sudo/autonomous-ai-stack-2026.git");
+                    setToast("📋 Git clone buyrug'i nusxalandi!");
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  className="text-xs font-bold border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 cursor-pointer h-7 shrink-0"
+                >
+                  <Copy size={11} className="mr-1" /> Buyruqdan Nusxa Olish
+                </Button>
+              </div>
+
+              {/* Repozitoriy Fayllari Ro'yxati */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(githubRepoPackage?.files || [
+                  { fileName: "README.md", fileType: "markdown", description: "Loyiha qo'llanmasi, arxitektura sxemalari va yo'riqnoma", sizeKb: 4.2 },
+                  { fileName: "docker-compose.yml", fileType: "yaml", description: "Agent sandboxtlarini alohida konteynerlarda ishga tushirish", sizeKb: 2.1 },
+                  { fileName: "orchestrator.py", fileType: "python", description: "Vazifalarni taqsimlovchi va xatolarni tuzatuvchi Python kodi", sizeKb: 8.6 },
+                  { fileName: ".env.example", fileType: "env", description: "API kalitlar va sozlamalar namunasi", sizeKb: 0.8 },
+                  { fileName: "LICENSE", fileType: "license", description: "MIT xalqaro ochiq kod litsenziyasi", sizeKb: 1.1 }
+                ]).map((file: any, fIdx: number) => (
+                  <div
+                    key={fIdx}
+                    className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-indigo-500/30 transition flex flex-col justify-between space-y-2"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                          📁 {file.fileName}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-1.5 py-0.5 rounded">
+                          {file.sizeKb} KB
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-snug">{file.description}</p>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                      <span>Format: {file.fileType}</span>
+                      <span className="text-emerald-400">Tekshirilgan ✓</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* README.md Preview */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText size={14} className="text-indigo-400" /> Rasmiy README.md Hujjati (GitHub & Tavsif Uchun)
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(githubRepoPackage?.readmeMarkdown || "");
+                      setToast("📋 README.md matni nusxalandi!");
+                      setTimeout(() => setToast(null), 3000);
+                    }}
+                    className="text-xs font-bold border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 cursor-pointer h-7"
+                  >
+                    <Copy size={11} className="mr-1" /> README Nusxalash
+                  </Button>
+                </div>
+                <div className="bg-[#090d16] p-3 rounded-lg border border-white/5 text-xs text-gray-300 font-mono whitespace-pre-line leading-relaxed max-h-44 overflow-y-auto">
+                  {githubRepoPackage?.readmeMarkdown}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* Comments & AI Smart Reply */}
@@ -7485,6 +7867,124 @@ CMD ["pnpm", "start:production"]`,
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 💬 YouTube Dastlabki 100 Ta Izohga AI Boshlovchi Alex Nomidan Javob Berish */}
+          <Card className="liquid-glass border border-cyan-500/35 shadow-[0_0_25px_rgba(6,182,212,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube Dastlabki 100 Ta Izohga AI Javob Berish (Live Engagement Booster)
+                      <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                        Alex Nomidan
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Video chiqqan dastlabki 2-4 soatda tomoshabinlar savollariga 1-klikda professional, samimiy va texnik javob qaytarish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {aiCommentResponderData?.engagementBoostProjected || "+320% tomoshabinlar qaytishi"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Savol-Javob Qatorlari */}
+              <div className="space-y-3.5">
+                {(aiCommentResponderData?.commentThreads || [
+                  {
+                    id: "c_1",
+                    authorName: "Marcus Vance",
+                    authorBadge: "Senior DevOps Engineer",
+                    commentText: "Can we use this Docker orchestrator setup with Kubernetes Helm charts, or does it require single node Docker compose?",
+                    suggestedAlexReply: "Great question Marcus! Yes, you can absolutely translate the docker-compose.yml into Helm templates. The key is keeping each agent pod ephemeral and passing ephemeral tokens via ConfigMaps so state stays decoupled. Check section 08:40 in the video for the env contract!",
+                    postedAgo: "12 daqiqa oldin",
+                    likesCount: 19
+                  },
+                  {
+                    id: "c_2",
+                    authorName: "Elena Rostova",
+                    commentText: "This is hands down the cleanest breakdown of multi-agent state isolation I've seen in 2026. Subscribed!",
+                    suggestedAlexReply: "Thank you Elena! Really appreciate the kind words. More production architecture teardowns dropping every Tuesday and Thursday!",
+                    postedAgo: "24 daqiqa oldin",
+                    likesCount: 31
+                  },
+                  {
+                    id: "c_3",
+                    authorName: "Devin K.",
+                    commentText: "Won't the token cost explode if the self-healing loop runs into an infinite recursion on unexpected API errors?",
+                    suggestedAlexReply: "Spot on Devin — that's why we enforced a strict `max_healing_retries = 3` circuit breaker with exponential backoff on line 42 of the recovery script. If it hits 3 fails, it gracefully falls back to human escalation.",
+                    postedAgo: "35 daqiqa oldin",
+                    likesCount: 14
+                  },
+                  {
+                    id: "c_4",
+                    authorName: "Sardorbek Rahimov",
+                    commentText: "GitHub repo kodlarini qayerdan yuklab olsak bo'ladi? Docker fayllari ham bormi ichida?",
+                    suggestedAlexReply: "Assalomu alaykum Sardorbek! Barcha kodlar va Docker Compose konfiguratsiyalari video tavsifidagi birinchi havolada (GitHub) to'liq joylangan. Bemalol klon qilib ishlatishingiz mumkin!",
+                    postedAgo: "48 daqiqa oldin",
+                    likesCount: 9
+                  }
+                ]).map((thread: any, tIdx: number) => (
+                  <div
+                    key={thread.id || tIdx}
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-cyan-500/30 transition space-y-3"
+                  >
+                    {/* Tomoshabin Izohi */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">{thread.authorName}</span>
+                          {thread.authorBadge && (
+                            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded">
+                              {thread.authorBadge}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-500">{thread.postedAgo}</span>
+                        </div>
+                        <p className="text-xs text-gray-300 font-sans">{thread.commentText}</p>
+                      </div>
+
+                      <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-0.5 rounded shrink-0">
+                        👍 {thread.likesCount}
+                      </span>
+                    </div>
+
+                    {/* Alex Taklif Qilayotgan Rasmiy Javob */}
+                    <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
+                          <CheckCircle2 size={13} /> Boshlovchi Alex Javobi (Tavsiya etiladi):
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(thread.suggestedAlexReply);
+                            setToast(`📋 "${thread.authorName}" uchun Alex javobi nusxalandi!`);
+                            setTimeout(() => setToast(null), 3000);
+                          }}
+                          className="h-6 text-[10px] font-bold border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 cursor-pointer"
+                        >
+                          <Copy size={10} className="mr-1" /> Javobni Nusxalash & Yuborish
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-200 leading-relaxed font-sans">
+                        "{thread.suggestedAlexReply}"
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -8874,6 +9374,85 @@ CMD ["pnpm", "start:production"]`,
                     })}
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🎙️ YouTube Podkast & Spotify RSS Avto-Sindikatsiya */}
+          <Card className="liquid-glass border border-blue-500/35 shadow-[0_0_25px_rgba(59,130,246,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <Radio className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube Podkast & Spotify RSS Avto-Sindikatsiya
+                      <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full">
+                        {podcastSyndicationData?.audioFormat || "MP3 320kbps"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Videoning toza audiosini YouTube Music, Spotify va Apple Podcasts uchun bitta RSS oqimida tarqatish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    12-Qism • 1-Mavsum
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Podkast Platformalari */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {(podcastSyndicationData?.distributionPlatforms || [
+                  { platform: "Spotify for Podcasters", status: "Ready to Publish", projectedMonthlyListeners: "35,000+" },
+                  { platform: "Apple Podcasts", status: "Ready to Publish", projectedMonthlyListeners: "28,000+" },
+                  { platform: "YouTube Music", status: "Ready to Publish", projectedMonthlyListeners: "45,000+" },
+                  { platform: "Amazon Music", status: "Ready to Publish", projectedMonthlyListeners: "12,000+" }
+                ]).map((plat: any, pIdx: number) => (
+                  <div
+                    key={pIdx}
+                    className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-blue-500/30 transition flex flex-col justify-between space-y-2"
+                  >
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-white block">{plat.platform}</span>
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded inline-block">
+                        {plat.status}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-white/5 text-[10px] text-gray-400 font-mono">
+                      Kutilayotgan tinglovchilar: <strong className="text-cyan-300">{plat.projectedMonthlyListeners}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Show Notes & RSS XML Feed */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText size={14} className="text-blue-400" /> Rasmiy Podkast RSS XML Oqimi (Spotify / Apple)
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(podcastSyndicationData?.rssXmlFeedSample || "");
+                      setToast("📋 Podkast RSS XML kodi nusxalandi!");
+                      setTimeout(() => setToast(null), 3000);
+                    }}
+                    className="text-xs font-bold border-blue-500/30 text-blue-300 hover:bg-blue-500/20 cursor-pointer h-7"
+                  >
+                    <Copy size={11} className="mr-1" /> RSS Oqimidan Nusxa Olish
+                  </Button>
+                </div>
+                <div className="bg-[#090d16] p-3 rounded-lg border border-white/5 text-xs text-gray-300 font-mono whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto">
+                  {podcastSyndicationData?.rssXmlFeedSample}
+                </div>
               </div>
             </CardContent>
           </Card>

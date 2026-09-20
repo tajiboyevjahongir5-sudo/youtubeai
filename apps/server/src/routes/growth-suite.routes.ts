@@ -48,6 +48,11 @@ import { abTitleThumbnailRotatorService } from '../services/ab-title-thumbnail-r
 import { sponsorInvoiceGeneratorService } from '../services/sponsor-invoice-generator.service';
 import { alexEmotionalSpeechService } from '../services/alex-emotional-speech.service';
 import { channelAlgorithmRadarService } from '../services/channel-algorithm-radar.service';
+import { smartLayerCompositorService } from '../services/smart-layer-compositor.service';
+import { podcastRssSyndicationService } from '../services/podcast-rss-syndication.service';
+import { mostReplayedHeatmapService } from '../services/most-replayed-heatmap.service';
+import { aiCommentResponderService } from '../services/ai-comment-responder.service';
+import { githubRepoPackagerService } from '../services/github-repo-packager.service';
 
 const router = Router();
 
@@ -731,6 +736,61 @@ router.get('/longform/algorithm-radar/:contentId', (req, res) => {
   const channel = (req.query.channel as string) || '';
   const report = channelAlgorithmRadarService.auditChannelHealth(contentId, channel);
   res.json({ success: true, report });
+});
+
+// ==========================================
+// 50. SMART B-ROLL & MULTI-LAYER COMPOSITOR
+// ==========================================
+
+router.get('/longform/layer-compositor/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const plan = smartLayerCompositorService.generateCompositorPlan(contentId, title);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 51. PODCAST RSS & MULTI-PLATFORM SYNDICATION
+// ==========================================
+
+router.get('/longform/podcast-syndication/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const pkg = podcastRssSyndicationService.generatePodcastPackage(contentId, title);
+  res.json({ success: true, package: pkg });
+});
+
+// ==========================================
+// 52. YOUTUBE MOST REPLAYED HEATMAP PREDICTOR
+// ==========================================
+
+router.get('/longform/most-replayed/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const analysis = mostReplayedHeatmapService.predictHeatmap(contentId, title);
+  res.json({ success: true, analysis });
+});
+
+// ==========================================
+// 53. AI AUTO-COMMENT RESPONDER (FIRST 100 ENGAGEMENT)
+// ==========================================
+
+router.get('/longform/comment-responder/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const pkg = aiCommentResponderService.generateCommentResponses(contentId, title);
+  res.json({ success: true, package: pkg });
+});
+
+// ==========================================
+// 54. PRODUCTION-READY GITHUB REPO PACKAGER
+// ==========================================
+
+router.get('/longform/github-repo/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const repo = githubRepoPackagerService.packageRepository(contentId, title);
+  res.json({ success: true, repo });
 });
 
 export default router;
