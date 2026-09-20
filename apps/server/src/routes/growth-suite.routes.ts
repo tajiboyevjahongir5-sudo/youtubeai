@@ -44,6 +44,10 @@ import { sponsorPitchKitService } from '../services/sponsor-pitch-kit.service';
 import { policyGreenDollarShieldService } from '../services/policy-green-dollar-shield.service';
 import { premiereSchedulerService } from '../services/premiere-scheduler.service';
 import { premiereChatSimulatorService } from '../services/premiere-chat-simulator.service';
+import { abTitleThumbnailRotatorService } from '../services/ab-title-thumbnail-rotator.service';
+import { sponsorInvoiceGeneratorService } from '../services/sponsor-invoice-generator.service';
+import { alexEmotionalSpeechService } from '../services/alex-emotional-speech.service';
+import { channelAlgorithmRadarService } from '../services/channel-algorithm-radar.service';
 
 const router = Router();
 
@@ -684,6 +688,49 @@ router.get('/longform/premiere-chat/:contentId', (req, res) => {
   const { contentId } = req.params;
   const chat = premiereChatSimulatorService.generateLiveChatStream(contentId);
   res.json({ success: true, chat });
+});
+
+// ==========================================
+// 46. JONLI A/B SARLAVHA & MUQOVA AVTO-ALMASHTIRGICH (AUTO-ROTATOR)
+// ==========================================
+
+router.get('/longform/ab-rotator/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const plan = abTitleThumbnailRotatorService.getRotatorPlan(contentId, title);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 47. HOMIYLAR UCHUN RASMIY HISOB-FAKTURA (INVOICE) GENERATORI
+// ==========================================
+
+router.get('/longform/sponsor-invoice/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const brand = (req.query.brand as string) || '';
+  const invoice = sponsorInvoiceGeneratorService.generateInvoice(contentId, brand);
+  res.json({ success: true, invoice });
+});
+
+// ==========================================
+// 48. ALEX EMOTIONAL SPEECH ENGINE
+// ==========================================
+
+router.get('/longform/emotional-speech/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const profile = alexEmotionalSpeechService.getEmotionalProfile(contentId);
+  res.json({ success: true, profile });
+});
+
+// ==========================================
+// 49. YOUTUBE ALGORITM RADARI & SHADOWBAN QALQONI
+// ==========================================
+
+router.get('/longform/algorithm-radar/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const channel = (req.query.channel as string) || '';
+  const report = channelAlgorithmRadarService.auditChannelHealth(contentId, channel);
+  res.json({ success: true, report });
 });
 
 export default router;

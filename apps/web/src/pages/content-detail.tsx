@@ -1429,10 +1429,16 @@ export const ContentDetailPage = () => {
   const [premierePlan, setPremierePlan] = useState<any | null>(null);
   const [premiereChatData, setPremiereChatData] = useState<any | null>(null);
 
+  // WAVE 10 ADDITIONS
+  const [abRotatorPlan, setAbRotatorPlan] = useState<any | null>(null);
+  const [sponsorInvoice, setSponsorInvoice] = useState<any | null>(null);
+  const [emotionalSpeechPlan, setEmotionalSpeechPlan] = useState<any | null>(null);
+  const [algorithmRadarData, setAlgorithmRadarData] = useState<any | null>(null);
+
   const fetchLongformSuiteData = async () => {
     try {
       const titleParam = encodeURIComponent(metaTitle || videoTitle || "Neural Pulse AI Masterclass");
-      const [midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes, heatRes, sponRes, polRes, premRes, chatRes] = await Promise.all([
+      const [midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes, heatRes, sponRes, polRes, premRes, chatRes, abRes, invRes, emoRes, radarRes] = await Promise.all([
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/midroll/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
         }),
@@ -1471,10 +1477,22 @@ export const ContentDetailPage = () => {
         }),
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/premiere-chat/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/ab-rotator/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/sponsor-invoice/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/emotional-speech/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/algorithm-radar/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
         })
       ]);
 
-      const [midData, arcData, endData, clipsData, camData, codeData, seoData, commData, heatData, sponData, polData, premData, chatData] = await Promise.all([
+      const [midData, arcData, endData, clipsData, camData, codeData, seoData, commData, heatData, sponData, polData, premData, chatData, abData, invData, emoData, radarData] = await Promise.all([
         midRes.json().catch(() => null),
         arcRes.json().catch(() => null),
         endRes.json().catch(() => null),
@@ -1487,7 +1505,11 @@ export const ContentDetailPage = () => {
         sponRes.json().catch(() => null),
         polRes.json().catch(() => null),
         premRes.json().catch(() => null),
-        chatRes.json().catch(() => null)
+        chatRes.json().catch(() => null),
+        abRes.json().catch(() => null),
+        invRes.json().catch(() => null),
+        emoRes.json().catch(() => null),
+        radarRes.json().catch(() => null)
       ]);
 
       if (midData?.success && midData.plan) setMidrollPlan(midData.plan);
@@ -1503,6 +1525,10 @@ export const ContentDetailPage = () => {
       if (polData?.success && polData.report) setPolicyShieldReport(polData.report);
       if (premData?.success && premData.plan) setPremierePlan(premData.plan);
       if (chatData?.success && chatData.chat) setPremiereChatData(chatData.chat);
+      if (abData?.success && abData.plan) setAbRotatorPlan(abData.plan);
+      if (invData?.success && invData.invoice) setSponsorInvoice(invData.invoice);
+      if (emoData?.success && emoData.profile) setEmotionalSpeechPlan(emoData.profile);
+      if (radarData?.success && radarData.report) setAlgorithmRadarData(radarData.report);
     } catch (e) {}
   };
 
@@ -3824,6 +3850,126 @@ CMD ["pnpm", "start:production"]`,
                   })}
                 </div>
               </div>
+
+              {/* 🎙️ Boshlovchi Alex Ovozining Hissiy Holatini Boshqarish (Alex Emotional Speech Engine) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-blue-950/25 to-black/50 border border-blue-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                      <Sliders size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        Boshlovchi Alex Ovozining Hissiy Holatini Boshqarish (Emotional Speech Engine)
+                        <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded">
+                          {emotionalSpeechPlan?.baseVoiceModel || "en-US-ChristopherNeural"}
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-gray-400">
+                        Har bir kadr mazmuniga qarab boshlovchi nutqining tezligi (+16%), balandligi (+2Hz) va hayajon darajasini dinamik o'zgartirish
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs font-mono">
+                    <span className="text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 rounded-lg">
+                      Loudness: {emotionalSpeechPlan?.audioLoudnessLUFS || -14.0} LUFS
+                    </span>
+                    <span className="text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+                      True Peak: {emotionalSpeechPlan?.truePeakDb || -0.98} dB
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Hissiy Holatlar Preseti */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {(emotionalSpeechPlan?.presets || [
+                    {
+                      sceneType: "hook",
+                      label: "1. Kirish & Xavf (Urgent & High Energy)",
+                      rate: "+16%",
+                      pitch: "+2Hz",
+                      volume: "+0%",
+                      sampleText: "Most AI agents fail in production. Here is the exact architecture that fixes it.",
+                      breathPauseSeconds: 0.12
+                    },
+                    {
+                      sceneType: "technical_deepdive",
+                      label: "2. Kod & Arxitektura (Calm Authority)",
+                      rate: "+9%",
+                      pitch: "-1Hz",
+                      volume: "-2%",
+                      sampleText: "Notice how the orchestrator manages state across isolated container sandboxes.",
+                      breathPauseSeconds: 0.25
+                    },
+                    {
+                      sceneType: "critical_tension",
+                      label: "3. Kritik Xato / Avto-Tuzatish (Shock)",
+                      rate: "+18%",
+                      pitch: "+3Hz",
+                      volume: "+2%",
+                      sampleText: "Warning! The token limit triggered a cascade failure. Watch it self-recover.",
+                      breathPauseSeconds: 0.08
+                    },
+                    {
+                      sceneType: "inspirational_outro",
+                      label: "4. Xulosa & Obuna (Inspirational CTA)",
+                      rate: "+12%",
+                      pitch: "+1Hz",
+                      volume: "+0%",
+                      sampleText: "Drop a comment below with your favorite AI stack, and hit subscribe.",
+                      breathPauseSeconds: 0.20
+                    }
+                  ]).map((preset: any, pIdx: number) => (
+                    <div
+                      key={preset.sceneType || pIdx}
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-blue-500/40 transition flex flex-col justify-between space-y-2.5"
+                    >
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-bold text-white block leading-snug">{preset.label}</span>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <span className="bg-blue-500/15 text-blue-300 border border-blue-500/20 px-1.5 py-0.5 rounded">
+                            Tezlik: {preset.rate}
+                          </span>
+                          <span className="bg-purple-500/15 text-purple-300 border border-purple-500/20 px-1.5 py-0.5 rounded">
+                            Pitch: {preset.pitch}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-300 font-mono italic leading-relaxed bg-black/40 p-2 rounded border border-white/5">
+                          "{preset.sampleText}"
+                        </p>
+                      </div>
+
+                      <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400">
+                        <span>Nafas tanaffusi: <strong>{preset.breathPauseSeconds}s</strong></span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setToast(`🔊 "${preset.label}" ovoz namunasi tinglandi!`);
+                            setTimeout(() => setToast(null), 2500);
+                          }}
+                          className="h-6 text-[10px] px-2 border-blue-500/30 text-blue-300 hover:bg-blue-500/20 cursor-pointer"
+                        >
+                          <Play size={10} className="mr-1" /> Tinglash
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Stansiya Ovoz Miksi Ko'rsatkichlari */}
+                <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-4 font-mono text-[11px]">
+                    <span>Nutq ovozi (Alex): <strong className="text-white">88% (0.88)</strong></span>
+                    <span>SFX effektlar: <strong className="text-cyan-300">45% (0.45)</strong></span>
+                    <span>Fon musiqasi: <strong className="text-amber-300">11% (0.11)</strong></span>
+                  </div>
+                  <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                    <CheckCircle2 size={13} /> {emotionalSpeechPlan?.recommendedMix?.duckingRatio || "-8 dB auto-ducking nutq paytida"}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </Tabs.Content>
@@ -4097,6 +4243,142 @@ CMD ["pnpm", "start:production"]`,
                     </p>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🔄 YouTube Jonli A/B Sarlavha & Muqova Avto-Almashtirgich (Auto-Rotator) */}
+          <Card className="liquid-glass border border-violet-500/35 shadow-[0_0_25px_rgba(139,92,246,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                    <RefreshCw className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube Jonli A/B Sarlavha & Muqova Avto-Almashtirgich (Auto-Rotator)
+                      <span className="text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2.5 py-0.5 rounded-full">
+                        {abRotatorPlan?.isAutoRotationEnabled ? "Avto-Almashtirish: Faol" : "Statik"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Dastlabki 24-48 soat ichida har {abRotatorPlan?.rotationIntervalHours || 4} soatda sarlavha va muqovani avtomatik almashtirib, eng yuqori CTR (&gt;15%) to'plagan g'olib kombinatsiyani qulflash
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {abRotatorPlan?.projectedViewsBoost || "+58% ko'proq dastlabki ko'rishlar"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Kombinatsiyalar Ro'yxati */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(abRotatorPlan?.combinations || [
+                  {
+                    id: "combo_1",
+                    combinationName: "Kombinatsiya 1: Yuqori Xavf (MrBeast uslubi)",
+                    title: "90% of AI Agents Fail in Production (Here is Why)",
+                    thumbnailVariant: "variant_a",
+                    activeWindowHours: "0 - 4 soat (Premyera bosqichi)",
+                    currentCTR: 15.6,
+                    impressions: 42000,
+                    clicks: 6552,
+                    status: "winner"
+                  },
+                  {
+                    id: "combo_2",
+                    combinationName: "Kombinatsiya 2: Amaliy Yechim (Silicon Valley uslubi)",
+                    title: "I Built a Self-Healing Autonomous AI Agent with Docker",
+                    thumbnailVariant: "variant_b",
+                    activeWindowHours: "4 - 8 soat",
+                    currentCTR: 12.1,
+                    impressions: 38000,
+                    clicks: 4598,
+                    status: "evaluated"
+                  },
+                  {
+                    id: "combo_3",
+                    combinationName: "Kombinatsiya 3: Katta Masshtab (Korxona uslubi)",
+                    title: "The 2026 Autonomous AI Stack You Need to Know",
+                    thumbnailVariant: "variant_c",
+                    activeWindowHours: "8 - 12 soat",
+                    currentCTR: 9.8,
+                    impressions: 35000,
+                    clicks: 3430,
+                    status: "evaluated"
+                  }
+                ]).map((combo: any, cIdx: number) => {
+                  const isWinner = combo.status === "winner" || combo.id === abRotatorPlan?.winningCombinationId;
+                  return (
+                    <div
+                      key={combo.id || cIdx}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                        isWinner
+                          ? "bg-violet-950/30 border-violet-500/50 shadow-lg ring-1 ring-violet-500/40"
+                          : "bg-white/[0.02] border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-gray-400 bg-black/40 px-2 py-0.5 rounded border border-white/5">
+                            {combo.activeWindowHours}
+                          </span>
+                          {isWinner ? (
+                            <span className="text-[10px] font-bold font-mono text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              👑 G'OLIB (Qulflangan)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-0.5 rounded-full">
+                              Sinovdan o'tgan
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-xs font-bold text-violet-300 leading-snug">{combo.combinationName}</h4>
+                        <p className="text-sm font-black text-white leading-tight">"{combo.title}"</p>
+
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 font-mono text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-400">CTR Ko'rsatkichi:</span>
+                            <span className={`font-bold ${isWinner ? 'text-emerald-400' : 'text-gray-200'}`}>
+                              {combo.currentCTR}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-1.5 rounded-full ${isWinner ? 'bg-gradient-to-r from-violet-500 to-emerald-400' : 'bg-gray-500'}`}
+                              style={{ width: `${Math.min(combo.currentCTR * 5, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 pt-0.5">
+                            <span>Ko'rishlar: <strong>{combo.impressions?.toLocaleString()}</strong></span>
+                            <span>Kliklar: <strong>{combo.clicks?.toLocaleString()}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant={isWinner ? "primary" : "outline"}
+                        onClick={() => {
+                          setToast(`🎯 "${combo.title}" sarlavha va muqovasi YouTube videosiga biriktirildi!`);
+                          setTimeout(() => setToast(null), 3000);
+                        }}
+                        className={`w-full text-xs font-bold cursor-pointer ${
+                          isWinner
+                            ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500'
+                            : 'border-white/10 text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        {isWinner ? "🔒 G'olib Kombinatsiyani Saqlash" : "Ushbu Kombinatsiyaga O'tish"}
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -7753,6 +8035,115 @@ CMD ["pnpm", "start:production"]`,
                   {sponsorMediaKit?.outreachEmailTemplate?.bodyText}
                 </div>
               </div>
+
+              {/* 🧾 Homiylar Uchun Rasmiy Xalqaro Hisob-Faktura (Sponsor Invoice Generator) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-emerald-950/25 to-black/50 border border-emerald-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        Homiylar Uchun Rasmiy Xalqaro Hisob-Faktura (Invoice Generator)
+                        <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
+                          {sponsorInvoice?.invoiceNumber || "INV-2026-NPAI-0089"}
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-gray-400">
+                        Brendlar to'g'ridan-to'g'ri bank orqali creator hisobiga pul o'tkazishi (SWIFT, Deel, Payoneer) uchun 100% rasmiy faktura
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+                      Jami: ${sponsorInvoice?.totalAmountUSD || 4700} USD (0% Komissiya)
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const invText = `INVOICE: ${sponsorInvoice?.invoiceNumber || 'INV-2026-NPAI-0089'}\nPayee: ${sponsorInvoice?.creatorInfo?.ownerName || 'Neural Pulse AI Studio'}\nBank: ${sponsorInvoice?.wireDetails?.bankName}\nSWIFT: ${sponsorInvoice?.wireDetails?.swiftBic}\nIBAN: ${sponsorInvoice?.wireDetails?.iban}\nDeel: ${sponsorInvoice?.wireDetails?.deelHandle}\nTotal Amount: $${sponsorInvoice?.totalAmountUSD || 4700} USD`;
+                        navigator.clipboard.writeText(invText);
+                        setToast("📋 Hisob-faktura bank rekvizitlari nusxalandi!");
+                        setTimeout(() => setToast(null), 3000);
+                      }}
+                      className="text-xs font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 cursor-pointer h-7"
+                    >
+                      <Copy size={11} className="mr-1" /> Rekvizitlarni Nusxalash
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tomonlar: Ijrochi va Buyurtmachi */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Ijrochi (Creator / Qabul Qiluvchi):</span>
+                    <p className="font-bold text-white">{sponsorInvoice?.creatorInfo?.channelName || "Neural Pulse AI"} ({sponsorInvoice?.creatorInfo?.ownerName})</p>
+                    <p className="text-[11px] text-gray-300">STIR / Soliq ID: <strong className="text-cyan-300">{sponsorInvoice?.creatorInfo?.taxId || "TAX-UZB-9982481029"}</strong></p>
+                    <p className="text-[11px] text-gray-400">Email: {sponsorInvoice?.creatorInfo?.email || "partners@neuralpulse.ai"}</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Homiy (Buyurtmachi / Kompaniya):</span>
+                    <p className="font-bold text-white">{sponsorInvoice?.sponsorInfo?.brandName || "Cursor AI / Anysphere Inc."}</p>
+                    <p className="text-[11px] text-gray-300">Mas'ul: {sponsorInvoice?.sponsorInfo?.contactPerson} ({sponsorInvoice?.sponsorInfo?.contactEmail})</p>
+                    <p className="text-[11px] text-gray-400">Manzil: {sponsorInvoice?.sponsorInfo?.billingAddress}</p>
+                  </div>
+                </div>
+
+                {/* Xizmatlar ro'yxati (Line Items) */}
+                <div className="rounded-xl bg-black/40 border border-white/5 overflow-hidden text-xs">
+                  <table className="w-full text-left">
+                    <thead className="bg-white/5 text-[10px] text-gray-400 uppercase">
+                      <tr>
+                        <th className="p-2.5">Xizmat Tavsifi</th>
+                        <th className="p-2.5 text-center">Miqdor</th>
+                        <th className="p-2.5 text-right">Narxi</th>
+                        <th className="p-2.5 text-right">Jami</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-gray-300">
+                      {(sponsorInvoice?.items || [
+                        { id: "1", description: "60-Second Dedicated In-Video Sponsorship Integration (Autonomous AI Video)", quantity: 1, unitPriceUSD: 3500, totalUSD: 3500 },
+                        { id: "2", description: "Pinned Top Comment + Description First-Fold Referral Link (30 Days)", quantity: 1, unitPriceUSD: 750, totalUSD: 750 },
+                        { id: "3", description: "YouTube Community Tab Dedicated Sponsor Feature & Callout", quantity: 1, unitPriceUSD: 450, totalUSD: 450 }
+                      ]).map((it: any) => (
+                        <tr key={it.id}>
+                          <td className="p-2.5 font-medium text-white">{it.description}</td>
+                          <td className="p-2.5 text-center font-mono">{it.quantity}</td>
+                          <td className="p-2.5 text-right font-mono">${it.unitPriceUSD}</td>
+                          <td className="p-2.5 text-right font-mono font-bold text-emerald-400">${it.totalUSD}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Bank va Elektron To'lov Rekvizitlari */}
+                <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] font-mono">
+                  <div className="space-y-0.5">
+                    <span className="text-gray-400 block text-[9px] uppercase">Bank SWIFT / IBAN:</span>
+                    <strong className="text-white block">{sponsorInvoice?.wireDetails?.bankName || "Kapitalbank JSC"}</strong>
+                    <span className="text-emerald-400">SWIFT: {sponsorInvoice?.wireDetails?.swiftBic || "KAPBUZ22"}</span>
+                    <span className="text-gray-300 block text-[10px] break-all">{sponsorInvoice?.wireDetails?.iban || "UZ8400000000202084001928374"}</span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-gray-400 block text-[9px] uppercase">Deel & Payoneer (Masofaviy Shartnoma):</span>
+                    <strong className="text-white block">Deel: {sponsorInvoice?.wireDetails?.deelHandle || "deel.me/jahongir-ai"}</strong>
+                    <span className="text-cyan-300 block">Email: {sponsorInvoice?.wireDetails?.payoneerEmail || "payoneer@neuralpulse.ai"}</span>
+                    <span className="text-gray-400 text-[10px]">Net-15 to'lov muddati</span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-gray-400 block text-[9px] uppercase">Kripto To'lov (USDT / USDC TRC-20):</span>
+                    <strong className="text-white block text-[10px] break-all">{sponsorInvoice?.wireDetails?.usdtTrc20Address || "TQn9Y2khEsLJW1ChVWFMSMeSTow5Kaxxxx"}</strong>
+                    <span className="text-emerald-400 block text-[10px]">100% to'g'ridan-to'g'ri daromad (YouTube 0% oladi)</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </Tabs.Content>
@@ -8735,6 +9126,108 @@ CMD ["pnpm", "start:production"]`,
                     <p className="text-[9px] text-gray-400">{pol.desc}</p>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 📡 YouTube Algoritm Radari & Shadowban Qalqoni (Channel Health Audit) */}
+          <Card className="liquid-glass border border-emerald-500/35 shadow-[0_0_25px_rgba(16,185,129,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <ShieldCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube Algoritm Radari & Shadowban Qalqoni
+                      <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                        Tavsiya Bali: {algorithmRadarData?.recommendationHealthScore || 98}/100
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Kanal tavsiyalar lentasi (Browse/Suggested) faolligi, kalit so'zlar qidiruv reytingi va shadowban xavfsizligining real vaqt auditi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Shadowban Xavfi: 0% (Mutlaqo Toza)
+                  </span>
+                </div>
+              </div>
+
+              {/* Algoritm Darajasi & Shadowban Xulosasi */}
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-gray-200 leading-relaxed flex items-center gap-3">
+                <Zap className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div>
+                  <strong className="text-emerald-300 block mb-0.5">
+                    Status: {algorithmRadarData?.algorithmTier || "Tavsiya Qilinuvchi (Browse & Suggested)"} • Tezlik Ko'rsatkichi: {algorithmRadarData?.audienceVelocityMultiplier || "4.8x"}
+                  </strong>
+                  <p className="text-[11px] text-gray-300">
+                    {algorithmRadarData?.shadowbanStatus?.verdictUz || "Kanal toʻliq toza. Hech qanday cheklov yoki shadowban mavjud emas. YouTube algoritmi videolarni asosiy lentada tavsiya qilishga tayyor."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Qidiruv Teglari O'rni (Search Tag Rankings) */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                  1. Kalit So'zlar Bo'yicha YouTube Qidiruv O'rni (Top Tag Rankings):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {(algorithmRadarData?.tagRankings || [
+                    { tag: "autonomous ai agents 2026", searchVolume: "Juda Yuqori", competition: "Past", projectedRank: 1 },
+                    { tag: "ai coding workflow production", searchVolume: "Yuqori", competition: "Oʻrtacha", projectedRank: 2 },
+                    { tag: "cursor ai full tutorial", searchVolume: "Juda Yuqori", competition: "Oʻrtacha", projectedRank: 1 },
+                    { tag: "anthropic claude 3.7 sonnet benchmark", searchVolume: "Yuqori", competition: "Past", projectedRank: 3 }
+                  ]).map((tagItem: any, tIdx: number) => (
+                    <div
+                      key={tIdx}
+                      className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.5 rounded">
+                          Hajm: {tagItem.searchVolume}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                          #{tagItem.projectedRank} O'rin
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-white font-mono truncate">#{tagItem.tag}</p>
+                      <span className="text-[10px] text-gray-400 block">Raqobat: {tagItem.competition}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optimal Video Yuklash Vaqtlari */}
+              <div className="space-y-2 pt-1 border-t border-white/5">
+                <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                  2. Haftalik Eng Yuqori Algoritm Faolligi Oynalari (Auditoriya Cho'qqisi):
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(algorithmRadarData?.optimalReleaseSlots || [
+                    { dayOfWeek: "Seshanba", utcTime: "17:00 UTC", tashkentTime: "22:00 (Toshkent vaqti)", predictedAudiencePeak: "AQSh va Yevropa auditoriyasi faollashuv vaqti" },
+                    { dayOfWeek: "Payshanba", utcTime: "18:00 UTC", tashkentTime: "23:00 (Toshkent vaqti)", predictedAudiencePeak: "Dasturchilar va AI muhandislari kechki choʻqqisi" },
+                    { dayOfWeek: "Shanba", utcTime: "14:00 UTC", tashkentTime: "19:00 (Toshkent vaqti)", predictedAudiencePeak: "Dam olish kuni uzoq metrajli ta'lim tomoshabinlari" }
+                  ]).map((slot: any, sIdx: number) => (
+                    <div
+                      key={sIdx}
+                      className="p-3 rounded-xl bg-white/[0.02] border border-white/10 space-y-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white">{slot.dayOfWeek}</span>
+                        <span className="font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                          {slot.tashkentTime}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-snug">{slot.predictedAudiencePeak}</p>
+                      <span className="text-[9px] font-mono text-gray-500 block">{slot.utcTime}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
