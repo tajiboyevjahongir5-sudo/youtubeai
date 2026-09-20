@@ -1,8 +1,13 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { competitorSpyService } from '../services/competitor-spy.service';
 import { thumbnailStudioService } from '../services/thumbnail-studio.service';
 import { communityAutopilotService } from '../services/community-autopilot.service';
 import { calendarMatrixService } from '../services/calendar-matrix.service';
+import { generateKaraokeTimings, exportSubtitleFormat, KARAOKE_STYLES } from '../services/karaoke-captions.service';
+import { generateSmartSfxTimeline, buildDuckingTimeline, DUCKING_PRESETS } from '../services/audio-ducker.service';
+import { get24HourVelocity, getRetentionCurve, evaluateABSplitTest } from '../services/youtube-analytics-ab.service';
+import { getDailyTrends } from '../services/daily-trend-autopilot.service';
+import { buildMultiPlatformPackages } from '../services/multi-platform-export.service';
 
 const router = Router();
 
@@ -117,6 +122,97 @@ router.post('/calendar-matrix/autofill-30days', (req, res) => {
   const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
   const summary = calendarMatrixService.autoFill30Days(workspaceId);
   res.json({ success: true, summary });
+});
+
+// ==========================================
+// 5. SMART AUTO-CAPTIONS & KARAOKE STUDIO
+// ==========================================
+
+router.get('/karaoke/styles', (req, res) => {
+  res.json({ success: true, styles: KARAOKE_STYLES });
+});
+
+router.post('/karaoke/generate', (req, res) => {
+  const { script, styleId, durationSec } = req.body || {};
+  if (!script) {
+    return res.status(400).json({ success: false, error: 'Skript matni kiritilishi shart' });
+  }
+  const result = generateKaraokeTimings(script, styleId, durationSec || 50);
+  res.json({ success: true, ...result });
+});
+
+router.post('/karaoke/export', (req, res) => {
+  const { segments, format } = req.body || {};
+  if (!segments || !Array.isArray(segments)) {
+    return res.status(400).json({ success: false, error: 'Segmentlar ro\'yxati talab qilinadi' });
+  }
+  const fileContent = exportSubtitleFormat(segments, format || 'srt');
+  res.json({ success: true, format: format || 'srt', content: fileContent });
+});
+
+// ==========================================
+// 6. AUDIO AUTO-DUCKER & SFX GENERATOR
+// ==========================================
+
+router.get('/audio-ducker/presets', (req, res) => {
+  res.json({ success: true, presets: DUCKING_PRESETS });
+});
+
+router.post('/audio-ducker/timeline', (req, res) => {
+  const { scenes, durationSec, preset } = req.body || {};
+  const cues = generateSmartSfxTimeline(scenes || [], durationSec || 50);
+  const ducking = buildDuckingTimeline(cues, durationSec || 50, preset || 'aggressive_viral');
+  res.json({ success: true, cues, ducking });
+});
+
+// ==========================================
+// 7. MULTI-PLATFORM REELS & TIKTOK EXPORT
+// ==========================================
+
+router.post('/multi-platform/packages', (req, res) => {
+  const { title, description, script, videoUrl } = req.body || {};
+  const packages = buildMultiPlatformPackages({ title, description, script, videoUrl });
+  res.json({ success: true, packages });
+});
+
+// ==========================================
+// 8. REAL-TIME YOUTUBE ANALYTICS & A/B SPLIT TEST
+// ==========================================
+
+router.get('/analytics/velocity/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const velocity = get24HourVelocity(contentId);
+  res.json({ success: true, velocity });
+});
+
+router.get('/analytics/retention/:contentId', (req, res) => {
+  const durationSec = Number(req.query.duration) || 50;
+  const retention = getRetentionCurve(durationSec);
+  res.json({ success: true, ...retention });
+});
+
+router.post('/analytics/ab-evaluate', (req, res) => {
+  const { contentId, originalTitle, candidateTitle, originalThumbnail, candidateThumbnail } = req.body || {};
+  if (!contentId || !originalTitle) {
+    return res.status(400).json({ success: false, error: 'contentId va originalTitle talab qilinadi' });
+  }
+  const comparison = evaluateABSplitTest({
+    contentId,
+    originalTitle,
+    candidateTitle,
+    originalThumbnail,
+    candidateThumbnail
+  });
+  res.json({ success: true, comparison });
+});
+
+// ==========================================
+// 9. DAILY VIRAL TRENDS AUTOPILOT
+// ==========================================
+
+router.get('/daily-trends', (req, res) => {
+  const data = getDailyTrends();
+  res.json({ success: true, ...data });
 });
 
 export default router;
