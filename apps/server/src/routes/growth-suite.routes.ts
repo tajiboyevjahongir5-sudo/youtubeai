@@ -53,6 +53,8 @@ import { podcastRssSyndicationService } from '../services/podcast-rss-syndicatio
 import { mostReplayedHeatmapService } from '../services/most-replayed-heatmap.service';
 import { aiCommentResponderService } from '../services/ai-comment-responder.service';
 import { githubRepoPackagerService } from '../services/github-repo-packager.service';
+import { hormoziPopinCaptionsService } from '../services/hormozi-popin-captions.service';
+import { competitorGapAnalyzerService } from '../services/competitor-gap-analyzer.service';
 
 const router = Router();
 
@@ -791,6 +793,28 @@ router.get('/longform/github-repo/:contentId', (req, res) => {
   const title = (req.query.title as string) || '';
   const repo = githubRepoPackagerService.packageRepository(contentId, title);
   res.json({ success: true, repo });
+});
+
+// ==========================================
+// 55. HORMOZI & MRBEAST POP-IN CAPTIONS
+// ==========================================
+
+router.get('/longform/hormozi-captions/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const text = (req.query.text as string) || '';
+  const pkg = hormoziPopinCaptionsService.generateCaptionsPackage(contentId, text);
+  res.json({ success: true, package: pkg });
+});
+
+// ==========================================
+// 56. COMPETITOR GAP ANALYZER & AUDIENCE STEALER
+// ==========================================
+
+router.get('/longform/competitor-gaps/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const topic = (req.query.topic as string) || '';
+  const report = competitorGapAnalyzerService.analyzeGaps(contentId, topic);
+  res.json({ success: true, report });
 });
 
 export default router;

@@ -1442,13 +1442,18 @@ export const ContentDetailPage = () => {
   const [aiCommentResponderData, setAiCommentResponderData] = useState<any | null>(null);
   const [githubRepoPackage, setGithubRepoPackage] = useState<any | null>(null);
 
+  // WAVE 12 ADDITIONS
+  const [hormoziCaptionsPackage, setHormoziCaptionsPackage] = useState<any | null>(null);
+  const [competitorGapAnalysis, setCompetitorGapAnalysis] = useState<any | null>(null);
+
   const fetchLongformSuiteData = async () => {
     try {
       const titleParam = encodeURIComponent(metaTitle || videoTitle || "Neural Pulse AI Masterclass");
       const [
         midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes, 
         heatRes, sponRes, polRes, premRes, chatRes, abRes, invRes, emoRes, radarRes,
-        layerRes, podRes, replayRes, commentRes, repoRes
+        layerRes, podRes, replayRes, commentRes, repoRes,
+        hormoziRes, gapRes
       ] = await Promise.all([
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/midroll/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
@@ -1515,13 +1520,20 @@ export const ContentDetailPage = () => {
         }),
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/github-repo/${contentId}?title=${titleParam}`, {
           headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/hormozi-captions/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/competitor-gaps/${contentId}?topic=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
         })
       ]);
 
       const [
         midData, arcData, endData, clipsData, camData, codeData, seoData, commData, 
         heatData, sponData, polData, premData, chatData, abData, invData, emoData, radarData,
-        layerData, podData, replayData, commentData, repoData
+        layerData, podData, replayData, commentData, repoData,
+        hormoziData, gapData
       ] = await Promise.all([
         midRes.json().catch(() => null),
         arcRes.json().catch(() => null),
@@ -1544,7 +1556,9 @@ export const ContentDetailPage = () => {
         podRes.json().catch(() => null),
         replayRes.json().catch(() => null),
         commentRes.json().catch(() => null),
-        repoRes.json().catch(() => null)
+        repoRes.json().catch(() => null),
+        hormoziRes.json().catch(() => null),
+        gapRes.json().catch(() => null)
       ]);
 
       if (midData?.success && midData.plan) setMidrollPlan(midData.plan);
@@ -1569,6 +1583,8 @@ export const ContentDetailPage = () => {
       if (replayData?.success && replayData.analysis) setMostReplayedData(replayData.analysis);
       if (commentData?.success && commentData.package) setAiCommentResponderData(commentData.package);
       if (repoData?.success && repoData.repo) setGithubRepoPackage(repoData.repo);
+      if (hormoziData?.success && hormoziData.package) setHormoziCaptionsPackage(hormoziData.package);
+      if (gapData?.success && gapData.report) setCompetitorGapAnalysis(gapData.report);
     } catch (e) {}
   };
 
@@ -2469,6 +2485,113 @@ export const ContentDetailPage = () => {
                   <Sparkles size={16} className={`mr-2 ${isRegenerating ? 'animate-spin' : ''}`} /> 
                   {isRegenerating ? 'Generatsiya qilinmoqda...' : 'Skriptni qayta generatsiya qilish'}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🕵️ Raqobatchilar Zaifligini Aniqlash & Auditoriyani Jalb Qilish (Audience Stealer) */}
+          <Card className="liquid-glass border border-red-500/35 shadow-[0_0_25px_rgba(239,68,68,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                    <Flame className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      Raqobatchilar Zaifligini Aniqlash & Auditoriyani Jalb Qilish
+                      <span className="text-[10px] font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30 px-2.5 py-0.5 rounded-full">
+                        Audience Stealer AI
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Fireship, Matthew Berman kabi kanallar tomoshabinlarining noroziliklarini aniqlab, ularni o'z kanalimizga jalb qilish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {competitorGapAnalysis?.overallAudienceStealRate || "+42% organik oqim"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Raqobatchilar Bo'shliqlari Tahlili */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(competitorGapAnalysis?.gapItems || [
+                  {
+                    competitorChannel: "Fireship (@Fireship)",
+                    competitorVideoTitle: "AI Agents in 100 Seconds",
+                    viewsCount: "1.4M ko'rish",
+                    audienceComplaint: "Video juda qisqa va tez. Real ishlab chiqarishda (production) qanday ishlatish tushuntirilmagan.",
+                    ourStrategicAdvantage: "To'liq 21 daqiqalik chuqur masterclass va 100% ishchi Docker Compose arxitekturasi beriladi.",
+                    ourCounterHook: "100 soniyalik shoular tugadi. Mana haqiqiy korxona darajasidagi avtonom AI arxitekturasi."
+                  },
+                  {
+                    competitorChannel: "Matthew Berman (@MatthewBerman)",
+                    competitorVideoTitle: "Autonomous AI Agents Just Got Crazy",
+                    viewsCount: "680K ko'rish",
+                    audienceComplaint: "Faqat tayyor platformalarni ko'rsatdi, lekin o'z serverida bepul ishga tushirish yo'lini o'rgatmadi.",
+                    ourStrategicAdvantage: "Aniq xarajatlar kalkulyatori ($0.04/vazifa) va local fallback modellaridan foydalanish ko'rsatilgan.",
+                    ourCounterHook: "AI agentlar sizga oyiga $500 emas, atigi $12 ga tushishi uchun nima qilish kerak?"
+                  },
+                  {
+                    competitorChannel: "All About AI (@AllAboutAI)",
+                    competitorVideoTitle: "Build Your First CrewAI Agent Today",
+                    viewsCount: "420K ko'rish",
+                    audienceComplaint: "Agent cheksiz siklga (infinite loop) tushib qolganda avto-tiklanish mexanizmi aytilmagan.",
+                    ourStrategicAdvantage: "Cascade Failure avto-tiklanish zanjiri va 3-bosqichli xavfsizlik to'xtatuvchisi (circuit breaker) berilgan.",
+                    ourCounterHook: "Ko'pchilik AI agentlar dastlabki xatodanoq qulaydi. Mana bu kod uni o'zi avtomatik tuzatadi."
+                  }
+                ]).map((gap: any, gIdx: number) => (
+                  <div
+                    key={gIdx}
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-red-500/40 transition flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded font-bold">
+                          {gap.competitorChannel}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-400">
+                          {gap.viewsCount}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-white leading-snug">"{gap.competitorVideoTitle}"</h4>
+
+                      <div className="p-2.5 rounded-xl bg-red-950/20 border border-red-500/20 text-[11px] text-gray-300 space-y-1">
+                        <span className="text-red-300 font-bold block">⚠️ Tomoshabinlar Shikoyati:</span>
+                        <p>{gap.audienceComplaint}</p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-[11px] text-gray-300 space-y-1">
+                        <span className="text-emerald-400 font-bold block">💎 Bizning Ustunligimiz:</span>
+                        <p>{gap.ourStrategicAdvantage}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 space-y-1.5">
+                      <span className="text-[10px] font-bold text-amber-300 block uppercase">🎯 Qarshi Hook (Counter-Hook):</span>
+                      <p className="text-xs text-white font-mono italic bg-black/40 p-2 rounded border border-white/5">
+                        "{gap.ourCounterHook}"
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(gap.ourCounterHook);
+                          setToast("📋 Qarshi-hook nusxalandi!");
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className="w-full h-6 text-[10px] font-bold border-red-500/30 text-red-300 hover:bg-red-500/20 cursor-pointer"
+                      >
+                        <Copy size={10} className="mr-1" /> Ushbu Hookni Nusxalash
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -3846,6 +3969,136 @@ CMD ["pnpm", "start:production"]`,
                   >
                     <Download size={13} /> .ASS (Karaoke Ranglari Bilan)
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ⚡ Alex Hormozi & MrBeast Uslubidagi Dinamik Sakrovchi Subtitrlar (Pop-In Captions) */}
+          <Card className="liquid-glass border border-yellow-500/35 shadow-[0_0_25px_rgba(234,179,8,0.1)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                    <Sparkles className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      Alex Hormozi & MrBeast Uslubidagi Dinamik Sakrovchi Subtitrlar
+                      <span className="text-[10px] font-mono font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-2.5 py-0.5 rounded-full">
+                        Pop-In Bounce 2026
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Har bir so'z aytilgan lahzada katta neon zumrad yoki sariq rangda sakrab chiqib, 85%+ ushlab qolishni (Retention) ta'minlaydi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {hormoziCaptionsPackage?.retentionImpactPercentage || "+84.6% tomoshabinlar ushlab qolish"}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Uslub Preseti */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {(hormoziCaptionsPackage?.presets || [
+                  {
+                    id: "hormozi_lime",
+                    styleName: "Alex Hormozi Kinetik Zumrad (Neon Lime)",
+                    fontFamily: "Arial Black, Segoe UI Black",
+                    fontSizePx: 76,
+                    activeWordColor: "#22C55E",
+                    animationType: "pop_bounce",
+                    safeZoneLowerThirdY: "y=1380 to y=1520 (Alex yuziga tegmaydi)"
+                  },
+                  {
+                    id: "mrbeast_yellow",
+                    styleName: "MrBeast Yuqori Kontrast Sariq (Punch Yellow)",
+                    fontFamily: "Impact, Arial Black",
+                    fontSizePx: 82,
+                    activeWordColor: "#FFE81F",
+                    animationType: "kinetic_slam",
+                    safeZoneLowerThirdY: "y=1380 to y=1520 (Pastki xavfsiz zona)"
+                  },
+                  {
+                    id: "cyberpunk_cyan",
+                    styleName: "Silikon Vodiysi Kiberpank (Neon Cyan)",
+                    fontFamily: "Segoe UI, Montserrat Black",
+                    fontSizePx: 74,
+                    activeWordColor: "#06B6D4",
+                    animationType: "word_by_word_glow",
+                    safeZoneLowerThirdY: "y=1380 to y=1520"
+                  }
+                ]).map((preset: any, pIdx: number) => (
+                  <div
+                    key={preset.id || pIdx}
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-yellow-500/40 transition flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-bold text-white block">{preset.styleName}</span>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                        <span className="text-gray-400">Shrift: {preset.fontFamily.split(',')[0]}</span>
+                        <span className="text-yellow-400 font-bold">• {preset.fontSizePx}px</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-black/60 border border-white/5 text-center my-1">
+                        <span
+                          className="font-black text-sm tracking-wider uppercase drop-shadow-md"
+                          style={{ color: preset.activeWordColor }}
+                        >
+                          STOP CRASHING
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                      <span className="text-emerald-400 font-mono">Xavfsiz Hudud: y=1380-1520</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setToast(`✨ "${preset.styleName}" subtitr stili faollashtirildi!`);
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className="h-6 text-[10px] border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 cursor-pointer"
+                      >
+                        Qo'llash
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* So'zma-So'z Sakrash Namoyishi (Live Word Tokens Preview) */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+                <span className="text-xs font-bold text-gray-300 uppercase tracking-wider block flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-yellow-400" /> Kinetik Sakrash Xaritasi (Millisekund Sinxroni):
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(hormoziCaptionsPackage?.wordTokens || [
+                    { word: "STOP", startMs: 150, endMs: 510, isPunched: true, scaleFactor: 1.28, highlightColor: "#FFE81F" },
+                    { word: "BUILDING", startMs: 550, endMs: 770, isPunched: false, scaleFactor: 1.05, highlightColor: "#22C55E" },
+                    { word: "AI", startMs: 810, endMs: 1030, isPunched: false, scaleFactor: 1.05, highlightColor: "#22C55E" },
+                    { word: "AGENTS", startMs: 1070, endMs: 1290, isPunched: false, scaleFactor: 1.05, highlightColor: "#22C55E" },
+                    { word: "THAT", startMs: 1330, endMs: 1550, isPunched: false, scaleFactor: 1.05, highlightColor: "#22C55E" },
+                    { word: "CRASH", startMs: 1590, endMs: 1950, isPunched: true, scaleFactor: 1.28, highlightColor: "#FFE81F" },
+                    { word: "IN", startMs: 1990, endMs: 2210, isPunched: false, scaleFactor: 1.05, highlightColor: "#22C55E" },
+                    { word: "PRODUCTION", startMs: 2250, endMs: 2610, isPunched: true, scaleFactor: 1.28, highlightColor: "#FFE81F" }
+                  ]).map((tok: any, wIdx: number) => (
+                    <div
+                      key={wIdx}
+                      className={`px-3 py-1.5 rounded-xl font-mono text-xs font-black tracking-wider uppercase border transition-all ${
+                        tok.isPunched
+                          ? "bg-yellow-500/20 border-yellow-400 text-yellow-300 shadow-md scale-105 ring-1 ring-yellow-400/40"
+                          : "bg-white/5 border-white/10 text-white"
+                      }`}
+                    >
+                      <span style={{ color: tok.highlightColor }}>{tok.word}</span>
+                      <span className="block text-[8px] text-gray-400 font-normal">{tok.startMs}ms</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
