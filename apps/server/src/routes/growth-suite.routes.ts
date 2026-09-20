@@ -27,6 +27,9 @@ import { VideoQualityEnhancerService } from '../services/video-quality-enhancer.
 import { BingeLoopLinkerService } from '../services/binge-loop-linker.service';
 import { VisualMotionEngineService } from '../services/visual-motion-engine.service';
 import { AlgorithmPulseService } from '../services/algorithm-pulse.service';
+import { ShortsAudioTrendRadarService } from '../services/shorts-audio-trend-radar.service';
+import { SmartChapterSeoService } from '../services/smart-chapter-seo.service';
+import { LiveStreamSchedulerService } from '../services/livestream-scheduler.service';
 
 const router = Router();
 
@@ -486,6 +489,42 @@ router.get('/algorithm-pulse/health', (req, res) => {
   const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
   const report = AlgorithmPulseService.getChannelHealth(workspaceId);
   res.json({ success: true, report });
+});
+
+// ==========================================
+// 29. YOUTUBE SHORTS AUDIO TREND RADAR
+// ==========================================
+
+router.get('/audio-trends', (req, res) => {
+  const topic = req.query.topic as string | undefined;
+  const analysis = ShortsAudioTrendRadarService.getTrendingAudio(topic);
+  res.json({ success: true, ...analysis });
+});
+
+// ==========================================
+// 30. GOOGLE SEARCH KEY MOMENTS & SMART CHAPTERS
+// ==========================================
+
+router.get('/smart-chapters/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = req.query.title as string | undefined;
+  const report = SmartChapterSeoService.generateChapters(contentId, title);
+  res.json({ success: true, report });
+});
+
+// ==========================================
+// 31. 24/7 NON-STOP LIVE STREAM RADIO
+// ==========================================
+
+router.get('/livestream/status', (_req, res) => {
+  const status = LiveStreamSchedulerService.getLiveStreamStatus();
+  res.json({ success: true, status });
+});
+
+router.post('/livestream/toggle', (req, res) => {
+  const { enable, title } = req.body || {};
+  const status = LiveStreamSchedulerService.toggleStreaming(Boolean(enable), title);
+  res.json({ success: true, status });
 });
 
 export default router;

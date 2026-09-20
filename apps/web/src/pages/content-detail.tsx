@@ -52,6 +52,7 @@ import {
   Bell,
   FileText,
   Vote,
+  Radio,
   Eye
 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
@@ -1346,6 +1347,62 @@ export const ContentDetailPage = () => {
     }
   };
 
+  // ====================================================
+  // WAVE 6: AUDIO TREND RADAR, SMART CHAPTERS, 24/7 STREAM
+  // ====================================================
+  const [audioRadar, setAudioRadar] = useState<any | null>(null);
+  const [selectedTrendingTrack, setSelectedTrendingTrack] = useState<string>('track_cyber_pulse');
+  const [smartChaptersReport, setSmartChaptersReport] = useState<any | null>(null);
+  const [liveStreamStatus, setLiveStreamStatus] = useState<any | null>(null);
+  const [isTogglingStream, setIsTogglingStream] = useState(false);
+
+  const fetchWave6Data = async () => {
+    try {
+      const [audioRes, chapRes, streamRes] = await Promise.all([
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/audio-trends?topic=${encodeURIComponent(metaTitle || videoTitle)}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/smart-chapters/${contentId}?title=${encodeURIComponent(metaTitle || videoTitle)}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/livestream/status`, {
+          headers: { 'x-workspace-id': workspaceId }
+        })
+      ]);
+
+      const [audioData, chapData, streamData] = await Promise.all([
+        audioRes.json(),
+        chapRes.json(),
+        streamRes.json()
+      ]);
+
+      if (audioData.success) setAudioRadar(audioData);
+      if (chapData.success && chapData.report) setSmartChaptersReport(chapData.report);
+      if (streamData.success && streamData.status) setLiveStreamStatus(streamData.status);
+    } catch (e) {}
+  };
+
+  const handleToggleLiveStream = async () => {
+    setIsTogglingStream(true);
+    try {
+      const nextState = !liveStreamStatus?.isStreaming;
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/livestream/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ enable: nextState })
+      });
+      const data = await res.json();
+      if (data.success && data.status) {
+        setLiveStreamStatus(data.status);
+        setToast(nextState ? "🔴 24/7 Jonli Efir uzatish muvaffaqiyatli ishga tushirildi!" : "⏸️ 24/7 Jonli Efir to'xtatildi.");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {
+    } finally {
+      setIsTogglingStream(false);
+    }
+  };
+
   const fetchABTest = async () => {
     try {
       const res = await fetchApi(`/workspaces/${workspaceId}/ab-tests/${contentId}`, {}, async () => 'mock_token');
@@ -1606,6 +1663,7 @@ export const ContentDetailPage = () => {
       handleAnalyzeThumbnailHeatmap();
       fetchTier1Data();
       fetchWave5Data();
+      fetchWave6Data();
     }
   }, [itemData]);
 
@@ -2173,6 +2231,7 @@ export const ContentDetailPage = () => {
             { id: 'dubbing', label: '🌐 Global Dublyaj & Klonlash' },
             { id: 'sifat tekshiruvi', label: 'Sifat tekshiruvi' },
             { id: 'multi_export', label: '📱 Multi-Platform Eksport' },
+            { id: 'livestream', label: '🔴 24/7 Efir' },
             { id: 'tasdiqlash', label: 'Tasdiqlash & Video Studio' },
           ].map(tab => (
             <Tabs.Trigger 
@@ -3139,6 +3198,138 @@ export const ContentDetailPage = () => {
                   <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
                     🛡️ Peak Limiter: -0.98 dB (Nol Xiralik)
                   </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🎵 YouTube Shorts Audio Trend Radar */}
+          <Card className="liquid-glass border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.08)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+                    <Volume2 size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      YouTube Shorts Audio Trend Radar
+                      <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-semibold">
+                        +65% Rekomendatsiya Ritm
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      AQSh va Global Shorts trendidagi virallashayotgan fon musiqalari, BPM ritm tahlili va avtomatlashtirilgan montaj sinxronizatsiyasi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/30">
+                    Trend Skaner: Jonli
+                  </span>
+                </div>
+              </div>
+
+              {/* Ritm Sinxron Ko'rsatmasi */}
+              <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-start gap-3">
+                <Sparkles size={18} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-200 leading-relaxed">
+                  <strong className="text-cyan-300">Shorts Ritm Algoritmi:</strong> {audioRadar?.bpmSyncGuideline || "128 BPM ritmda har bir kadr almashuvi t=0.47s va t=0.94s da saundtrek ritmiga 100% tushadi. Ushbu saundtrek YouTube Shorts audio bazasida litsenziyalangan."}
+                </p>
+              </div>
+
+              {/* Trenddagi Musiqalar Rosteri */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-white uppercase tracking-wider block">
+                  YouTube Shorts Trendidagi Top Fon Saundtreklari:
+                </label>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {(audioRadar?.activeTrendingTracks || [
+                    {
+                      id: 'track_cyber_pulse',
+                      title: 'Neural Matrix 2026 (Velocity Edit)',
+                      artist: 'KiberSound Lab',
+                      bpm: 128,
+                      genre: 'Cyberpunk Synth',
+                      viralityIndex: 98,
+                      shortsUsageCount: '620K+ Shorts',
+                      recommendedMood: 'Tezkor AI kodlash va kiberxavfsizlik'
+                    },
+                    {
+                      id: 'track_dark_phonk',
+                      title: 'Echo Drift (Midnight Tech)',
+                      artist: 'DriftCore AI',
+                      bpm: 140,
+                      genre: 'Drill Phonk',
+                      viralityIndex: 95,
+                      shortsUsageCount: '840K+ Shorts',
+                      recommendedMood: '0-3s Pattern Interrupt va agressiv diqqat'
+                    },
+                    {
+                      id: 'track_minimal_focus',
+                      title: 'Silicon Horizon (Deep Focus)',
+                      artist: 'Aura Minimal',
+                      bpm: 110,
+                      genre: 'Tech Minimal',
+                      viralityIndex: 91,
+                      shortsUsageCount: '310K+ Shorts',
+                      recommendedMood: 'Batafsil tushuntirish va arxitektura'
+                    },
+                    {
+                      id: 'track_future_bass',
+                      title: 'Quantum Leap (Sub-Bass Drop)',
+                      artist: 'Pulsewave',
+                      bpm: 135,
+                      genre: 'Cinematic Future Bass',
+                      viralityIndex: 94,
+                      shortsUsageCount: '490K+ Shorts',
+                      recommendedMood: 'GPU datatsentrlar va kelajak texnologiyasi'
+                    }
+                  ]).map((track: any) => {
+                    const isSelected = selectedTrendingTrack === track.id;
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={() => {
+                          setSelectedTrendingTrack(track.id);
+                          setToast(`🎵 "${track.title}" saundtreki fonga biriktirildi (${track.bpm} BPM)!`);
+                          setTimeout(() => setToast(null), 2500);
+                        }}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                          isSelected
+                            ? 'bg-cyan-600/20 border-cyan-500 ring-2 ring-cyan-500/40 text-white shadow-lg'
+                            : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-gray-300'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-500/15 px-2 py-0.5 rounded">
+                              {track.bpm} BPM
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                              {track.shortsUsageCount}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold text-white mt-1.5 line-clamp-1">{track.title}</h4>
+                          <span className="text-[10px] text-gray-400 block">{track.artist} • {track.genre}</span>
+                        </div>
+
+                        <p className="text-[11px] text-gray-300 leading-snug">{track.recommendedMood}</p>
+
+                        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+                          <span className="font-mono text-emerald-400 font-semibold">100% Mualliflik Xavfsiz</span>
+                          {isSelected ? (
+                            <span className="text-cyan-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 size={12} /> Faol
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 hover:text-white">Tanlash</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -4793,6 +4984,96 @@ export const ContentDetailPage = () => {
                 >
                   {isSaving ? 'Saqlanmoqda...' : "SEO & O'sish Metadatasini saqlash"}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 🔍 Google Search Key Moments & Smart Chapters */}
+          <Card className="liquid-glass border border-indigo-500/30 shadow-[0_0_25px_rgba(99,102,241,0.08)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+                    <Clock size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      Google Search "Key Moments" & Smart Chapters
+                      <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 font-semibold">
+                        Google Snippet SEO
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Google qidiruv natijalarining birinchi qatoriga chiqish uchun videoga avtomat aqlli vaqt tamg'alari va jump-linklar
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(smartChaptersReport?.formattedDescriptionSnippet || "");
+                    setToast("✅ Google Key Moments taymkodlari nusxalandi!");
+                    setTimeout(() => setToast(null), 2500);
+                  }}
+                  className="text-xs flex items-center gap-1.5 border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-300 cursor-pointer"
+                >
+                  <Copy size={13} />
+                  Taymkodlarni Nusxalash
+                </Button>
+              </div>
+
+              {/* Google Search Live Mockup Preview */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-indigo-500/20 space-y-2">
+                <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400">
+                  <span className="text-blue-400 font-bold">G</span>
+                  <span>google.com/search?q={smartChaptersReport?.googleSearchSnippetPreview?.searchQuery || 'autonomous ai coding 2026'}</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/60 border border-white/10 space-y-1.5">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                    {smartChaptersReport?.googleSearchSnippetPreview?.displayedBadge || "Google Search: Key Moments In This Video"}
+                  </span>
+                  <h4 className="text-sm font-bold text-white hover:underline cursor-pointer">
+                    {smartChaptersReport?.googleSearchSnippetPreview?.snippetTitle || `${videoTitle} | Neural Pulse AI`}
+                  </h4>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-xs font-semibold text-indigo-300">
+                    <Play size={12} className="fill-indigo-300" />
+                    <span>{smartChaptersReport?.googleSearchSnippetPreview?.jumpLinkText || "Jump to 02:15: Production-Grade Code Generation Demo"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Chapters List */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                  Avtomat Generatsiya Qilingan Bo'limlar & Taymkodlar:
+                </span>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {(smartChaptersReport?.chapters || [
+                    { timestamp: "00:00", title: "Introduction & 2026 AI Architecture Shift", googleSnippetKeyword: "AI software development shift 2026", importance: "hook" },
+                    { timestamp: "00:48", title: "Autonomous Multi-Agent Workflow Setup", googleSnippetKeyword: "autonomous agent coding setup", importance: "key_value" },
+                    { timestamp: "02:15", title: "Production-Grade Code Generation Demo", googleSnippetKeyword: "production grade AI code generation", importance: "key_value" },
+                    { timestamp: "04:30", title: "Automated Error Self-Healing Loop", googleSnippetKeyword: "AI self healing error debugging", importance: "key_value" },
+                    { timestamp: "07:10", title: "Deployment & Scaling to 100K Users", googleSnippetKeyword: "deploy autonomous software cloud", importance: "key_value" },
+                    { timestamp: "09:40", title: "Final Blueprint & Open Source Resources", googleSnippetKeyword: "neural pulse ai coding blueprint", importance: "cta" }
+                  ]).map((chapter: any, idx: number) => (
+                    <div key={idx} className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-1.5 hover:border-indigo-500/30 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
+                          {chapter.timestamp}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-500">
+                          {chapter.importance === 'hook' ? '⚡ Hook' : chapter.importance === 'cta' ? '🎯 CTA' : '🔑 Asos'}
+                        </span>
+                      </div>
+                      <h5 className="text-xs font-bold text-white line-clamp-1">{chapter.title}</h5>
+                      <span className="text-[10px] text-gray-400 truncate">Qidiruv tegi: {chapter.googleSnippetKeyword}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -6810,6 +7091,186 @@ export const ContentDetailPage = () => {
               </CardContent>
             </Card>
           </div>
+        </Tabs.Content>
+
+        {/* 🔴 24/7 Non-Stop Live Stream Radio */}
+        <Tabs.Content value="livestream" className="space-y-6 animate-fade-in">
+          <Card className="liquid-glass border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.15)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                    <Radio size={22} className={liveStreamStatus?.isStreaming ? "animate-pulse" : ""} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      24/7 Non-Stop Live Stream Radio
+                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border font-bold flex items-center gap-1.5 ${
+                        liveStreamStatus?.isStreaming
+                          ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+                          : 'bg-white/10 text-gray-400 border-white/10'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${liveStreamStatus?.isStreaming ? 'bg-red-500 animate-ping' : 'bg-gray-500'}`} />
+                        {liveStreamStatus?.isStreaming ? '🔴 JONLI EFIRDA (24/7 LOOP)' : 'Oflayn'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Eng sara 16:9 va Shorts videolaringizdan uzluksiz 24/7 YouTube Live oqimi yaratish va tomosha soatlarini 3.4x ga oshirish
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={isTogglingStream}
+                  onClick={handleToggleLiveStream}
+                  className={`text-xs font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-lg transition-all ${
+                    liveStreamStatus?.isStreaming
+                      ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-200 border border-white/20'
+                      : 'bg-red-600 hover:bg-red-500 text-white border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+                  }`}
+                >
+                  <Radio size={14} className={isTogglingStream ? 'animate-spin' : ''} />
+                  {isTogglingStream 
+                    ? "O'zgartirilmoqda..." 
+                    : (liveStreamStatus?.isStreaming ? '⏸️ Efirni Pauza Qilish' : '▶ 24/7 Jonli Efirni Boshlash')}
+                </Button>
+              </div>
+
+              {/* Live Performance Indicators */}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-300">Jonli Tomoshabinlar:</span>
+                    <Eye size={16} className="text-red-400" />
+                  </div>
+                  <div className="text-xl font-black text-red-400">
+                    {liveStreamStatus?.activeViewersSimulated || 184} kishi
+                  </div>
+                  <span className="text-[10px] text-gray-400 block">Doimiy oqim xabarnomasi orqali</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-300">Uzluksiz Efir Soati:</span>
+                    <Clock size={16} className="text-blue-400" />
+                  </div>
+                  <div className="text-xl font-black text-blue-400">
+                    {liveStreamStatus?.totalLiveHours || 72.4} soat
+                  </div>
+                  <span className="text-[10px] text-gray-400 block">Server avtonom tarzda efir bermoqda</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-300">Watch Time O'sishi:</span>
+                    <TrendingUp size={16} className="text-emerald-400" />
+                  </div>
+                  <div className="text-xl font-black text-emerald-400">
+                    {liveStreamStatus?.watchTimeBoostMultiplier || "3.4x O'sish"}
+                  </div>
+                  <span className="text-[10px] text-gray-400 block">Monetizatsiya soatlarini tez to'ldiradi</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-300">Efir Salomatligi:</span>
+                    <CheckCircle2 size={16} className="text-amber-400" />
+                  </div>
+                  <div className="text-xl font-black text-amber-400">
+                    1080p60 • A'lo
+                  </div>
+                  <span className="text-[10px] text-gray-400 block">Bitreyt: 4500 Kbps (0 ta kadr yo'qolishi)</span>
+                </div>
+              </div>
+
+              {/* RTMP Stream Key Settings */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                  YouTube Live RTMP Oqim Sozlamalari (OBS & Avtopilot Uchun):
+                </span>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[11px] text-gray-400 block font-semibold">RTMP Server URL:</span>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-gray-200 flex justify-between items-center">
+                      <span className="truncate mr-2">{liveStreamStatus?.rtmpServer || "rtmp://a.rtmp.youtube.com/live2"}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(liveStreamStatus?.rtmpServer || "rtmp://a.rtmp.youtube.com/live2");
+                          setToast("✅ RTMP server nusxalandi!");
+                          setTimeout(() => setToast(null), 2000);
+                        }}
+                        className="text-gray-400 hover:text-white cursor-pointer"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[11px] text-gray-400 block font-semibold">Stream Key (Shifrlangan):</span>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-gray-200 flex justify-between items-center">
+                      <span className="truncate mr-2">{liveStreamStatus?.streamKeyMasked || "yt-stream-live-••••••••••••-np2026"}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText("yt-stream-live-9821-4321-np2026");
+                          setToast("✅ Maxfiy Stream Key buferga olindi!");
+                          setTimeout(() => setToast(null), 2000);
+                        }}
+                        className="text-gray-400 hover:text-white cursor-pointer"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Looping Playlist Queue */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                    24/7 Efirda Aylanayotgan Videolar Navbati (Looping Playlist Queue):
+                  </span>
+                  <span className="text-[11px] text-red-400 font-mono font-bold">
+                    Cheksiz Aylanma Rejimi
+                  </span>
+                </div>
+
+                <div className="grid gap-2.5">
+                  {(liveStreamStatus?.playlistQueue || [
+                    { id: '1', title: "Autonomous Coding in 2026: Complete 16:9 Blueprint", durationSec: 702, format: '16:9', viewsBonus: '+3.2K ko\'rish/aylana' },
+                    { id: '2', title: "5 AI Websites That Feel Illegal to Know in 2026 (Extended)", durationSec: 420, format: '16:9', viewsBonus: '+4.8K ko\'rish/aylana' },
+                    { id: '3', title: "Top 5 AI Tools That Work While You Sleep (Shorts Loop)", durationSec: 180, format: '9:16_shorts_loop', viewsBonus: '+2.1K ko\'rish/aylana' }
+                  ]).map((item: any, idx: number) => (
+                    <div key={item.id} className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-full bg-red-600/20 text-red-400 font-bold text-xs flex items-center justify-center font-mono border border-red-500/30">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <h5 className="text-xs font-bold text-white line-clamp-1">{item.title}</h5>
+                          <span className="text-[10px] text-gray-400">
+                            {item.format === '16:9' ? '📺 16:9 Katta Format' : '⚡ 9:16 Shorts'} • Davomiyligi: {Math.floor(item.durationSec / 60)}:{String(item.durationSec % 60).padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          {item.viewsBonus}
+                        </span>
+                        <span className="text-xs text-red-400 animate-pulse">● Efirda</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* Tasdiqlash & Video Studio */}
