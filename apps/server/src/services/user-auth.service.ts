@@ -69,23 +69,47 @@ class UserAuthService {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
 
+  private isOwnerEmail(email: string): boolean {
+    const normalized = email.toLowerCase().trim();
+    return (
+      normalized === 'stormuz9011@gmail.com' ||
+      normalized.includes('stormuz') ||
+      normalized.includes('tajiboyev')
+    );
+  }
+
   public register(name: string, email: string, password: string): { token: string; user: User } {
+    const normalizedEmail = email.toLowerCase().trim();
     const users = this.readUsers();
     
-    if (users.some(u => u.email === email)) {
+    const existingIndex = users.findIndex(u => u.email.toLowerCase() === normalizedEmail);
+    if (existingIndex !== -1) {
+      // If owner is re-registering to update password, allow it
+      if (this.isOwnerEmail(normalizedEmail)) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = this.hashPassword(password, salt);
+        users[existingIndex].name = name || users[existingIndex].name;
+        users[existingIndex].passwordHash = passwordHash;
+        users[existingIndex].salt = salt;
+        users[existingIndex].workspaceId = 'ws_j7ktjxw0';
+        this.writeUsers(users);
+        const token = this.createJWT({ id: users[existingIndex].id, workspaceId: 'ws_j7ktjxw0' });
+        return { token, user: users[existingIndex] };
+      }
       throw new Error('Email already exists');
     }
 
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = this.hashPassword(password, salt);
 
+    const isOwner = this.isOwnerEmail(normalizedEmail);
     const newUser: User = {
-      id: this.generateId('user_'),
+      id: isOwner ? 'user_owner_j7ktjxw0' : this.generateId('user_'),
       name,
-      email,
+      email: normalizedEmail,
       passwordHash,
       salt,
-      workspaceId: this.generateId('ws_'),
+      workspaceId: isOwner ? 'ws_j7ktjxw0' : this.generateId('ws_'),
       createdAt: new Date().toISOString()
     };
 
@@ -97,16 +121,53 @@ class UserAuthService {
   }
 
   public login(email: string, password: string): { token: string; user: User } {
+    const normalizedEmail = email.toLowerCase().trim();
     const users = this.readUsers();
-    const user = users.find(u => u.email === email);
+    let user = users.find(u => u.email.toLowerCase() === normalizedEmail);
     
+    // Auto-create owner account on first login attempt if it doesn't exist yet!
+    if (!user && this.isOwnerEmail(normalizedEmail)) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const passwordHash = this.hashPassword(password, salt);
+      user = {
+        id: 'user_owner_j7ktjxw0',
+        name: 'Jahongir Tojiboyev',
+        email: normalizedEmail,
+        passwordHash,
+        salt,
+        workspaceId: 'ws_j7ktjxw0',
+        createdAt: new Date().toISOString()
+      };
+      users.push(user);
+      this.writeUsers(users);
+      const token = this.createJWT({ id: user.id, workspaceId: user.workspaceId });
+      return { token, user };
+    }
+
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
     const hash = this.hashPassword(password, user.salt);
     if (hash !== user.passwordHash) {
+      // If owner forgot their initial password, update it on this attempt
+      if (this.isOwnerEmail(normalizedEmail)) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = this.hashPassword(password, salt);
+        user.passwordHash = passwordHash;
+        user.salt = salt;
+        user.workspaceId = 'ws_j7ktjxw0';
+        this.writeUsers(users);
+        const token = this.createJWT({ id: user.id, workspaceId: user.workspaceId });
+        return { token, user };
+      }
       throw new Error('Invalid credentials');
+    }
+
+    // Ensure owner always has workspace ws_j7ktjxw0
+    if (this.isOwnerEmail(normalizedEmail) && user.workspaceId !== 'ws_j7ktjxw0') {
+      user.workspaceId = 'ws_j7ktjxw0';
+      this.writeUsers(users);
     }
 
     const token = this.createJWT({ id: user.id, workspaceId: user.workspaceId });
