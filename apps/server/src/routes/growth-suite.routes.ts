@@ -34,6 +34,11 @@ import { MidrollAdOptimizerService } from '../services/midroll-ad-optimizer.serv
 import { LongformNarrativeEngineService } from '../services/longform-narrative-engine.service';
 import { EndScreenCardBuilderService } from '../services/endscreen-card-builder.service';
 import { LongformScriptExpanderService } from '../services/longform-script-expander.service';
+import { longformAutoClipperService } from '../services/longform-autoclipper.service';
+import { multiCamPipDirectorService } from '../services/multicam-pip-director.service';
+import { terminalCodeAnimatorService } from '../services/terminal-code-animator.service';
+import { longformSeoFunnelService } from '../services/longform-seo-funnel.service';
+import { communityCampaignService } from '../services/community-campaign.service';
 
 const router = Router();
 
@@ -567,6 +572,60 @@ router.post('/longform/expand-script/:contentId', (req, res) => {
   const { topic } = req.body || {};
   const expanded = LongformScriptExpanderService.expandScript(contentId, topic);
   res.json({ success: true, ...expanded });
+});
+
+// ==========================================
+// 36. AUTO-CLIPPER: 9:16 VERTICAL SHORTS FROM LONG-FORM
+// ==========================================
+
+router.get('/longform/autoclips/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const result = longformAutoClipperService.generateShortsClips(contentId, title);
+  res.json({ success: true, package: result });
+});
+
+// ==========================================
+// 37. MULTI-CAMERA & PIP DIRECTOR
+// ==========================================
+
+router.get('/longform/multicam-pip/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const scenesCount = parseInt(req.query.scenesCount as string) || 8;
+  const plan = multiCamPipDirectorService.generateDirectorPlan(contentId, scenesCount);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 38. JONLI KOD & TERMINAL ANIMATSIYASI STUDIYASI
+// ==========================================
+
+router.get('/longform/code-terminal/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const pkg = terminalCodeAnimatorService.generateCodeSnippets(contentId);
+  res.json({ success: true, package: pkg });
+});
+
+// ==========================================
+// 39. YOUTUBE PINNED COMMENT & DESCRIPTION SEO FUNNEL
+// ==========================================
+
+router.get('/longform/seo-funnel/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const funnel = longformSeoFunnelService.generateSeoFunnel(contentId, title);
+  res.json({ success: true, funnel });
+});
+
+// ==========================================
+// 40. YOUTUBE COMMUNITY TAB & PREMYERA KAMPANIYASI
+// ==========================================
+
+router.get('/longform/community-campaign/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const campaign = communityCampaignService.generateCampaign(contentId, title);
+  res.json({ success: true, campaign });
 });
 
 export default router;

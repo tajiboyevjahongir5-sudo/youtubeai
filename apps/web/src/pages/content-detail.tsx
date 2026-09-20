@@ -1404,7 +1404,7 @@ export const ContentDetailPage = () => {
   };
 
   // ====================================================
-  // WAVE 7: 16:9 LONG-FORM MASTERCLASS SUITE
+  // WAVE 7 & 8: 16:9 LONG-FORM MASTERCLASS SUITE
   // ====================================================
   const [midrollPlan, setMidrollPlan] = useState<any | null>(null);
   const [narrativeArc, setNarrativeArc] = useState<any | null>(null);
@@ -1413,29 +1413,64 @@ export const ContentDetailPage = () => {
   const [isExpandingScript, setIsExpandingScript] = useState(false);
   const [activeAudioTrackPreview, setActiveAudioTrackPreview] = useState<'en' | 'de' | 'uz'>('en');
 
+  // WAVE 8 ADDITIONS
+  const [autoClipperPackage, setAutoClipperPackage] = useState<any | null>(null);
+  const [isGeneratingAutoClips, setIsGeneratingAutoClips] = useState(false);
+  const [multiCamPlan, setMultiCamPlan] = useState<any | null>(null);
+  const [activeCamAnglePreview, setActiveCamAnglePreview] = useState<'full_host' | 'pip_corner' | 'split_screen' | 'fullscreen_diagram'>('pip_corner');
+  const [codeTerminalPackage, setCodeTerminalPackage] = useState<any | null>(null);
+  const [seoFunnelPackage, setSeoFunnelPackage] = useState<any | null>(null);
+  const [communityCampaignPackage, setCommunityCampaignPackage] = useState<any | null>(null);
+
   const fetchLongformSuiteData = async () => {
     try {
-      const [midRes, arcRes, endRes] = await Promise.all([
+      const titleParam = encodeURIComponent(metaTitle || videoTitle || "Neural Pulse AI Masterclass");
+      const [midRes, arcRes, endRes, clipsRes, camRes, codeRes, seoRes, commRes] = await Promise.all([
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/midroll/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
         }),
-        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/narrative-arc/${contentId}?title=${encodeURIComponent(metaTitle || videoTitle)}`, {
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/narrative-arc/${contentId}?title=${titleParam}`, {
           headers: { 'x-workspace-id': workspaceId }
         }),
         fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/endscreen/${contentId}`, {
           headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/autoclips/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/multicam-pip/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/code-terminal/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/seo-funnel/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/community-campaign/${contentId}?title=${titleParam}`, {
+          headers: { 'x-workspace-id': workspaceId }
         })
       ]);
 
-      const [midData, arcData, endData] = await Promise.all([
-        midRes.json(),
-        arcRes.json(),
-        endRes.json()
+      const [midData, arcData, endData, clipsData, camData, codeData, seoData, commData] = await Promise.all([
+        midRes.json().catch(() => null),
+        arcRes.json().catch(() => null),
+        endRes.json().catch(() => null),
+        clipsRes.json().catch(() => null),
+        camRes.json().catch(() => null),
+        codeRes.json().catch(() => null),
+        seoRes.json().catch(() => null),
+        commRes.json().catch(() => null)
       ]);
 
-      if (midData.success && midData.plan) setMidrollPlan(midData.plan);
-      if (arcData.success && arcData.arc) setNarrativeArc(arcData.arc);
-      if (endData.success && endData.endscreen) setEndScreenPackage(endData.endscreen);
+      if (midData?.success && midData.plan) setMidrollPlan(midData.plan);
+      if (arcData?.success && arcData.arc) setNarrativeArc(arcData.arc);
+      if (endData?.success && endData.endscreen) setEndScreenPackage(endData.endscreen);
+      if (clipsData?.success && clipsData.package) setAutoClipperPackage(clipsData.package);
+      if (camData?.success && camData.plan) setMultiCamPlan(camData.plan);
+      if (codeData?.success && codeData.package) setCodeTerminalPackage(codeData.package);
+      if (seoData?.success && seoData.funnel) setSeoFunnelPackage(seoData.funnel);
+      if (commData?.success && commData.campaign) setCommunityCampaignPackage(commData.campaign);
     } catch (e) {}
   };
 
@@ -3135,6 +3170,185 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* 💻 Jonli Kod & Terminal Animatsiyasi Studiyasi */}
+          <Card className="liquid-glass border border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.08)] mt-6">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Jonli Kod & Terminal Animatsiyasi Studiyasi (Code B-Roll)
+                      <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        ⚡ 60FPS VS Code & Bash
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Katta video uchun sintaktik yoritilgan dinamik kod bloklari, yozilish animatsiyasi va real Docker/Bash terminal jarayonlari
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                  60 FPS | JetBrains Mono | Mac Dots ✓
+                </div>
+              </div>
+
+              {/* Kod va Terminal Maketlari */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {(codeTerminalPackage?.snippets || [
+                  {
+                    id: "code_1",
+                    language: "typescript",
+                    title: "src/agents/orchestrator.ts (Self-Healing Loop)",
+                    theme: "cyberpunk_neon",
+                    typingSpeedWpm: 160,
+                    codeContent: `export async function runSelfHealingAgent(task: string) {
+  const sandbox = await DockerSandbox.create({ memory: '4GB' });
+  try {
+    return await sandbox.execute(task);
+  } catch (error) {
+    // ⚡ DeepSeek R1 ga stacktrace yuborib avtomatik tuzatamiz
+    const patch = await deepseek.repairCode({ error, task });
+    await sandbox.applyPatch(patch);
+    return await sandbox.execute(task); // [OK] Muvaffaqiyatli tiklandi
+  }
+}`,
+                    terminalOutput: {
+                      command: "pnpm run start:agent --task=\"scrape-and-analyze\"",
+                      stdout: [
+                        "⚡ [INFO] Docker sandbox starting on port 8080...",
+                        "⚠️ [WARN] Memory spike detected at 3.2GB!",
+                        "❌ [ERROR] Segmentation fault in sub-worker #3",
+                        "🤖 [AUTO-HEAL] Sending diagnostic memory dump to DeepSeek R1...",
+                        "✅ [PATCH APPLIED] Garbage collection thresholds adjusted.",
+                        "🚀 [SUCCESS] Task completed in 4.12s. 0 data loss."
+                      ],
+                      status: "healed",
+                      executionTimeMs: 4120
+                    }
+                  },
+                  {
+                    id: "code_2",
+                    language: "dockerfile",
+                    title: "Dockerfile (Isolated Agent Environment)",
+                    theme: "tokyo_night",
+                    typingSpeedWpm: 140,
+                    codeContent: `FROM node:22-alpine AS runtime
+WORKDIR /app
+RUN apk add --no-cache chromium git bash
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY . .
+ENV AGENT_MODE=autonomous
+CMD ["pnpm", "start:production"]`,
+                    terminalOutput: {
+                      command: "docker build -t neural-pulse/agent:v2.6 .",
+                      stdout: [
+                        "[+] Building 2.4s (10/10) FINISHED",
+                        " => [internal] load build definition from Dockerfile",
+                        " => => naming to docker.io/neural-pulse/agent:v2.6",
+                        "Successfully tagged neural-pulse/agent:v2.6"
+                      ],
+                      status: "success",
+                      executionTimeMs: 2400
+                    }
+                  }
+                ]).map((snippet: any, snIdx: number) => (
+                  <div
+                    key={snIdx}
+                    className="rounded-2xl bg-[#0d1117] border border-white/10 overflow-hidden shadow-xl flex flex-col justify-between"
+                  >
+                    {/* VS Code Mac Window Header */}
+                    <div className="bg-[#161b22] px-4 py-2.5 border-b border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                        </div>
+                        <span className="text-xs font-mono font-bold text-gray-300 ml-2">{snippet.title}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded">
+                          {snippet.typingSpeedWpm} WPM
+                        </span>
+                        <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded">
+                          {snippet.language}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Kod Muharriri Matni */}
+                    <div className="p-4 font-mono text-xs leading-relaxed overflow-x-auto text-gray-200 bg-[#090d16]">
+                      <pre className="text-emerald-400 font-mono">
+                        <code>{snippet.codeContent}</code>
+                      </pre>
+                    </div>
+
+                    {/* Jonli Terminal Simulyatori */}
+                    {snippet.terminalOutput && (
+                      <div className="border-t border-white/10 bg-black/90 p-3.5 space-y-2 font-mono text-[11px]">
+                        <div className="flex items-center justify-between text-gray-400 pb-1 border-b border-white/5 text-[10px]">
+                          <span className="flex items-center gap-1">
+                            <span className="text-cyan-400">$</span> {snippet.terminalOutput.command}
+                          </span>
+                          <span className="text-emerald-400 font-bold">
+                            {snippet.terminalOutput.executionTimeMs}ms ✓
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          {snippet.terminalOutput.stdout.map((line: string, lIdx: number) => (
+                            <div
+                              key={lIdx}
+                              className={`text-[10px] leading-tight ${
+                                line.includes('ERROR')
+                                  ? 'text-red-400 font-bold'
+                                  : line.includes('WARN')
+                                  ? 'text-yellow-400'
+                                  : line.includes('SUCCESS') || line.includes('PATCH')
+                                  ? 'text-emerald-400 font-bold'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pastki Amallar */}
+                    <div className="p-3 bg-[#161b22] border-t border-white/5 flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400">
+                        Tema: <strong className="text-white font-mono">{snippet.theme}</strong>
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(snippet.codeContent);
+                            setToast(`📋 ${snippet.title} kodi nusxalandi!`);
+                            setTimeout(() => setToast(null), 3000);
+                          }}
+                          className="text-[11px] font-bold text-gray-300 hover:text-white hover:bg-white/5 cursor-pointer h-7"
+                        >
+                          <Copy size={11} className="mr-1" /> Kodni Nusxalash
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* 🎬 Smart Auto-Captions & Karaoke Subtitrlar Studiyasi */}
@@ -3973,6 +4187,211 @@ export const ContentDetailPage = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* ✂️ Auto-Clipper: Katta Videodan 5 Ta Virallashgan Shorts Kesish */}
+          <Card className="liquid-glass border border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.08)] mt-6">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                    <Smartphone className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Auto-Clipper: Katta Videodan 5 Ta Virallashgan Shorts Kesish
+                      <span className="text-[10px] font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full">
+                        🚀 Traffic Funnel (+350K Ko'rish)
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      12 daqiqalik masterclassning eng dramatik burilish nuqtalaridan 9:16 Shorts kliplar tayyorlab, YouTube "Created from" orqali katta videoga trafik haydash
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    {autoClipperPackage?.trafficFunnelMultiplier || "2.8x - 4.1x ko'proq auditoriya oqimi"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Klip tahliliy ko'rsatkichlari */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Jami Generatsiya Kliplari</span>
+                  <p className="text-lg font-mono font-bold text-white">
+                    {autoClipperPackage?.totalClipsGenerated || 5} ta 9:16 Vertikal Shorts
+                  </p>
+                  <span className="text-[10px] text-gray-400">Har biri 35-50 soniya oralig'ida</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-1">
+                  <span className="text-[10px] font-bold text-cyan-300 uppercase">Kutilayotgan Qo'shimcha Qamrov</span>
+                  <p className="text-lg font-mono font-bold text-cyan-300">
+                    {autoClipperPackage?.estimatedAdditionalViews || "+150K - +350K ko'rishlar"}
+                  </p>
+                  <span className="text-[10px] text-gray-400">Shorts Feed tavsiyalari orqali</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 space-y-1">
+                  <span className="text-[10px] font-bold text-red-300 uppercase">YouTube Funnel Konversiyasi</span>
+                  <p className="text-lg font-mono font-bold text-red-400">
+                    "Created from" Havolasi ✓
+                  </p>
+                  <span className="text-[10px] text-red-300">Har bir Shorts tomoshabinni to'liq filmga yo'naltiradi</span>
+                </div>
+              </div>
+
+              {/* 5 Ta Virallashgan Shorts Kliplar Ro'yxati */}
+              <div className="space-y-3.5 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                  <Flame className="w-3.5 h-3.5 text-red-400" />
+                  Avtomatik Kesilgan 5 Ta Oqim Keltiruvchi Kliplar (Viral Hooks)
+                </h4>
+
+                <div className="space-y-3">
+                  {(autoClipperPackage?.clips || [
+                    {
+                      clipId: "clip_1",
+                      title: "Dasturchilar Xatosi: AI Agentlar Nimaga Crash Bo'ladi?",
+                      sourceTimecode: "00:15 - 00:55",
+                      durationSeconds: 40,
+                      hookHeadline: "! 90% DASTURCHILAR SHU XATONI QILADI !",
+                      viralScore: 97,
+                      highlightCategory: "pattern_interrupt",
+                      targetAudienceHook: "Agar siz hali ham LLM ni to'g'ridan-to'g'ri chaqirayotgan bo'lsangiz, serveringiz 10 soniyada qulaydi!",
+                      narrationSnippet: "Ko'pchilik sun'iy idrok agentlarini oddiy prompt deb o'ylaydi. Lekin real yuklamada xotira to'lib ketadi va Docker konteyner o'ladi...",
+                      suggestedBrollPrompt: "Hyper-realistic red warning server lights, Alex confident serious gesture, high-speed terminal glitch",
+                      youtubeBridgeCta: "To'liq 12 daqiqalik darslik pastdagi 'Created from' havolasida!"
+                    },
+                    {
+                      clipId: "clip_2",
+                      title: "3 Qator Kod Bilan Self-Healing LLM Loop Yaratish",
+                      sourceTimecode: "03:40 - 04:25",
+                      durationSeconds: 45,
+                      hookHeadline: "⚡ 3 QATOR KOD = AVTONOM AGENT ⚡",
+                      viralScore: 94,
+                      highlightCategory: "breakthrough_code",
+                      targetAudienceHook: "Mana bu oddiy TypeScript funksiyasi agentingiz o'z xatosini o'zi tuzatishiga majbur qiladi!",
+                      narrationSnippet: "Qarang, try-catch blokida xatoni tashlab yubormaymiz, uni to'g'ridan-to'g'ri DeepSeek R1 ga yuborib kodni qayta kompass qilamiz...",
+                      suggestedBrollPrompt: "Neon green syntax highlighting, VS Code cursor typing at 180wpm, sleek glassmorphism card",
+                      youtubeBridgeCta: "To'liq manba kodlari 'Created from' video tavsifida bepul!"
+                    },
+                    {
+                      clipId: "clip_3",
+                      title: "Jonli Efirda 50,000 Foydalanuvchi Kelganda Nima Bo'ldi?",
+                      sourceTimecode: "07:15 - 08:00",
+                      durationSeconds: 45,
+                      hookHeadline: "🚨 SERVER 100% YONIB KETDI! 🚨",
+                      viralScore: 99,
+                      highlightCategory: "production_crash",
+                      targetAudienceHook: "50,000 so'rov bir vaqtda tushganda, barcha API kalitlarimiz bloklandi!",
+                      narrationSnippet: "Ekranga qarang, xotira sarfi 99% ga yetdi, Redis cluster javob bermayapti. Ammo biz oldindan tayyorlagan fallback tizimi ishga tushdi...",
+                      suggestedBrollPrompt: "Dramatic red emergency alarm, live grafana dashboard spiking, Alex intense reaction",
+                      youtubeBridgeCta: "Inqiroz qanday hal qilinganini ko'rish uchun to'liq videoni tomosha qiling!"
+                    },
+                    {
+                      clipId: "clip_4",
+                      title: "AI O'zining Xatosini 1.2 Soniyada Tuzatdi (Sehr)",
+                      sourceTimecode: "08:35 - 09:20",
+                      durationSeconds: 45,
+                      hookHeadline: "🤯 INSONSIZ O'Z-O'ZINI TUZATISH 🤯",
+                      viralScore: 96,
+                      highlightCategory: "self_healing",
+                      targetAudienceHook: "Dasturchi uxlayotganda AI agent serverdagi bug'ni o'zi topib patch qildi!",
+                      narrationSnippet: "Mana, agent loglarni o'qidi, diff faylni generatsiya qildi, unit testlarni run qildi va productionga avtomatik deploy qildi...",
+                      suggestedBrollPrompt: "Futuristic digital brain repairing glowing neon wires, green terminal checkmarks",
+                      youtubeBridgeCta: "Ushbu tizimning to'liq arxitekturasi 'Created from' videosida!"
+                    },
+                    {
+                      clipId: "clip_5",
+                      title: "2026-Yilda Junior Dasturchilar Kerak Bo'lmaydimi?",
+                      sourceTimecode: "10:45 - 11:35",
+                      durationSeconds: 50,
+                      hookHeadline: "⚠️ 2026 REALLIGI: KIMLAR ISHSIZ QOLADI? ⚠️",
+                      viralScore: 98,
+                      highlightCategory: "mindblowing_outro",
+                      targetAudienceHook: "Agar siz faqat kod yozishni bilsangiz, afsuski agentlar sizni 10 barobar tezroq almashtiradi...",
+                      narrationSnippet: "Kelajak — kod yozuvchilarniki emas, agentlarni boshqaruvchi tizim arxitektorlariniki. Qanday qilib arxitektor bo'lish siri kanalda!",
+                      suggestedBrollPrompt: "Cyberpunk city silhouette, glowing autonomous drones, Alex commanding gesture",
+                      youtubeBridgeCta: "Kanalga kiring va 'Created from' masterclassini hoziroq ko'ring!"
+                    }
+                  ]).map((clip: any, cIdx: number) => (
+                    <div
+                      key={cIdx}
+                      className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 transition space-y-3"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-7 h-7 rounded-lg bg-red-500/20 text-red-300 flex items-center justify-center text-xs font-bold font-mono">
+                            #{cIdx + 1}
+                          </span>
+                          <div>
+                            <h5 className="text-xs font-bold text-white">{clip.title}</h5>
+                            <span className="text-[10px] font-mono text-gray-400">
+                              Asl manba: <strong>{clip.sourceTimecode}</strong> ({clip.durationSeconds}s)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                            Viral Indeks: {clip.viralScore}/100
+                          </span>
+                          <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                            9:16 Shorts
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
+                          <div className="text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                            📌 0-3 Soniyalik Hook & Subtitr:
+                          </div>
+                          <p className="text-white font-black text-xs leading-snug">{clip.hookHeadline}</p>
+                          <p className="text-[11px] text-gray-300 leading-relaxed font-sans mt-1">{clip.targetAudienceHook}</p>
+                        </div>
+
+                        <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
+                          <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+                            🔗 YouTube "Created From" Qopqoni:
+                          </div>
+                          <p className="text-[11px] text-emerald-300 font-medium leading-relaxed bg-emerald-500/10 p-2 rounded border border-emerald-500/20">
+                            "{clip.youtubeBridgeCta}"
+                          </p>
+                          <div className="text-[10px] text-gray-400 truncate">
+                            B-Roll: {clip.suggestedBrollPrompt}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] text-gray-500 italic">
+                          Diktori: "{clip.narrationSnippet.slice(0, 75)}..."
+                        </span>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const fullClipScript = `[SHORTS #${cIdx + 1} - 9:16]\nHAVOLA: ${clip.title}\nHOOK: ${clip.hookHeadline}\nNUTQ: ${clip.narrationSnippet}\nCTA: ${clip.youtubeBridgeCta}`;
+                            navigator.clipboard.writeText(fullClipScript);
+                            setToast(`📋 Shorts #${cIdx + 1} ssenariysi va qopqoni nusxalandi!`);
+                            setTimeout(() => setToast(null), 3000);
+                          }}
+                          className="text-[11px] font-bold border-red-500/30 text-red-300 hover:bg-red-500/20 cursor-pointer h-7"
+                        >
+                          <Copy size={11} className="mr-1" /> Shorts Kriptidan Nusxa Olish
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* 🔁 Binge-Watch Series & Pleylist */}
@@ -4454,18 +4873,75 @@ export const ContentDetailPage = () => {
                     </div>
                   </div>
 
-                  {/* Center Cinema Visual & Scene Title */}
-                  <div className="relative my-auto flex flex-col items-center justify-center text-center space-y-2.5">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600/20 to-indigo-600/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shadow-[0_0_25px_rgba(59,130,246,0.25)]">
-                      <Tv size={28} />
-                    </div>
-                    <div className="px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white font-semibold truncate max-w-[380px]">
-                      {scenes[previewSceneIndex]?.title || '1. Paradigm Shift & Massive Stakes'}
-                    </div>
+                  {/* Center Cinema Visual dynamically driven by Multi-Camera Angle */}
+                  <div className="relative my-auto w-full h-44 rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex items-center justify-center">
+                    {activeCamAnglePreview === 'full_host' && (
+                      <div className="flex flex-col items-center justify-center text-center space-y-2 animate-fade-in">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600/30 to-cyan-500/30 border-2 border-cyan-400 flex items-center justify-center text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+                          <User size={30} />
+                        </div>
+                        <div className="px-3 py-1 rounded-xl bg-black/70 backdrop-blur-md border border-white/15 text-xs text-white font-bold">
+                          Kamera 1: Alex Markazda (Punch Zoom 1.05x)
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-mono">Xavfsiz Zona (y=100..1240) ✓</span>
+                      </div>
+                    )}
+
+                    {activeCamAnglePreview === 'pip_corner' && (
+                      <div className="w-full h-full relative p-3 flex flex-col justify-between bg-[#0b0e17] font-mono text-[10px] animate-fade-in">
+                        {/* Background Code / Terminal */}
+                        <div className="text-emerald-400/90 space-y-1">
+                          <div className="text-gray-500">// src/agents/orchestrator.ts (Live Coding)</div>
+                          <div><span className="text-purple-400">const</span> agent = <span className="text-yellow-400">new</span> AutonomousAgent();</div>
+                          <div><span className="text-purple-400">await</span> agent.<span className="text-cyan-400">selfHealAndDeploy</span>();</div>
+                          <div className="text-gray-500">// ⚡ 60FPS High-speed Terminal Stream...</div>
+                        </div>
+
+                        {/* PIP Host Circle in Bottom-Right */}
+                        <div className="absolute bottom-2.5 right-2.5 w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-cyan-500 p-0.5 shadow-2xl animate-pulse">
+                          <div className="w-full h-full rounded-full bg-black flex flex-col items-center justify-center text-cyan-300 border border-white/20">
+                            <User size={18} />
+                            <span className="text-[7px] font-bold text-white uppercase font-sans">Alex PIP</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeCamAnglePreview === 'split_screen' && (
+                      <div className="w-full h-full grid grid-cols-2 divide-x divide-cyan-500/30 animate-fade-in">
+                        <div className="flex flex-col items-center justify-center p-2 bg-blue-950/20">
+                          <User size={26} className="text-blue-400 mb-1" />
+                          <span className="text-[10px] font-bold text-white">Alex Xosti (Chap)</span>
+                          <span className="text-[8px] text-gray-400">Tushuntirish & Analiz</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-purple-950/20 font-mono text-[9px] text-purple-300 space-y-1">
+                          <Layers size={22} className="text-purple-400" />
+                          <span className="font-bold text-white font-sans">3D Arxitektura</span>
+                          <span className="text-[8px] text-emerald-400">Docker &lt;--&gt; DeepSeek R1</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeCamAnglePreview === 'fullscreen_diagram' && (
+                      <div className="w-full h-full p-3 bg-black flex flex-col justify-between font-mono text-[9px] animate-fade-in">
+                        <div className="flex items-center justify-between text-gray-500 border-b border-white/10 pb-1">
+                          <span>bash - 80x24</span>
+                          <span className="text-amber-400 font-bold flex items-center gap-1">
+                            <Radio size={10} className="text-red-400 animate-pulse" /> Alex Voiceover Faol
+                          </span>
+                        </div>
+                        <div className="text-cyan-300 space-y-0.5">
+                          <p>$ docker compose -f production.yml up -d</p>
+                          <p className="text-emerald-400">[+] Running 4/4 Container neural-pulse-agent Started</p>
+                          <p className="text-gray-400">Listening on http://localhost:8080 (0.00ms latency)</p>
+                        </div>
+                        <div className="text-[8px] text-gray-500">100% Texnik Diqqat / 0 To'siq</div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Bottom: Lower-Third Subtitle & Cinema Scrubbing Bar */}
-                  <div className="space-y-2.5 z-10">
+                  <div className="space-y-2 z-10">
                     <div className="px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 text-center">
                       <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-wider block pb-0.5">
                         Sahna {previewSceneIndex + 1} Subtitri:
@@ -4490,42 +4966,65 @@ export const ContentDetailPage = () => {
 
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-400">
                         <span>00:{String((previewSceneIndex * 60)).padStart(2, '0')} / 12:00</span>
-                        <span className="text-yellow-400 font-bold">🟡 4 ta Mid-roll Reklama Nuqtasi</span>
+                        <span className="text-yellow-400 font-bold">🟡 4 ta Mid-roll Nuqtasi</span>
                         <span>4K AV1 Master</span>
                       </div>
                     </div>
 
-                    {/* Multi-Audio Switcher Controls */}
+                    {/* Multi-Camera Angle Switcher Controls */}
                     <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-gray-400 font-semibold mr-0.5">Audio:</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-gray-400 font-semibold mr-0.5">Kamera:</span>
                         {[
-                          { code: 'en', flag: '🇺🇸', label: 'US Alex' },
-                          { code: 'de', flag: '🇩🇪', label: 'DE Conrad' },
-                          { code: 'uz', flag: '🇺🇿', label: 'UZ Sardor' }
+                          { id: 'full_host', label: '1: Alex' },
+                          { id: 'pip_corner', label: '2: PIP' },
+                          { id: 'split_screen', label: '3: 50/50' },
+                          { id: 'fullscreen_diagram', label: '4: Kod' }
+                        ].map((cam) => (
+                          <button
+                            key={cam.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveCamAnglePreview(cam.id as any);
+                              setToast(`🎥 Kamera rejimi: ${cam.label}`);
+                              setTimeout(() => setToast(null), 2000);
+                            }}
+                            className={`text-[9px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                              activeCamAnglePreview === cam.id
+                                ? 'bg-amber-500 text-black border-amber-400 font-bold shadow'
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                            }`}
+                          >
+                            {cam.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Multi-Audio Switcher Controls */}
+                      <div className="flex items-center gap-1">
+                        {[
+                          { code: 'en', flag: '🇺🇸' },
+                          { code: 'de', flag: '🇩🇪' },
+                          { code: 'uz', flag: '🇺🇿' }
                         ].map((trk) => (
                           <button
                             key={trk.code}
                             type="button"
                             onClick={() => {
                               setActiveAudioTrackPreview(trk.code as any);
-                              setToast(`🎧 Audio trek o'zgartirildi: ${trk.flag} ${trk.label}`);
+                              setToast(`🎧 Audio: ${trk.flag}`);
                               setTimeout(() => setToast(null), 2000);
                             }}
-                            className={`text-[9px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                            className={`text-[9px] px-1.5 py-0.5 rounded border transition-all cursor-pointer ${
                               activeAudioTrackPreview === trk.code
-                                ? 'bg-blue-600 text-white border-blue-500 font-bold shadow'
+                                ? 'bg-blue-600 text-white border-blue-500 font-bold'
                                 : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
                             }`}
                           >
-                            {trk.flag} {trk.label}
+                            {trk.flag}
                           </button>
                         ))}
                       </div>
-
-                      <span className="text-[9px] text-emerald-400 font-mono font-bold">
-                        EBU R128 (-14 LUFS) ✓
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -5608,6 +6107,293 @@ export const ContentDetailPage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 📌 YouTube Pinned Comment & Description SEO Master */}
+          <Card className="liquid-glass border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.08)] mt-6">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <Pin className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      YouTube Pinned Comment & Description SEO Master
+                      <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                        💎 Affiliate & Sponsor Funnel
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Tomoshabinlarni izoh yozishga undovchi strategik qadalgan savol va yuqori daromadli vositalar tavsifi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    Monetizatsiya Bali: {seoFunnelPackage?.seoChecklist?.monetizationScore || 96}/100 ✓
+                  </span>
+                </div>
+              </div>
+
+              {/* Pinned Comment Box */}
+              <div className="p-4 rounded-xl bg-black/50 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Pin size={14} className="text-amber-400" />
+                    YouTube Birinchi Mahkamlangan Izoh (Pinned Comment):
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">
+                    {seoFunnelPackage?.pinnedComment?.expectedEngagementBoost || "+45% ko'proq izohlar"}
+                  </span>
+                </div>
+
+                <p className="text-xs font-sans text-gray-200 leading-relaxed bg-white/[0.03] p-3 rounded-lg border border-white/5 whitespace-pre-line">
+                  {seoFunnelPackage?.pinnedComment?.commentText || `🚀 Savol: Sizningcha, 2026-yil oxiriga kelib AI agentlar to'liq mustaqil dasturlarni inson nazoratisiz boshqara oladimi?\n\nO'z fikringizni yozib qoldiring, eng qiziqarli sharh egasini keyingi videoda e'lon qilamiz!\n\n📌 Barcha GitHub kodlar va bepul PDF konspekt tavsifda (Description). Obuna bo'lishni unutmang! 🔔`}
+                </p>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(seoFunnelPackage?.pinnedComment?.commentText || "");
+                      setToast("📋 Mahkamlangan izoh matni nusxalandi!");
+                      setTimeout(() => setToast(null), 3000);
+                    }}
+                    className="text-xs font-bold border-amber-500/30 text-amber-300 hover:bg-amber-500/20 cursor-pointer"
+                  >
+                    <Copy size={12} className="mr-1" /> Izohdan Nusxa Olish
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tier-1 High-Paying Affiliate Tools */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                  Videoga Biriktirilgan Yuqori Komissiyali Hamkorlik Vositalari (Affiliate Links):
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(seoFunnelPackage?.affiliateTools || [
+                    {
+                      name: "Modal Cloud GPUs",
+                      category: "Serverless AI Infra",
+                      commissionEstimate: "$150 / referral",
+                      affiliateUrl: "https://modal.com/?ref=neuralpulse",
+                      pitchLine: "AI agentlarni H100 GPU klasterlarida 1 soniyada ishga tushirish.",
+                      badge: "🔥 Tavsiya etiladi"
+                    },
+                    {
+                      name: "Cursor AI Code Editor",
+                      category: "AI IDE",
+                      commissionEstimate: "$20 / oylik obuna",
+                      affiliateUrl: "https://cursor.com/?ref=neuralpulse",
+                      pitchLine: "Kod yozish tezligini 5x ga oshiruvchi dunyodagi #1 AI muharriri.",
+                      badge: "⚡ Dasturchilar tanlovi"
+                    },
+                    {
+                      name: "Railway Cloud Deploy",
+                      category: "Docker Hosting",
+                      commissionEstimate: "$200 / enterprise credit",
+                      affiliateUrl: "https://railway.com/?ref=neuralpulse",
+                      pitchLine: "Docker va TypeScript orkestratorini bir klikda deploy qiling.",
+                      badge: "💎 1-Klik Deploy"
+                    }
+                  ]).map((tool: any, tIdx: number) => (
+                    <div
+                      key={tIdx}
+                      className="p-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-amber-500/30 transition flex flex-col justify-between space-y-2"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold">
+                            {tool.commissionEstimate}
+                          </span>
+                          <span className="text-[9px] font-bold text-gray-400">{tool.badge}</span>
+                        </div>
+                        <h5 className="text-xs font-bold text-white mt-1">{tool.name}</h5>
+                        <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">{tool.pitchLine}</p>
+                      </div>
+
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-gray-500 truncate max-w-[150px]">{tool.affiliateUrl}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tool.affiliateUrl);
+                            setToast(`📋 ${tool.name} havolasi nusxalandi!`);
+                            setTimeout(() => setToast(null), 2500);
+                          }}
+                          className="h-6 text-[10px] text-amber-300 hover:bg-amber-500/10 cursor-pointer"
+                        >
+                          <Copy size={10} className="mr-1" /> Nusxa
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Full Description Export */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                <div className="text-xs text-gray-400">
+                  Jami so'zlar: <strong className="text-white">{seoFunnelPackage?.seoChecklist?.descriptionWordCount || 195} so'z</strong> | Kalit so'zlar: <strong className="text-emerald-400">Optimal (2.8%)</strong>
+                </div>
+
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(seoFunnelPackage?.compiledDescription || "");
+                    setToast("📋 To'liq YouTube Tavsifi (Description) nusxalandi!");
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer"
+                >
+                  <Copy size={12} className="mr-1.5" /> To'liq Tavsifdan (Description) Nusxa Olish
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 📢 YouTube Community Tab & Premyera Kampaniyasi Avtopiloti */}
+          <Card className="liquid-glass border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.08)] mt-6">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <Vote className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      YouTube Community Tab & Premyera Kampaniyasi Avtopiloti
+                      <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                        🔥 Premyera Tezligi (Velocity 3x)
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Video chiqishidan 24 soat oldin obunachilarni uyg'otish va chiqqan kuni YouTube Hamjamiyatiga anons qilish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-lg">
+                    {communityCampaignPackage?.expectedInitialVelocityBoost || "+180% ko'proq tomoshabinlar"}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Ta Kampaniya Fazalari */}
+              <div className="space-y-4">
+                {(communityCampaignPackage?.posts || [
+                  {
+                    phase: "pre_launch_24h",
+                    phaseTitle: "24 Soat Oldin: Intizorlik So'rovnomasi (Pre-Launch Poll)",
+                    timingNotice: "Video chiqishidan 24 soat oldin (YouTube obunachilarni faollashtirish)",
+                    type: "poll",
+                    headline: "Ertaga kanalimizda 12 daqiqalik yirik AI Masterclass chiqmoqda! 🔥",
+                    bodyText: "Biz to'liq mustaqil AI Agentlarni Docker va TypeScriptda noldan quramiz. Sizningcha, ushbu agent eng birinchi qaysi vazifani avtomatik yechishi kerak?",
+                    pollOptions: [
+                      "1. To'liq veb-saytni skanerlab tahlil qilish",
+                      "2. Kod yozib, xatosini o'zi tuzatish (Self-healing)",
+                      "3. Moliyaviy bozorlar ma'lumotlarini saralash",
+                      "4. Barcha 3 tasini birdaniga sinab ko'rish 🚀"
+                    ],
+                    targetObjective: "Obunachilarning 15-20% ini post orqali uyg'otish",
+                    expectedImpressionBoost: "+25,000 - +50,000 oldindan faollik"
+                  },
+                  {
+                    phase: "launch_hour",
+                    phaseTitle: "Premyera Soati: Jonli Anons & Rasm Posti (Launch Blast)",
+                    timingNotice: "Video premyerasi boshlangan birinchi daqiqalarda",
+                    type: "image_post",
+                    headline: "YANGI MASTERCLASS CHIQDI: Autonomous AI Agents 2026! 🚀",
+                    bodyText: "Nega 90% sun'iy idrok agentlari ishlab chiqarishda qulaydi? O'z xatosini o'zi tuzatuvchi tizimni qanday qurish mumkin? To'liq 12 daqiqalik amaliy masterclass hoziroq kanalda!",
+                    suggestedImagePrompt: "High contrast YouTube Community banner, neon cyberpunk theme, Host Alex holding holographic terminal",
+                    targetObjective: "Dastlabki 2 soat ichida (Velocity) maksimal kliklar va ko'rishlar oqimini yaratish",
+                    expectedImpressionBoost: "Algoritm tavsiyasiga chiqish tezligini 3 barobarga oshiradi"
+                  },
+                  {
+                    phase: "followup_48h",
+                    phaseTitle: "48 Soat Keyin: Natijalar & Bahs So'rovnomasi (Sustained Momentum)",
+                    timingNotice: "Video chiqqanidan 2 kun o'tgach (Ikkinchi to'lqinni uyg'otish)",
+                    type: "discussion",
+                    headline: "Oxirgi masterclassimizdagi kodni sinab ko'rdingizmi? 💡",
+                    bodyText: "GitHub repozitoriyamizdagi self-healing kodni ishga tushirgan dasturchilar qanday natija oldi? Qaysi qismi siz uchun eng qiyin yoki qiziq bo'ldi?",
+                    pollOptions: [
+                      "O'rnatdim, Docker sandbox a'lo darajada ishladi!",
+                      "Xatolik yuz berdi, izohda savolim bor",
+                      "Hali ko'rmadim, bugun kechqurun ko'raman",
+                      "2-qismni (Kubernetes deploy) kutyapman 🔥"
+                    ],
+                    targetObjective: "Eski videoga yangi tomoshabinlar jalb qilib, retensiya chizig'ini baland ushlab turish",
+                    expectedImpressionBoost: "+30% doimiy ko'rishlar oqimi"
+                  }
+                ]).map((post: any, pIdx: number) => (
+                  <div
+                    key={pIdx}
+                    className="p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-purple-500/30 transition space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-xs font-bold font-mono">
+                          Faza {pIdx + 1}
+                        </span>
+                        <h5 className="text-xs font-bold text-white">{post.phaseTitle}</h5>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded">
+                          {post.timingNotice}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-bold text-amber-300">{post.headline}</p>
+                      <p className="text-xs text-gray-200 leading-relaxed font-sans">{post.bodyText}</p>
+                    </div>
+
+                    {post.pollOptions && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        {post.pollOptions.map((opt: string, oIdx: number) => (
+                          <div key={oIdx} className="p-2 rounded-lg bg-black/40 border border-white/5 text-xs text-gray-300 font-sans flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full border border-purple-500/40 flex items-center justify-center text-[10px] text-purple-300">
+                              {oIdx + 1}
+                            </span>
+                            <span>{opt}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400">
+                        Ta'siri: <strong className="text-purple-300">{post.expectedImpressionBoost}</strong>
+                      </span>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const compiledPost = `${post.headline}\n\n${post.bodyText}\n\n${(post.pollOptions || []).join('\n')}`;
+                          navigator.clipboard.writeText(compiledPost);
+                          setToast(`📋 ${post.phaseTitle} matni nusxalandi!`);
+                          setTimeout(() => setToast(null), 3000);
+                        }}
+                        className="text-[11px] font-bold border-purple-500/30 text-purple-300 hover:bg-purple-500/20 cursor-pointer h-7"
+                      >
+                        <Copy size={11} className="mr-1" /> Post Matnidan Nusxa Olish
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
