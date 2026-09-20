@@ -150,22 +150,37 @@ const CalendarPage = () => {
         });
       }
     } else if (i < currentDayOfWeek) {
-      // Past day in current week
+      // Past day in current week — 2 ta video: 1 Shorts + 1 Long-form
       slots.push({
         time: '19:00',
         utc: '14:00 UTC',
-        title: 'Why 90% of Devs Use AI #Shorts',
+        title: `Why 90% of Devs Use AI #Shorts`,
         format: 'shorts',
         status: 'published',
-        contentId: 'item_3'
+        contentId: `item_past_${i}_1`
+      });
+      slots.push({
+        time: '01:00',
+        utc: '20:00 UTC',
+        title: `Building a Full Stack SaaS with AI Step-by-Step Guide`,
+        format: 'long_form',
+        status: 'published',
+        contentId: `item_past_${i}_2`
       });
     } else {
-      // Future day in current week
+      // Future day in current week — 2 ta video: 1 Shorts + 1 Long-form
       slots.push({
         time: '19:00',
         utc: '14:00 UTC',
         title: `AI Blueprint & Tech Trends #${i + 1}`,
-        format: i % 2 === 0 ? 'shorts' : 'long_form',
+        format: 'shorts',
+        status: 'scheduled'
+      });
+      slots.push({
+        time: '01:00',
+        utc: '20:00 UTC',
+        title: `Top AI Autonomous Coding Agents of 2026 #Shorts`,
+        format: 'long_form',
         status: 'scheduled'
       });
     }
