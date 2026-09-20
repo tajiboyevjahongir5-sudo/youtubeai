@@ -7,13 +7,15 @@ export class ApiError extends Error {
     super(message);
   }
 }
-
 export const fetchApi = async (url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>) => {
   const token = getToken ? await getToken() : null;
   const headers = new Headers(options.headers);
-  
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  let finalToken = token;
+  if (!finalToken && typeof window !== 'undefined') {
+    finalToken = localStorage.getItem('jpilot_auth_token');
+  }
+  if (finalToken) {
+    headers.set('Authorization', `Bearer ${finalToken}`);
   }
 
   const workspaceId = getWorkspaceId();

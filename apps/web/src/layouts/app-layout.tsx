@@ -28,8 +28,10 @@ import {
 import { clsx } from 'clsx';
 import { getWorkspaceId, resetWorkspace } from '../lib/workspace';
 import { SubscriptionModal } from '../components/subscription-modal';
+import { useAuth } from '../lib/auth';
 
 const AppLayout = () => {
+  const { user, logout } = useAuth();
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
@@ -317,14 +319,22 @@ const AppLayout = () => {
                 <UserButton appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
               </SignedIn>
             ) : (
-              <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.08] py-1.5 px-3 rounded-2xl backdrop-blur-md">
-                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                  JP
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.08] py-1.5 px-3 rounded-2xl backdrop-blur-md">
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-md uppercase">
+                    {user?.name?.substring(0, 2) || 'JP'}
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <div className="text-xs font-bold text-white leading-tight">{user?.name || 'Foydalanuvchi'}</div>
+                    <div className="text-[10px] text-emerald-400 font-medium leading-tight">● Online</div>
+                  </div>
                 </div>
-                <div className="text-left hidden sm:block">
-                  <div className="text-xs font-bold text-white leading-tight">Admin Studio</div>
-                  <div className="text-[10px] text-emerald-400 font-medium leading-tight">● Online</div>
-                </div>
+                <button 
+                  onClick={() => { logout(); window.location.href = '/'; }}
+                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  Chiqish
+                </button>
               </div>
             )}
           </div>

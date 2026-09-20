@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
+import userAuthRoutes from './user-auth.routes';
 import workspaceRoutes from './workspace.routes';
 import dashboardRoutes from './dashboard.routes';
 import youtubeRoutes from './youtube.routes';
@@ -29,6 +30,7 @@ import { requireWorkspace } from '../middleware/workspace';
 const router = Router();
 
 // Public routes & Admin routes (Admin has PIN-based auth)
+router.use('/auth', userAuthRoutes);
 router.use('/youtube', youtubeRoutes);
 router.use('/admin', adminRoutes);
 router.use('/billing', billingRoutes);

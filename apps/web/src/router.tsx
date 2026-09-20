@@ -1,6 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import AppLayout from './layouts/app-layout';
 
+import LandingPage from './pages/landing';
+import AuthPage from './pages/auth-page';
+import ProtectedRoute from './components/protected-route';
+
 import DashboardPage from './pages/dashboard';
 import OnboardingPage from './pages/onboarding';
 import ContentListPage from './pages/content-list';
@@ -16,29 +20,29 @@ import AdminPage from './pages/admin';
 import TrendSpyPage from './pages/trend-spy';
 
 export const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
+  { path: '/auth', element: <AuthPage /> },
+  { path: '/onboarding', element: <OnboardingPage /> },
   {
-    path: '/',
-    element: <Navigate to="/dashboard" replace />,
-  },
-  {
-    path: '/onboarding',
-    element: <OnboardingPage />,
-  },
-  {
-    element: <AppLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { path: '/dashboard', element: <DashboardPage /> },
-      { path: '/content', element: <ContentListPage /> },
-      { path: '/trends', element: <TrendSpyPage /> },
-      { path: '/content/new', element: <NewContentPage /> },
-      { path: '/content/:id', element: <ContentDetailPage /> },
-      { path: '/calendar', element: <CalendarPage /> },
-      { path: '/analytics', element: <AnalyticsPage /> },
-      { path: '/strategy', element: <StrategyPage /> },
-      { path: '/integrations', element: <IntegrationsPage /> },
-      { path: '/settings', element: <SettingsPage /> },
-      { path: '/activity', element: <ActivityPage /> },
-      { path: '/admin', element: <AdminPage /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/content', element: <ContentListPage /> },
+          { path: '/trends', element: <TrendSpyPage /> },
+          { path: '/content/new', element: <NewContentPage /> },
+          { path: '/content/:id', element: <ContentDetailPage /> },
+          { path: '/calendar', element: <CalendarPage /> },
+          { path: '/analytics', element: <AnalyticsPage /> },
+          { path: '/strategy', element: <StrategyPage /> },
+          { path: '/integrations', element: <IntegrationsPage /> },
+          { path: '/settings', element: <SettingsPage /> },
+          { path: '/activity', element: <ActivityPage /> },
+          { path: '/admin', element: <AdminPage /> },
+        ],
+      },
     ],
   },
 ]);

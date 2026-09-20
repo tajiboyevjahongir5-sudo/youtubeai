@@ -27,22 +27,28 @@ if (typeof window !== 'undefined') {
   (window as any).__CLERK_CONFIGURED__ = isClerkConfigured;
 }
 
+import { AuthProvider } from './lib/auth';
+
 function App() {
   if (isClerkConfigured && PUBLISHABLE_KEY) {
     return (
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+          </QueryClientProvider>
+        </AuthProvider>
       </ClerkProvider>
     );
   }
 
   // Graceful development mode when Clerk credentials are not yet configured
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 
