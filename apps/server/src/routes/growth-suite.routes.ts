@@ -39,6 +39,11 @@ import { multiCamPipDirectorService } from '../services/multicam-pip-director.se
 import { terminalCodeAnimatorService } from '../services/terminal-code-animator.service';
 import { longformSeoFunnelService } from '../services/longform-seo-funnel.service';
 import { communityCampaignService } from '../services/community-campaign.service';
+import { thumbnailEyeTrackingService } from '../services/thumbnail-eye-tracking.service';
+import { sponsorPitchKitService } from '../services/sponsor-pitch-kit.service';
+import { policyGreenDollarShieldService } from '../services/policy-green-dollar-shield.service';
+import { premiereSchedulerService } from '../services/premiere-scheduler.service';
+import { premiereChatSimulatorService } from '../services/premiere-chat-simulator.service';
 
 const router = Router();
 
@@ -626,6 +631,59 @@ router.get('/longform/community-campaign/:contentId', (req, res) => {
   const title = (req.query.title as string) || '';
   const campaign = communityCampaignService.generateCampaign(contentId, title);
   res.json({ success: true, campaign });
+});
+
+// ==========================================
+// 41. MRBEAST AI THUMBNAIL EYE-TRACKING & CTR HEATMAP
+// ==========================================
+
+router.get('/longform/thumbnail-eye-tracking/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const heatmap = thumbnailEyeTrackingService.simulateEyeTracking(contentId, title);
+  res.json({ success: true, heatmap });
+});
+
+// ==========================================
+// 42. SPONSOR PITCH DECK & MEDIA KIT AUTOPILOT
+// ==========================================
+
+router.get('/longform/sponsor-pitch-kit/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const brand = (req.query.brand as string) || '';
+  const kit = sponsorPitchKitService.generateMediaKit(contentId, brand);
+  res.json({ success: true, kit });
+});
+
+// ==========================================
+// 43. YOUTUBE POLICY & YASHIL DOLLAR QALQONI
+// ==========================================
+
+router.get('/longform/green-dollar-shield/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || '';
+  const report = policyGreenDollarShieldService.auditContent(contentId, title);
+  res.json({ success: true, report });
+});
+
+// ==========================================
+// 44. YOUTUBE JONLI PREMYERA & COUNTDOWN REJALASHTIRUVCHI
+// ==========================================
+
+router.get('/longform/premiere-schedule/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const plan = premiereSchedulerService.getSchedulePlan(contentId);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 45. PREMYERA JONLI CHAT SIMULYATORI
+// ==========================================
+
+router.get('/longform/premiere-chat/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const chat = premiereChatSimulatorService.generateLiveChatStream(contentId);
+  res.json({ success: true, chat });
 });
 
 export default router;
