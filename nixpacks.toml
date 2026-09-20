@@ -9,3 +9,6 @@ cmds = [
 
 [phases.build]
 cmds = ["pnpm build"]
+
+[start]
+cmd = "node apps/server/dist/index.js"

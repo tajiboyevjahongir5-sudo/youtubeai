@@ -59,9 +59,17 @@ app.use('/api', routes);
 
 app.use(errorHandler);
 
-const port = Number(env.PORT) || 3000;
+process.on('uncaughtException', (err) => {
+  console.error('❌ [Server] Kutilmagan xatolik (server to\'xtamaydi):', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ [Server] Qaytarilmagan Promise xatosi:', reason);
+});
+
+const port = Number(process.env.PORT) || Number(env.PORT) || 3000;
 const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Jpilot Server listening on 0.0.0.0:${port}`);
+  console.log(`🚀 Jpilot Server listening on 0.0.0.0:${port} (NODE_ENV: ${process.env.NODE_ENV || env.NODE_ENV || 'production'})`);
 });
 
 process.on('SIGTERM', () => {

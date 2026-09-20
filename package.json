@@ -10,6 +10,9 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "start": "node apps/server/dist/index.js",
+    "start:server": "node apps/server/dist/index.js",
+    "start:web": "pnpm --filter @jpilot/web start",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "test": "turbo test",
