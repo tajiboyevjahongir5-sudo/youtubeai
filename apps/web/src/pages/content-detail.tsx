@@ -1403,6 +1403,62 @@ export const ContentDetailPage = () => {
     }
   };
 
+  // ====================================================
+  // WAVE 7: 16:9 LONG-FORM MASTERCLASS SUITE
+  // ====================================================
+  const [midrollPlan, setMidrollPlan] = useState<any | null>(null);
+  const [narrativeArc, setNarrativeArc] = useState<any | null>(null);
+  const [endScreenPackage, setEndScreenPackage] = useState<any | null>(null);
+  const [expandedMasterclassScript, setExpandedMasterclassScript] = useState<any | null>(null);
+  const [isExpandingScript, setIsExpandingScript] = useState(false);
+  const [activeAudioTrackPreview, setActiveAudioTrackPreview] = useState<'en' | 'de' | 'uz'>('en');
+
+  const fetchLongformSuiteData = async () => {
+    try {
+      const [midRes, arcRes, endRes] = await Promise.all([
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/midroll/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/narrative-arc/${contentId}?title=${encodeURIComponent(metaTitle || videoTitle)}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        }),
+        fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/endscreen/${contentId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        })
+      ]);
+
+      const [midData, arcData, endData] = await Promise.all([
+        midRes.json(),
+        arcRes.json(),
+        endRes.json()
+      ]);
+
+      if (midData.success && midData.plan) setMidrollPlan(midData.plan);
+      if (arcData.success && arcData.arc) setNarrativeArc(arcData.arc);
+      if (endData.success && endData.endscreen) setEndScreenPackage(endData.endscreen);
+    } catch (e) {}
+  };
+
+  const handleExpandLongformScript = async () => {
+    setIsExpandingScript(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/longform/expand-script/${contentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ topic: metaTitle || videoTitle })
+      });
+      const data = await res.json();
+      if (data.success && data.scenes) {
+        setExpandedMasterclassScript(data);
+        setToast("🎬 12 ta kengaytirilgan Gollivud masterclass sahnalari yaratildi!");
+        setTimeout(() => setToast(null), 3500);
+      }
+    } catch (e) {
+    } finally {
+      setIsExpandingScript(false);
+    }
+  };
+
   const fetchABTest = async () => {
     try {
       const res = await fetchApi(`/workspaces/${workspaceId}/ab-tests/${contentId}`, {}, async () => 'mock_token');
@@ -1664,6 +1720,7 @@ export const ContentDetailPage = () => {
       fetchTier1Data();
       fetchWave5Data();
       fetchWave6Data();
+      fetchLongformSuiteData();
     }
   }, [itemData]);
 
@@ -2525,6 +2582,195 @@ export const ContentDetailPage = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* 🎬 16:9 Masterclass 4-Aktli Gollivud Dramaturgiyasi & Ssenariy Kengaytirgich */}
+          <Card className="liquid-glass border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.08)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <Film className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Gollivud 4-Aktli Dramaturgiya & 12 Sahnalik Masterclass Kengaytirgich
+                      <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                        📺 16:9 Kinematik
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Katta videolarda 70%+ tomosha saqlanishi (APV) uchun 12 daqiqalik gollivud syujet chizig'i va amaliy kod masterclassi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={isExpandingScript}
+                    onClick={handleExpandLongformScript}
+                    className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer"
+                  >
+                    {isExpandingScript ? (
+                      <>
+                        <RefreshCw size={13} className="mr-1.5 animate-spin" /> Kengaytirilmoqda...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 size={13} className="mr-1.5" /> 12 Sahnalik Masterclassga Kengaytirish
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* 4-Aktli Dramaturgiya Vizual Chizmasi */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  Gollivud 4-Aktli Retensiya Formulasi (12:00 Daqiqa)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  {(narrativeArc?.acts || [
+                    {
+                      actNumber: 1,
+                      name: "Akt 1: Yuqori Xavf & Muammo",
+                      durationMinutes: 2.5,
+                      targetAudienceRetentionPercent: 88,
+                      coreObjective: "0-3 soniyada qiziqtirib, sun'iy idrokdagi real muammoni ko'rsatish",
+                      hookTechnique: "Pattern Interrupt + Sub-bass drop + High Stakes",
+                      color: "from-red-500/20 to-orange-500/10 border-red-500/30"
+                    },
+                    {
+                      actNumber: 2,
+                      name: "Akt 2: Arxitektura & Jonli Kod",
+                      durationMinutes: 4.0,
+                      targetAudienceRetentionPercent: 79,
+                      coreObjective: "Docker va TypeScript orkestratsiyasida amaliy yechimni kodda qurish",
+                      hookTechnique: "Jonli terminal yozilishi va mikro-kashfiyotlar",
+                      color: "from-blue-500/20 to-cyan-500/10 border-blue-500/30"
+                    },
+                    {
+                      actNumber: 3,
+                      name: "Akt 3: Ishlab Chiqarish Inqirozi",
+                      durationMinutes: 3.5,
+                      targetAudienceRetentionPercent: 74,
+                      coreObjective: "Kutilmagan xatolik (Crash/Memory leak) va uni self-healing bilan bartaraf etish",
+                      hookTechnique: "Dramatik burilish va taranglik cho'qqisi",
+                      color: "from-purple-500/20 to-pink-500/10 border-purple-500/30"
+                    },
+                    {
+                      actNumber: 4,
+                      name: "Akt 4: Korxona Masshtabi & Xulosa",
+                      durationMinutes: 2.0,
+                      targetAudienceRetentionPercent: 71,
+                      coreObjective: "Kubernetes masshtablash, GitHub repozitoriy va keyingi videoga tavsiya",
+                      hookTechnique: "20s End Screen + Alex qo'l ishorasi bilan CTA",
+                      color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30"
+                    }
+                  ]).map((act: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`p-4 rounded-xl border bg-gradient-to-b ${act.color || 'from-white/5 to-transparent border-white/10'} space-y-2.5 flex flex-col justify-between`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                            {act.durationMinutes || 3} daqiqa
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-emerald-400">
+                            Saqlanish: {act.targetAudienceRetentionPercent || 75}%
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-bold text-white mt-1.5">{act.name}</h5>
+                        <p className="text-[11px] text-gray-300 leading-relaxed mt-1">{act.coreObjective}</p>
+                      </div>
+                      <div className="pt-2 border-t border-white/10">
+                        <span className="text-[10px] text-gray-400">Usul: </span>
+                        <span className="text-[10px] font-semibold text-white">{act.hookTechnique}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Kengaytirilgan 12 Sahnalik Ssenariy Natijasi */}
+              {expandedMasterclassScript && (
+                <div className="space-y-4 pt-4 border-t border-white/10 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                        {expandedMasterclassScript.totalScenes} Ta To'liq Sahnalik Masterclass Ssenariysi ({expandedMasterclassScript.estimatedDurationMinutes} daqiqa, {expandedMasterclassScript.totalWordCount} so'z)
+                      </h4>
+                      <p className="text-[11px] text-gray-400">
+                        Har bir sahna Gollivud dramaturgiyasi, amaliy kod bloklari va Alex xosti xavfsiz zonalariga moslangan
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const compiled = expandedMasterclassScript.scenes
+                          .map((s: any) => `[${s.timecode}] ${s.title}\nVIZUAL: ${s.visualStyle}\nDIKTOR: ${s.narrationUzbek}\nKOD: ${s.codeOrTerminalDisplay || "None"}`)
+                          .join("\n\n---\n\n");
+                        setScriptText(compiled);
+                        setToast("🎬 12 Sahnalik Masterclass ssenariysi asosiy maydonga yuklandi!");
+                        setTimeout(() => setToast(null), 3000);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-md shadow-emerald-600/20"
+                    >
+                      <Check size={13} className="mr-1.5" /> Asosiy Skriptga Ko'chirish
+                    </Button>
+                  </div>
+
+                  <div className="max-h-[500px] overflow-y-auto space-y-3 pr-1">
+                    {expandedMasterclassScript.scenes.map((scene: any, sIdx: number) => (
+                      <div
+                        key={sIdx}
+                        className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-amber-500/30 transition space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs font-bold">
+                              #{scene.sceneIndex}
+                            </span>
+                            <h6 className="text-xs font-bold text-white">{scene.title}</h6>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                              {scene.act}
+                            </span>
+                            <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-0.5 rounded">
+                              {scene.timecode}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                          <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-purple-300 uppercase">🎥 Vizual B-Roll & Grafika:</span>
+                            <p className="text-gray-300 leading-relaxed">{scene.visualStyle}</p>
+                            {scene.codeOrTerminalDisplay && (
+                              <div className="mt-2 p-2 rounded bg-black/80 font-mono text-[10px] text-emerald-400 border border-emerald-500/20 overflow-x-auto">
+                                <pre>{scene.codeOrTerminalDisplay}</pre>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-amber-300 uppercase">🎙️ Alex Nutqi & Diktori:</span>
+                            <p className="text-gray-200 leading-relaxed font-sans">{scene.narrationUzbek}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </Tabs.Content>
@@ -3991,71 +4237,359 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* 📺 16:9 YouTube End Screen (20s Outro) & Info Cards Avtopiloti */}
+          <Card className="liquid-glass border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.08)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <Tv className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      YouTube End Screen (20s Outro) & Info Cards Avtopiloti
+                      <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                        🎯 16:9 Konversiya Qopqoni
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Videoning so'nggi 20 soniyasida tomoshabinni keyingi videoga o'tkazish va obuna bo'lishga yo'naltirish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-bold">
+                    Vaqt oralig'i: {endScreenPackage?.outroTiming?.timecode || "11:40 - 12:00"}
+                  </span>
+                </div>
+              </div>
+
+              {/* End Screen 16:9 Interaktiv Maketi */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                    <Film className="w-3.5 h-3.5 text-cyan-400" />
+                    YouTube End Screen Joylashuvi (16:9 Standarti)
+                  </h4>
+                  <span className="text-[10px] text-gray-400">
+                    Alex yuzi xavfsiz zonasi: <strong className="text-emerald-400">100% ochiq va to'siqsiz</strong>
+                  </span>
+                </div>
+
+                <div className="w-full aspect-video max-w-[620px] mx-auto rounded-2xl bg-[#090d16] border border-cyan-500/30 p-4 relative overflow-hidden shadow-2xl flex flex-col justify-between">
+                  {/* Markaziy Xost xavfsiz zona chizmasi */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                    <div className="w-48 h-64 rounded-full border-2 border-dashed border-emerald-400 flex flex-col items-center justify-center text-emerald-400 text-[10px] font-mono text-center p-2">
+                      <span>👤 XOST ALEX</span>
+                      <span>Xavfsiz Zona</span>
+                      <span>(To'siqsiz)</span>
+                    </div>
+                  </div>
+
+                  {/* Yuqori elementlar */}
+                  <div className="flex items-start justify-between z-10">
+                    {/* Chapdagi Video elementi */}
+                    <div className="w-44 p-2.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 backdrop-blur shadow-lg space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-cyan-300 uppercase">Eng Mos Video</span>
+                        <Play size={10} className="text-cyan-400" />
+                      </div>
+                      <p className="text-[10px] font-semibold text-white truncate">
+                        {endScreenPackage?.endScreenElements?.[0]?.previewText || "Keyingi Tavsiya: AI Agent Framework"}
+                      </p>
+                      <div className="w-full h-1 bg-cyan-500/30 rounded-full overflow-hidden">
+                        <div className="w-3/4 h-full bg-cyan-400" />
+                      </div>
+                    </div>
+
+                    {/* O'ngdagi Obuna Elementi */}
+                    <div className="p-2.5 rounded-xl bg-purple-950/80 border border-purple-500/40 backdrop-blur shadow-lg flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                        NP
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] font-bold text-white leading-tight">Neural Pulse AI</p>
+                        <span className="text-[8px] text-emerald-400 font-mono font-bold">SUBSCRIBE 🔔</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pastki elementlar */}
+                  <div className="flex items-end justify-between z-10">
+                    <div className="text-[10px] font-mono text-gray-500">
+                      t={endScreenPackage?.outroTiming?.timecode || "11:40 - 12:00"}
+                    </div>
+
+                    {/* Pleylist elementi */}
+                    <div className="w-48 p-2.5 rounded-xl bg-blue-950/80 border border-blue-500/40 backdrop-blur shadow-lg space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-blue-300 uppercase">To'liq Masterclass Pleylist</span>
+                        <Layers size={10} className="text-blue-400" />
+                      </div>
+                      <p className="text-[10px] font-semibold text-white truncate">
+                        {endScreenPackage?.endScreenElements?.[1]?.previewText || "Agentic AI 2026 To'liq Kurs"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alex Xosti Ko'rsatmalari & Nutq Ssenariysi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-cyan-400" />
+                    <h5 className="text-xs font-bold text-white">Alexning Imo-ishora Ko'rsatmasi</h5>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed font-sans bg-black/40 p-3 rounded-lg border border-white/5">
+                    {endScreenPackage?.alexHostDirectives?.gestureCues || "👉 Alex o'ng qo'li bilan ekranning yuqori o'ng burchagidagi playlist va obuna tugmasiga ishora qiladi (t=11:43s)"}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    Host harakati tomoshabin diqqatini YouTube tavsiya kartochkalariga qaratadi va bosish ehtimolini (CTR) 38% ga oshiradi.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h5 className="text-xs font-bold text-white">Alex Yakuniy CTA Nutqi</h5>
+                  </div>
+                  <p className="text-xs text-gray-200 leading-relaxed font-sans bg-black/40 p-3 rounded-lg border border-white/5 italic">
+                    "{endScreenPackage?.alexHostDirectives?.speechScript || "Agar sun'iy idrok agentlarini chuqurroq o'rganmoqchi bo'lsangiz, ekranda ko'rinayotgan mana bu to'liq masterclassni tomosha qiling va kanalga obuna bo'ling!"}"
+                  </p>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(endScreenPackage?.alexHostDirectives?.speechScript || "");
+                        setToast("📋 CTA nutqi nusxalandi!");
+                        setTimeout(() => setToast(null), 3000);
+                      }}
+                      className="text-[11px] font-bold text-cyan-300 hover:bg-cyan-500/10 cursor-pointer h-7"
+                    >
+                      <Copy size={11} className="mr-1" /> Nutqni Nusxalash
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* YouTube Info Cards (Interaktiv Karta Belgilari) */}
+              <div className="space-y-3 pt-2 border-t border-white/10">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                  <Link2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Video Ichidagi Interaktiv YouTube Kartalari (Info Cards)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(endScreenPackage?.infoCards || [
+                    {
+                      timestamp: "03:15",
+                      title: "GitHub: Agent Orchestrator Repozitoriysi",
+                      teaserText: "Bepul yuklab oling",
+                      actionType: "external_link"
+                    },
+                    {
+                      timestamp: "06:45",
+                      title: "Tavsiya: DeepSeek R1 Kod Generatori",
+                      teaserText: "Avvalgi qismni ko'ring",
+                      actionType: "video"
+                    },
+                    {
+                      timestamp: "09:30",
+                      title: "So'rovnoma: Qaysi AI Framework afzal?",
+                      teaserText: "Fikringizni bildiring",
+                      actionType: "poll"
+                    }
+                  ]).map((card: any, cIdx: number) => (
+                    <div
+                      key={cIdx}
+                      className="p-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-emerald-500/30 transition flex items-center justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                            ⏱️ {card.timestamp}
+                          </span>
+                          <span className="text-[9px] uppercase font-bold text-gray-400">
+                            {card.actionType}
+                          </span>
+                        </div>
+                        <h6 className="text-xs font-bold text-white">{card.title}</h6>
+                        <p className="text-[10px] text-gray-400">{card.teaserText}</p>
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                        <ExternalLink size={12} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </Tabs.Content>
 
         {/* 9:16 Jonli Simulyator & Visual Inspector */}
         <Tabs.Content value="preview_canvas" className="space-y-6 animate-fade-in">
           <div className="grid lg:grid-cols-12 gap-6 items-start">
-            {/* Phone 9:16 Canvas Simulator */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="w-[330px] h-[590px] rounded-[38px] bg-black border-[4px] border-slate-700 shadow-2xl relative overflow-hidden flex flex-col justify-between p-4">
-                {/* Phone Speaker Notch */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-800 rounded-full z-30" />
-
-                {/* Simulated Visual Content */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c14] via-[#101524] to-[#0a0c14] flex flex-col justify-between p-4 pt-8">
-                  {/* Top Alert Pill */}
-                  <div className="flex justify-center z-10">
-                    <div className="px-3.5 py-1 rounded-full bg-red-600/90 border border-amber-400 text-white text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
-                      <span>! URGENT: 2026 AI BLUEPRINT !</span>
-                    </div>
-                  </div>
-
-                  {/* Center Visual Mockup & Host Alex Safe Zone */}
-                  <div className="relative my-auto flex flex-col items-center justify-center text-center space-y-3">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_25px_rgba(0,240,255,0.2)]">
-                      <Sparkles size={36} />
-                    </div>
-                    <div className="px-3 py-1 rounded-lg bg-black/60 border border-white/10 text-[11px] text-gray-300 font-mono">
-                      {scenes[previewSceneIndex]?.title || '1. Hook & Introduction'}
-                    </div>
-                    {/* Safe Zone Box Indicator */}
-                    <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-xl px-3 py-1.5 text-[9px] text-emerald-400 font-mono">
-                      [OK] Host Alex Safe Zone (y=100..1240 ochiq)
-                    </div>
-                  </div>
-
-                  {/* Lower Third: Dynamic Subtitle Overlay */}
-                  <div className="space-y-3 z-10">
-                    <div className="p-3 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 text-center shadow-xl">
-                      <span className="text-[10px] font-mono text-cyan-400 block pb-0.5">
-                        Sahna {previewSceneIndex + 1} Titri (Subtitle):
+            {/* Conditional Cinema 16:9 or Vertical 9:16 Simulator */}
+            <div className="lg:col-span-6 flex justify-center w-full">
+              {isLong ? (
+                /* 16:9 Cinema Widescreen Masterclass Player */
+                <div className="w-full max-w-[560px] aspect-video rounded-3xl bg-black border-[3px] border-slate-700 shadow-2xl relative overflow-hidden flex flex-col justify-between p-4 bg-gradient-to-b from-[#0a0c14] via-[#101524] to-[#0a0c14]">
+                  {/* Top Bar: Resolution & Safe Zone */}
+                  <div className="flex items-center justify-between z-10">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] font-mono shadow-md">
+                        4K UHD 60FPS
                       </span>
-                      <p className="text-xs font-black text-white leading-snug">
-                        {scenes[previewSceneIndex]?.overlayText || scenes[previewSceneIndex]?.title || 'STOP TRADING TIME FOR MONEY'}
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-mono">
+                        16:9 Masterclass
+                      </span>
+                    </div>
+                    <div className="border border-emerald-500/30 bg-emerald-500/10 rounded-full px-2.5 py-0.5 text-[9px] text-emerald-400 font-mono font-bold">
+                      [OK] Alex Yuzi 100% Ochiq
+                    </div>
+                  </div>
+
+                  {/* Center Cinema Visual & Scene Title */}
+                  <div className="relative my-auto flex flex-col items-center justify-center text-center space-y-2.5">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600/20 to-indigo-600/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shadow-[0_0_25px_rgba(59,130,246,0.25)]">
+                      <Tv size={28} />
+                    </div>
+                    <div className="px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white font-semibold truncate max-w-[380px]">
+                      {scenes[previewSceneIndex]?.title || '1. Paradigm Shift & Massive Stakes'}
+                    </div>
+                  </div>
+
+                  {/* Bottom: Lower-Third Subtitle & Cinema Scrubbing Bar */}
+                  <div className="space-y-2.5 z-10">
+                    <div className="px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 text-center">
+                      <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-wider block pb-0.5">
+                        Sahna {previewSceneIndex + 1} Subtitri:
+                      </span>
+                      <p className="text-xs font-black text-white leading-snug truncate">
+                        {scenes[previewSceneIndex]?.overlayText || scenes[previewSceneIndex]?.title || 'THE 2026 CODING REVOLUTION'}
                       </p>
                     </div>
 
-                    {/* Equalizer Waveform Simulator */}
-                    <div className="flex items-end justify-center gap-1 h-6">
-                      {[18, 28, 14, 34, 22, 38, 12, 30, 26, 36, 16, 24, 32, 20].map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-1.5 rounded-full bg-gradient-to-t from-cyan-500 to-amber-400 animate-pulse"
-                          style={{ height: `${h}px`, animationDelay: `${i * 80}ms` }}
+                    {/* Progress Bar with Mid-Roll Ad Markers */}
+                    <div className="space-y-1">
+                      <div className="relative w-full h-2 bg-white/10 rounded-full overflow-hidden flex items-center">
+                        <div 
+                          className="h-full bg-gradient-to-r from-red-600 to-amber-400 rounded-full" 
+                          style={{ width: `${((previewSceneIndex + 1) / scenes.length) * 100}%` }}
                         />
-                      ))}
+                        <div className="absolute left-[22%] w-1.5 h-2 bg-yellow-400" title="Mid-roll 1 (02:30)" />
+                        <div className="absolute left-[44%] w-1.5 h-2 bg-yellow-400" title="Mid-roll 2 (05:15)" />
+                        <div className="absolute left-[68%] w-1.5 h-2 bg-yellow-400" title="Mid-roll 3 (08:20)" />
+                        <div className="absolute left-[89%] w-1.5 h-2 bg-yellow-400" title="Mid-roll 4 (10:45)" />
+                      </div>
+
+                      <div className="flex items-center justify-between text-[9px] font-mono text-gray-400">
+                        <span>00:{String((previewSceneIndex * 60)).padStart(2, '0')} / 12:00</span>
+                        <span className="text-yellow-400 font-bold">🟡 4 ta Mid-roll Reklama Nuqtasi</span>
+                        <span>4K AV1 Master</span>
+                      </div>
                     </div>
 
-                    {/* Outro Subscribe Pill (simulated on last scene) */}
-                    {previewSceneIndex >= scenes.length - 1 && (
-                      <div className="py-1.5 px-3 rounded-full bg-red-600 text-white text-[10px] font-bold text-center flex items-center justify-center gap-1 shadow-lg">
-                        <CheckCircle2 size={12} /> SUBSCRIBED
+                    {/* Multi-Audio Switcher Controls */}
+                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] text-gray-400 font-semibold mr-0.5">Audio:</span>
+                        {[
+                          { code: 'en', flag: '🇺🇸', label: 'US Alex' },
+                          { code: 'de', flag: '🇩🇪', label: 'DE Conrad' },
+                          { code: 'uz', flag: '🇺🇿', label: 'UZ Sardor' }
+                        ].map((trk) => (
+                          <button
+                            key={trk.code}
+                            type="button"
+                            onClick={() => {
+                              setActiveAudioTrackPreview(trk.code as any);
+                              setToast(`🎧 Audio trek o'zgartirildi: ${trk.flag} ${trk.label}`);
+                              setTimeout(() => setToast(null), 2000);
+                            }}
+                            className={`text-[9px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                              activeAudioTrackPreview === trk.code
+                                ? 'bg-blue-600 text-white border-blue-500 font-bold shadow'
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                            }`}
+                          >
+                            {trk.flag} {trk.label}
+                          </button>
+                        ))}
                       </div>
-                    )}
+
+                      <span className="text-[9px] text-emerald-400 font-mono font-bold">
+                        EBU R128 (-14 LUFS) ✓
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Phone 9:16 Canvas Simulator */
+                <div className="w-[330px] h-[590px] rounded-[38px] bg-black border-[4px] border-slate-700 shadow-2xl relative overflow-hidden flex flex-col justify-between p-4">
+                  {/* Phone Speaker Notch */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-800 rounded-full z-30" />
+
+                  {/* Simulated Visual Content */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c14] via-[#101524] to-[#0a0c14] flex flex-col justify-between p-4 pt-8">
+                    {/* Top Alert Pill */}
+                    <div className="flex justify-center z-10">
+                      <div className="px-3.5 py-1 rounded-full bg-red-600/90 border border-amber-400 text-white text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+                        <span>! URGENT: 2026 AI BLUEPRINT !</span>
+                      </div>
+                    </div>
+
+                    {/* Center Visual Mockup & Host Alex Safe Zone */}
+                    <div className="relative my-auto flex flex-col items-center justify-center text-center space-y-3">
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_25px_rgba(0,240,255,0.2)]">
+                        <Sparkles size={36} />
+                      </div>
+                      <div className="px-3 py-1 rounded-lg bg-black/60 border border-white/10 text-[11px] text-gray-300 font-mono">
+                        {scenes[previewSceneIndex]?.title || '1. Hook & Introduction'}
+                      </div>
+                      {/* Safe Zone Box Indicator */}
+                      <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-xl px-3 py-1.5 text-[9px] text-emerald-400 font-mono">
+                        [OK] Host Alex Safe Zone (y=100..1240 ochiq)
+                      </div>
+                    </div>
+
+                    {/* Lower Third: Dynamic Subtitle Overlay */}
+                    <div className="space-y-3 z-10">
+                      <div className="p-3 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 text-center shadow-xl">
+                        <span className="text-[10px] font-mono text-cyan-400 block pb-0.5">
+                          Sahna {previewSceneIndex + 1} Titri (Subtitle):
+                        </span>
+                        <p className="text-xs font-black text-white leading-snug">
+                          {scenes[previewSceneIndex]?.overlayText || scenes[previewSceneIndex]?.title || 'STOP TRADING TIME FOR MONEY'}
+                        </p>
+                      </div>
+
+                      {/* Equalizer Waveform Simulator */}
+                      <div className="flex items-end justify-center gap-1 h-6">
+                        {[18, 28, 14, 34, 22, 38, 12, 30, 26, 36, 16, 24, 32, 20].map((h, i) => (
+                          <div
+                            key={i}
+                            className="w-1.5 rounded-full bg-gradient-to-t from-cyan-500 to-amber-400 animate-pulse"
+                            style={{ height: `${h}px`, animationDelay: `${i * 80}ms` }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Outro Subscribe Pill (simulated on last scene) */}
+                      {previewSceneIndex >= scenes.length - 1 && (
+                        <div className="py-1.5 px-3 rounded-full bg-red-600 text-white text-[10px] font-bold text-center flex items-center justify-center gap-1 shadow-lg">
+                          <CheckCircle2 size={12} /> SUBSCRIBED
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Interactive Scene Stepper & Controls */}
@@ -5905,6 +6439,168 @@ export const ContentDetailPage = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 💰 16:9 Mid-Roll Reklama & Daromad Multiplikatori (8+ Daqiqa Qoidasi) */}
+          <Card className="liquid-glass border border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.08)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Mid-Roll Reklama & Daromad Multiplikatori (8+ Daqiqa Qoidasi)
+                      <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        💰 2.8x - 3.2x RPM Booster
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      YouTube 8 daqiqadan oshgan videolarga bir nechta mid-roll reklama qo'yish imkonini beradi. Algoritm tabiiy pauza nuqtalarini avtomatik tanlaydi.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    Bashorat RPM: <strong className="text-white font-bold">{midrollPlan?.predictedRpm?.currency || "$"}{midrollPlan?.predictedRpm?.optimizedMidrollRpm || "24.50"}</strong> / 1K ko'rish
+                  </span>
+                </div>
+              </div>
+
+              {/* RPM Taqqoslovi */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Standart Shorts RPM</span>
+                  <p className="text-lg font-mono font-bold text-gray-400">
+                    {midrollPlan?.predictedRpm?.currency || "$"}{midrollPlan?.predictedRpm?.baseShortsRpm || "1.20"}
+                  </p>
+                  <span className="text-[10px] text-gray-500">Reklama kam, qisqa format</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-1">
+                  <span className="text-[10px] font-bold text-blue-300 uppercase">Standart 16:9 Video (Mid-rollsiz)</span>
+                  <p className="text-lg font-mono font-bold text-blue-300">
+                    {midrollPlan?.predictedRpm?.currency || "$"}{midrollPlan?.predictedRpm?.standardLongRpm || "8.50"}
+                  </p>
+                  <span className="text-[10px] text-gray-400">Faqat boshida va oxirida 1 tadan</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1 relative overflow-hidden">
+                  <div className="absolute top-1 right-2 text-[9px] font-bold text-emerald-400 uppercase bg-emerald-500/20 px-1.5 py-0.5 rounded">
+                    3x O'sish
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-300 uppercase">Optimallashtirilgan Mid-Roll (4 Break)</span>
+                  <p className="text-xl font-mono font-bold text-emerald-400">
+                    {midrollPlan?.predictedRpm?.currency || "$"}{midrollPlan?.predictedRpm?.optimizedMidrollRpm || "24.50"}
+                  </p>
+                  <span className="text-[10px] text-emerald-300">Tier-1 AQSh auditoriyasida maksimal monetizatsiya</span>
+                </div>
+              </div>
+
+              {/* 4 Ta Mid-Roll Pauza Nuqtasi */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    Optimal Tabiiy Pauza Nuqtalari ({midrollPlan?.adBreakCount || 4} Ta Mid-Roll)
+                  </h4>
+                  <span className="text-[10px] text-gray-400">
+                    Retensiya yo'qotish xavfi: <strong className="text-emerald-400">Minimal (&lt; 2.1%)</strong>
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(midrollPlan?.adBreaks || [
+                    {
+                      timecode: "02:30",
+                      timestampSeconds: 150,
+                      cueType: "after_cliffhanger",
+                      naturalPauseContext: "Akt 1 yakuni — Agent xatosi fosh etilib, yangi arxitektura siri ochilishidan oldin",
+                      retentionDropRisk: "1.4% (Juda past)",
+                      recommendedAdType: "Skippable Video Ad"
+                    },
+                    {
+                      timecode: "05:15",
+                      timestampSeconds: 315,
+                      cueType: "topic_transition",
+                      naturalPauseContext: "Akt 2 o'rtasi — Docker konteyner tayyorlanib, TypeScript orkestratsiya kodiga o'tishda",
+                      retentionDropRisk: "1.8% (Xavfsiz)",
+                      recommendedAdType: "Standard Video Ad"
+                    },
+                    {
+                      timecode: "08:20",
+                      timestampSeconds: 500,
+                      cueType: "demo_setup",
+                      naturalPauseContext: "Akt 3 avji — Katta tarmoq inqirozi yuz berib, Self-healing mexanizmi ishga tushishida",
+                      retentionDropRisk: "1.2% (Yuqori qiziqish)",
+                      recommendedAdType: "High-CPM Bumper Ad"
+                    },
+                    {
+                      timecode: "10:45",
+                      timestampSeconds: 645,
+                      cueType: "recap_break",
+                      naturalPauseContext: "Akt 4 boshlanishi — Kod yakunlanib, Kubernetes masshtablash va GitHub e'lonidan oldin",
+                      retentionDropRisk: "2.0% (Normal)",
+                      recommendedAdType: "Skippable Video Ad"
+                    }
+                  ]).map((brk: any, bIdx: number) => (
+                    <div
+                      key={bIdx}
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-emerald-500/30 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-start sm:items-center gap-3">
+                        <div className="w-12 h-9 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-mono font-bold text-xs shrink-0 border border-amber-500/30">
+                          {brk.timecode}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">Nuqta #{bIdx + 1}</span>
+                            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                              {brk.cueType}
+                            </span>
+                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                              {brk.recommendedAdType}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-300 mt-1 leading-relaxed">{brk.naturalPauseContext}</p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-gray-400 block">Tashlab ketish xavfi</span>
+                        <span className="text-xs font-mono font-bold text-emerald-400">{brk.retentionDropRisk}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* YouTube Studio ga Avtomatik Eksport */}
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <CheckCircle2 size={14} className="text-emerald-400" />
+                  YouTube Studio Mid-Roll Ad Placements uchun 4 ta vaqt kodi tayyor
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const cueString = (midrollPlan?.adBreaks || [])
+                      .map((b: any) => b.timecode)
+                      .join(", ");
+                    navigator.clipboard.writeText(cueString || "02:30, 05:15, 08:20, 10:45");
+                    setToast("📋 Mid-roll vaqt kodlari nusxalandi: " + (cueString || "02:30, 05:15, 08:20, 10:45"));
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  className="text-xs font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+                >
+                  <Copy size={12} className="mr-1" /> Vaqt Kodlarini Nusxalash
+                </Button>
               </div>
             </CardContent>
           </Card>

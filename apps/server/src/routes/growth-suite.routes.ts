@@ -30,6 +30,10 @@ import { AlgorithmPulseService } from '../services/algorithm-pulse.service';
 import { ShortsAudioTrendRadarService } from '../services/shorts-audio-trend-radar.service';
 import { SmartChapterSeoService } from '../services/smart-chapter-seo.service';
 import { LiveStreamSchedulerService } from '../services/livestream-scheduler.service';
+import { MidrollAdOptimizerService } from '../services/midroll-ad-optimizer.service';
+import { LongformNarrativeEngineService } from '../services/longform-narrative-engine.service';
+import { EndScreenCardBuilderService } from '../services/endscreen-card-builder.service';
+import { LongformScriptExpanderService } from '../services/longform-script-expander.service';
 
 const router = Router();
 
@@ -521,10 +525,48 @@ router.get('/livestream/status', (_req, res) => {
   res.json({ success: true, status });
 });
 
-router.post('/livestream/toggle', (req, res) => {
-  const { enable, title } = req.body || {};
-  const status = LiveStreamSchedulerService.toggleStreaming(Boolean(enable), title);
-  res.json({ success: true, status });
+// ==========================================
+// 32. MID-ROLL AD OPTIMIZER & REVENUE BOOSTER
+// ==========================================
+
+router.get('/longform/midroll/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const durationSec = parseInt(req.query.durationSec as string) || 720;
+  const plan = MidrollAdOptimizerService.getMidrollPlan(contentId, durationSec);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 33. GOLLIVUD 4-AKTLI DRAMATURGIYA DVIGATELI
+// ==========================================
+
+router.get('/longform/narrative-arc/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = req.query.title as string | undefined;
+  const arc = LongformNarrativeEngineService.getNarrativeArc(contentId, title);
+  res.json({ success: true, arc });
+});
+
+// ==========================================
+// 34. YOUTUBE END SCREEN & INFO CARDS BUILDER
+// ==========================================
+
+router.get('/longform/endscreen/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const durationSec = parseInt(req.query.durationSec as string) || 720;
+  const endscreen = EndScreenCardBuilderService.getEndScreenPackage(contentId, durationSec);
+  res.json({ success: true, endscreen });
+});
+
+// ==========================================
+// 35. 10-14 SAHNALI MASTERCLASS SSENARIY KENGAYTIRGICH
+// ==========================================
+
+router.post('/longform/expand-script/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const { topic } = req.body || {};
+  const expanded = LongformScriptExpanderService.expandScript(contentId, topic);
+  res.json({ success: true, ...expanded });
 });
 
 export default router;
