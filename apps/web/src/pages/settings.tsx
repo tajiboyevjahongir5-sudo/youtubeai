@@ -19,7 +19,11 @@ import {
   Sparkles,
   User,
   Camera,
-  Music
+  Music,
+  Lock,
+  KeyRound,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -47,6 +51,57 @@ const SettingsPage = () => {
   const [customHostImage, setCustomHostImage] = useState('');
   const [backgroundMusicMood, setBackgroundMusicMood] = useState('neon_pulse');
   const [voiceEmotionPreset, setVoiceEmotionPreset] = useState('energetic');
+
+  // Password Change State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [pwdSuccess, setPwdSuccess] = useState('');
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError('');
+    setPwdSuccess('');
+
+    if (newPassword.length < 6) {
+      setPwdError("Yangi parol kamida 6 ta belgidan iborat bo'lishi kerak");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwdError("Yangi parollar bir-biriga mos kelmadi");
+      return;
+    }
+
+    setIsChangingPwd(true);
+    try {
+      const token = localStorage.getItem('jpilot_auth_token');
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPwdError(data.error || "Parolni o'zgartirishda xatolik yuz berdi");
+      } else {
+        setPwdSuccess("Parolingiz muvaffaqiyatli yangilandi!");
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setPwdSuccess(''), 5000);
+      }
+    } catch (err: any) {
+      setPwdError(err.message || "Tarmoq xatosi yuz berdi");
+    } finally {
+      setIsChangingPwd(false);
+    }
+  };
 
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
@@ -702,6 +757,75 @@ const SettingsPage = () => {
           </Button>
         </div>
       </form>
+
+      {/* Account Security & Password Change Card */}
+      <div className="liquid-glass rounded-2xl border border-white/10 p-6 space-y-6">
+        <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+          <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
+            <Lock size={20} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white">Hisob Xavfsizligi & Parolni O'zgartirish</h3>
+            <p className="text-xs text-zinc-400">Jpilot platformasiga kirish uchun yangi maxfiy parol o'rnating.</p>
+          </div>
+        </div>
+
+        {pwdSuccess && (
+          <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
+            <span>{pwdSuccess}</span>
+          </div>
+        )}
+
+        {pwdError && (
+          <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+            <AlertTriangle size={16} className="text-red-400 flex-shrink-0" />
+            <span>{pwdError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              type="password"
+              label="Joriy Parol"
+              placeholder="Amaldagi parolingiz"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+
+            <Input
+              type="password"
+              label="Yangi Parol"
+              placeholder="Kamida 6 ta belgi"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+
+            <Input
+              type="password"
+              label="Yangi Parolni Tasdiqlash"
+              placeholder="Parolni qayta kiriting"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isChangingPwd || !newPassword}
+              className="flex items-center gap-2 text-xs shadow-md"
+            >
+              <KeyRound size={14} />
+              <span>{isChangingPwd ? "Yangilanmoqda..." : "Parolni Yangilash"}</span>
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

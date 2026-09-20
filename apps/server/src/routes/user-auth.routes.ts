@@ -107,4 +107,34 @@ router.get('/me', (req, res) => {
   }
 });
 
+router.post('/change-password', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Avtorizatsiyadan o\'tmagan' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = userAuthService.verifyToken(token);
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ success: false, error: 'Yaroqsiz yoki muddati o\'tgan sessiya' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak' });
+    }
+
+    try {
+      const result = userAuthService.changePassword(decoded.id, currentPassword, newPassword);
+      return res.json(result);
+    } catch (e: any) {
+      return res.status(400).json({ success: false, error: e.message || 'Parolni yangilashda xatolik yuz berdi' });
+    }
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({ success: false, error: 'Xatolik yuz berdi' });
+  }
+});
+
 export default router;

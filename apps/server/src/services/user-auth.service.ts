@@ -202,6 +202,35 @@ class UserAuthService {
     }
   }
 
+  public changePassword(userId: string, currentPassword: string, newPassword: string): { success: boolean; message: string } {
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error("Yangi parol kamida 6 ta belgidan iborat bo'lishi kerak");
+    }
+
+    const users = this.readUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+      throw new Error("Foydalanuvchi topilmadi");
+    }
+
+    const user = users[userIndex];
+    if (currentPassword) {
+      const hash = this.hashPassword(currentPassword, user.salt);
+      if (hash !== user.passwordHash) {
+        throw new Error("Joriy parol noto'g'ri kiritildi");
+      }
+    }
+
+    const newSalt = crypto.randomBytes(16).toString('hex');
+    const newPasswordHash = this.hashPassword(newPassword, newSalt);
+
+    users[userIndex].salt = newSalt;
+    users[userIndex].passwordHash = newPasswordHash;
+    this.writeUsers(users);
+
+    return { success: true, message: "Parol muvaffaqiyatli yangilandi!" };
+  }
+
   public getUserById(userId: string): User | null {
     const users = this.readUsers();
     return users.find(u => u.id === userId) || null;
