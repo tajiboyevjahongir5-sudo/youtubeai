@@ -18,6 +18,10 @@ import { ThumbnailHeatmapService } from '../services/thumbnail-heatmap.service';
 import { HandsfreeFactoryService } from '../services/handsfree-factory.service';
 import { CompetitorRadarService } from '../services/competitor-radar.service';
 import { DualHostDebateService } from '../services/dual-host-debate.service';
+import { Tier1GeoTargeterService } from '../services/tier1-geo-targeter.service';
+import { SiliconValleyPolishService } from '../services/silicon-valley-polish.service';
+import { CommercialIntentSeoService } from '../services/commercial-intent-seo.service';
+import { MultiAudioPackService } from '../services/multi-audio-pack.service';
 
 const router = Router();
 
@@ -379,6 +383,53 @@ router.post('/dual-host/generate', (req, res) => {
   }
   const project = DualHostDebateService.generateDebate(topic, language || 'uz', criticGender || 'female');
   res.json({ success: true, project });
+});
+
+// ==========================================
+// 20. TIER-1 GEO-TIMEZONE SMART SCHEDULER
+// ==========================================
+
+router.get('/tier1/schedule-windows', (req, res) => {
+  const windows = Tier1GeoTargeterService.getTimezoneWindows();
+  res.json({ success: true, windows });
+});
+
+router.get('/tier1/pre-warming/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = req.query.title as string | undefined;
+  const plan = Tier1GeoTargeterService.generatePreWarmingPlan(contentId, title);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 21. SILICON VALLEY SLANG & VOCABULARY POLISH
+// ==========================================
+
+router.post('/tier1/silicon-valley-polish', (req, res) => {
+  const { script } = req.body || {};
+  const result = SiliconValleyPolishService.polishScript(script || '');
+  res.json({ success: true, ...result });
+});
+
+// ==========================================
+// 22. COMMERCIAL INTENT & HIGH-CPM REKLAMA MAGNETI
+// ==========================================
+
+router.post('/tier1/commercial-intent-seo', (req, res) => {
+  const { title, script } = req.body || {};
+  const result = CommercialIntentSeoService.optimizeForTier1Monetization(title || '', script || '');
+  res.json({ success: true, ...result });
+});
+
+// ==========================================
+// 23. YOUTUBE MULTI-LANGUAGE AUDIO PACK
+// ==========================================
+
+router.get('/tier1/multi-audio/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || "Neural Pulse AI";
+  const bundle = MultiAudioPackService.getMultiAudioBundle(contentId, title);
+  res.json({ success: true, bundle });
 });
 
 export default router;
