@@ -11,10 +11,11 @@
 }
 
 body {
-  background-color: #09090d;
-  color: #f3f4f6;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #07070a;
+  color: #f4f4f5;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================
@@ -291,3 +292,48 @@ body {
   animation-delay: 2s;
   will-change: transform;
 }
+
+/* Studio digital grid backdrop */
+.studio-grid-bg {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+/* Gradient text utilities */
+.text-gradient-white {
+  background: linear-gradient(180deg, #ffffff 10%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-red {
+  background: linear-gradient(135deg, #ff4d6d 0%, #ef233c 50%, #d90429 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #38bdf8 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glowing pill & dot */
+.live-glow-red {
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45);
+}
+
+.live-glow-emerald {
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+}
+
+.live-glow-cyan {
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.45);
+}
+

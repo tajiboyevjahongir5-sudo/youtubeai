@@ -29,7 +29,9 @@ import {
   Film,
   Volume2,
   Users,
-  Video
+  Video,
+  Mic,
+  Palette
 } from 'lucide-react';
 import { useDashboard } from '../lib/query';
 import { Link, useNavigate } from 'react-router';
@@ -226,6 +228,57 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* ⚡ Studiya Tezkor Amallar Qatori (Studio Action Cockpit) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 animate-fade-in-up">
+        <Link to="/content/new?format=shorts" className="group">
+          <div className="p-4 rounded-3xl liquid-glass border border-red-500/20 hover:border-red-500/50 bg-gradient-to-br from-red-950/25 via-black/40 to-transparent transition-all duration-300 hover:-translate-y-1 shadow-xl flex items-center gap-3.5">
+            <div className="p-2.5 rounded-2xl bg-red-500/15 text-red-400 border border-red-500/30 group-hover:scale-110 shadow-[0_0_12px_rgba(255,0,50,0.2)] transition-transform">
+              <Zap size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white group-hover:text-red-300 transition-colors">Tezkor AI Shorts</p>
+              <p className="text-[10px] text-zinc-400">60 soniya • Avto B-roll</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/content/new?format=longform" className="group">
+          <div className="p-4 rounded-3xl liquid-glass border border-cyan-500/20 hover:border-cyan-500/50 bg-gradient-to-br from-cyan-950/25 via-black/40 to-transparent transition-all duration-300 hover:-translate-y-1 shadow-xl flex items-center gap-3.5">
+            <div className="p-2.5 rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 group-hover:scale-110 shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-transform">
+              <Film size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">16:9 Long-Form</p>
+              <p className="text-[10px] text-zinc-400">10-20 daqiqa • Master</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/content" className="group">
+          <div className="p-4 rounded-3xl liquid-glass border border-amber-500/20 hover:border-amber-500/50 bg-gradient-to-br from-amber-950/25 via-black/40 to-transparent transition-all duration-300 hover:-translate-y-1 shadow-xl flex items-center gap-3.5">
+            <div className="p-2.5 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 group-hover:scale-110 shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-transform">
+              <Palette size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">CTR Muqovalar</p>
+              <p className="text-[10px] text-zinc-400">AI Thumbnail Lab</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/settings" className="group">
+          <div className="p-4 rounded-3xl liquid-glass border border-emerald-500/20 hover:border-emerald-500/50 bg-gradient-to-br from-emerald-950/25 via-black/40 to-transparent transition-all duration-300 hover:-translate-y-1 shadow-xl flex items-center gap-3.5">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 group-hover:scale-110 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform">
+              <Mic size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Alex Ovoz Sozlamasi</p>
+              <p className="text-[10px] text-zinc-400">Azure TTS • +14% Pacing</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Toast Notification */}
       {dashboardToast && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in backdrop-blur-xl">
@@ -253,6 +306,16 @@ const DashboardPage = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                   Avtopilot: Faol
                 </span>
+                {/* Live Audio Equalizer */}
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-[10px] text-cyan-300 font-semibold">
+                  <span>AUDIO DSP</span>
+                  <div className="flex items-end gap-0.5 h-2.5">
+                    <span className="w-0.5 bg-cyan-400 animate-pulse h-2.5 rounded-full"></span>
+                    <span className="w-0.5 bg-cyan-400 animate-pulse h-1.5 rounded-full" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-0.5 bg-cyan-400 animate-pulse h-2 rounded-full" style={{ animationDelay: '300ms' }}></span>
+                    <span className="w-0.5 bg-cyan-400 animate-pulse h-1 rounded-full" style={{ animationDelay: '75ms' }}></span>
+                  </div>
+                </div>
               </div>
               <p className="text-xs text-gray-300 mt-1 max-w-2xl leading-relaxed">
                 Har kuni 09:00 va 18:00 da trendni topadi, Alex ovozini beradi, B-roll va subtitrlarni montaj qilib, YouTube'ga avtomatik rejalashtiradi.
