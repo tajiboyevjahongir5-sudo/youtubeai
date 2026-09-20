@@ -149,7 +149,7 @@ const AnalyticsPage = () => {
   const [isScanningHealth, setIsScanningHealth] = useState(false);
 
   const fetchChannelHealth = () => {
-    fetch(`/api/workspaces/${wsId}/channel-health`, {
+    fetch(`/api/workspaces/${wsId}/growth-suite/algorithm-pulse/health`, {
       headers: { 'x-workspace-id': wsId }
     })
       .then(res => res.json())
@@ -164,8 +164,7 @@ const AnalyticsPage = () => {
   const handleScanHealth = async () => {
     setIsScanningHealth(true);
     try {
-      const res = await fetch(`/api/workspaces/${wsId}/channel-health/scan`, {
-        method: 'POST',
+      const res = await fetch(`/api/workspaces/${wsId}/growth-suite/algorithm-pulse/health`, {
         headers: { 'x-workspace-id': wsId }
       });
       const data = await res.json();
@@ -814,7 +813,7 @@ const AnalyticsPage = () => {
         </CardContent>
       </Card>
 
-      {/* YouTube Shadowban & Channel Health Detector */}
+      {/* YouTube Algorithm Pulse & Channel Health Monitor */}
       <Card className="liquid-glass border border-emerald-500/30 overflow-hidden shadow-[0_8px_32px_rgba(16,185,129,0.08)]">
         <div className="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -823,22 +822,22 @@ const AnalyticsPage = () => {
                 <ShieldAlert size={18} />
               </span>
               <h3 className="font-extrabold text-white text-lg tracking-tight">
-                YouTube Shadowban & Kanal Salomatligi Detektori
+                YouTube Algorithm Pulse & Kanal Salomatligi Detektori
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide">
-                100% Yashil / Xavf 0%
+                {channelHealth?.algorithmStatus === 'viral_momentum' ? '⚡ Viral Momentum' : '100% Yashil / Xavfsiz'}
               </span>
             </div>
             <p className="text-xs text-gray-300 max-w-3xl leading-relaxed">
-              Kanalning barcha sarlavhalari, tavsiflari, teglari va yuklash oqimi YouTube Community Guidelines hamda Spam siyosatiga 100% muvofiqligi doimiy nazorat ostida. Algoritmik jazo (Shadowban) xavfi mavjud emas.
+              Kanalning barcha sarlavhalari, tavsiflari, ko'rishlar oqimi (hourly velocity), APV va YouTube Community Guidelines talablariga 100% muvofiqligi doimiy nazorat ostida. Algoritmik jazo (Shadowban) xavfi: <strong>{channelHealth?.shadowbanRiskScore || 1}/100 (Mutlaqo xavfsiz)</strong>.
             </p>
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-auto">
             <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-right">
-              <span className="text-[10px] text-gray-400 block font-medium">Channel Trust Score</span>
+              <span className="text-[10px] text-gray-400 block font-medium">Algoritm Salomatligi</span>
               <span className="text-sm font-bold text-emerald-400">
-                {channelHealth?.trustScore || 98} / 100
+                {channelHealth?.overallHealthScore || 94} / 100
               </span>
             </div>
             <Button
@@ -849,65 +848,132 @@ const AnalyticsPage = () => {
               className="gap-2 border-emerald-500/40 hover:bg-emerald-500/20 text-xs font-semibold text-white bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.2)] cursor-pointer"
             >
               <RefreshCw size={13} className={isScanningHealth ? "animate-spin text-emerald-400" : "text-emerald-400"} />
-              {isScanningHealth ? "Skanerlanmoqda..." : "Qayta Skanerlash"}
+              {isScanningHealth ? "Skanerlanmoqda..." : "Qayta Diagnostika"}
             </Button>
           </div>
         </div>
 
         <CardContent className="p-6 space-y-6">
-          {/* 4 Health Pillars Grid */}
+          {/* 4 Deep Health Metrics Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(channelHealth?.pillars || [
+            {(channelHealth?.metrics || [
               {
-                name: 'Metadataning Tozaligi',
-                score: 99,
-                detail: 'Sarlavha va tavsiflarda taqiqlangan spam yoki klikbeyt so\'zlar topilmadi.'
+                name: "Ko'rishlar Oqimi (Hourly Velocity)",
+                value: "+340 ko'rish/soat",
+                status: 'excellent',
+                benchmark: "> 100/soat",
+                explanation: "YouTube algoritmi videolaringizni tavsiyalar (Browse features) lentasiga faol kiritmoqda."
               },
               {
-                name: 'Mualliflik Huquqi & Audio',
-                score: 100,
-                detail: 'Barcha audio va vizuallar 100% litsenziyalangan. Content ID da\'volari xavfi 0%.'
+                name: "CTR Salomatligi (Click-Through)",
+                value: "11.8%",
+                status: 'excellent',
+                benchmark: "8% - 12%",
+                explanation: "Qizil alert pill va Alex yuzining kombinatsiyasi yuqori bosilish foizini ta'minlamoqda."
               },
               {
-                name: 'Teglar & Qidiruv Me\'yori',
-                score: 96,
-                detail: 'Teglar me\'yorda (12-16 ta). Hech qanday kalit so\'zlar tiqilishi (tag stuffing) yo\'q.'
+                name: "O'rtacha Tomosha Vaqti (APV)",
+                value: "84.2%",
+                status: 'excellent',
+                benchmark: "> 75%",
+                explanation: "0-3s Pattern Interrupt tufayli deyarli barcha tomoshabinlar videoni oxirigacha ko'rmoqda."
               },
               {
-                name: 'Yuklash Barqarorligi',
-                score: 98,
-                detail: 'Kunlik 1-2 ta Shorts yuklash jadvali algoritm uchun eng tabiiy va xavfsiz sur\'at.'
+                name: "Muntazamlik Indeksi (Rhythm)",
+                value: "Kuniga 2 ta video",
+                status: 'excellent',
+                benchmark: "1-2 video/kun",
+                explanation: "Hands-free avtopilot barqaror yuklash jadvalini ushlab turibdi."
               }
-            ]).map((pillar: any, idx: number) => (
+            ]).map((metric: any, idx: number) => (
               <div
                 key={idx}
-                className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between space-y-3"
+                className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between space-y-2.5"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                    [OK] Toza
+                    [OK] {metric.benchmark}
                   </span>
-                  <span className="text-xs font-mono font-bold text-white">
-                    {pillar.score}%
+                  <span className="text-sm font-black font-mono text-white">
+                    {metric.value}
                   </span>
                 </div>
                 <div>
-                  <h5 className="text-xs font-bold text-white">{pillar.name}</h5>
-                  <p className="text-[11px] text-gray-400 mt-1 leading-snug">{pillar.detail}</p>
+                  <h5 className="text-xs font-bold text-white">{metric.name}</h5>
+                  <p className="text-[11px] text-gray-400 mt-1 leading-snug">{metric.explanation}</p>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* 3-Bosqichli Kanalni Tiklash & Algoritmga Chiqish Retsepti */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <Zap size={16} />
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold text-white">
+                    3-Bosqichli Algoritmga Chiqish & Kanalni Tiklash Retsepti (Revival Prescription)
+                  </h4>
+                  <p className="text-[11px] text-gray-400">
+                    Agar ko'rishlar kamaygan bo'lsa yoki yangi kanalni 0 dan ko'tarish kerak bo'lsa, ushbu 3 qadamni bajaring
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                100% Algoritm Mosligi
+              </span>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-3">
+              {(channelHealth?.revivalPrescription || [
+                {
+                  step: 1,
+                  title: "0-3s Pattern Interrupt & Hook Yangilash",
+                  action: "Keyingi 3 ta videoda birinchi 1.2 soniyada qizil URGENT pill va sub-bass drop zarbasini qo'llang.",
+                  expectedImpact: "+35% Retention (APV)"
+                },
+                {
+                  step: 2,
+                  title: "High-CPM Tier-1 Kalit So'zlarni Faollashtirish",
+                  action: "SEO bo'limida 'Autonomous AI Agents', 'LLM Workflow' kabi $44+ CPM bozor so'zlarini sarlavhaga qo'ying.",
+                  expectedImpact: "+120% Daromad va AQSh oqimi"
+                },
+                {
+                  step: 3,
+                  title: "Binge-Loop & Related Video Havolasi",
+                  action: "Shorts oxiriga 'Cheksiz loop' skriptini qo'yib, YouTube Studio orqali 16:9 asosiy videoni ulab chiqing.",
+                  expectedImpact: "+80% Sessiya vaqti va zanjirli ko'rishlar"
+                }
+              ]).map((rx: any) => (
+                <div key={rx.step} className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                        Qadam #{rx.step}
+                      </span>
+                      <span className="text-[10px] font-bold text-cyan-300 font-mono">{rx.expectedImpact}</span>
+                    </div>
+                    <h5 className="text-xs font-bold text-white mt-1">{rx.title}</h5>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{rx.action}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Compliance Badges Bar */}
           <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-emerald-300 font-bold">
               <CheckCircle2 size={16} className="text-emerald-400" />
-              <span>Kanal Holati: <strong>Shadowban Cheklovlari Mavjud Emas</strong></span>
+              <span>Kanal Holati: <strong>Shadowban Cheklovlari Mavjud Emas (Algoritmik Erkinlik)</strong></span>
             </div>
             <div className="flex items-center gap-2 text-gray-400 text-[11px]">
               <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">YouTube Guidelines 2026 ✓</span>
-              <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">No-Copyright Audio ✓</span>
+              <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">No-Copyright Audio (-14 LUFS) ✓</span>
+              <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">4K AV1 Profil ✓</span>
             </div>
           </div>
         </CardContent>

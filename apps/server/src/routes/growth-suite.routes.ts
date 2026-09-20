@@ -22,6 +22,11 @@ import { Tier1GeoTargeterService } from '../services/tier1-geo-targeter.service'
 import { SiliconValleyPolishService } from '../services/silicon-valley-polish.service';
 import { CommercialIntentSeoService } from '../services/commercial-intent-seo.service';
 import { MultiAudioPackService } from '../services/multi-audio-pack.service';
+import { CopyrightShieldService } from '../services/copyright-shield.service';
+import { VideoQualityEnhancerService } from '../services/video-quality-enhancer.service';
+import { BingeLoopLinkerService } from '../services/binge-loop-linker.service';
+import { VisualMotionEngineService } from '../services/visual-motion-engine.service';
+import { AlgorithmPulseService } from '../services/algorithm-pulse.service';
 
 const router = Router();
 
@@ -430,6 +435,57 @@ router.get('/tier1/multi-audio/:contentId', (req, res) => {
   const title = (req.query.title as string) || "Neural Pulse AI";
   const bundle = MultiAudioPackService.getMultiAudioBundle(contentId, title);
   res.json({ success: true, bundle });
+});
+
+// ==========================================
+// 24. SMART CONTENT ID & MUALLIFLIK HUQUQI QALQONI
+// ==========================================
+
+router.get('/copyright-shield/scan/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const audioUrl = req.query.audioUrl as string | undefined;
+  const result = CopyrightShieldService.scanProject(contentId, audioUrl);
+  res.json({ success: true, result });
+});
+
+// ==========================================
+// 25. 4K AV1/VP9 BITRATE & KRISTALL TINIQLIK PROFILI
+// ==========================================
+
+router.get('/video-quality/profiles', (req, res) => {
+  const isLong = req.query.isLong === 'true';
+  const analysis = VideoQualityEnhancerService.getQualityProfiles(isLong);
+  res.json({ success: true, analysis });
+});
+
+// ==========================================
+// 26. BINGE-LOOP & ALOQADOR VIDEO ULASH TIZIMI
+// ==========================================
+
+router.get('/binge-loop/plan/:contentId', (req, res) => {
+  const { contentId } = req.params;
+  const title = (req.query.title as string) || "Neural Pulse AI";
+  const plan = BingeLoopLinkerService.getBingeLoopPlan(contentId, title);
+  res.json({ success: true, plan });
+});
+
+// ==========================================
+// 27. 2.5D PARALLAKS & KEN BURNS HARAKAT DVIGATELI
+// ==========================================
+
+router.get('/visual-motion/presets', (_req, res) => {
+  const presets = VisualMotionEngineService.getMotionPresets();
+  res.json({ success: true, presets });
+});
+
+// ==========================================
+// 28. KANAL SALOMATLIGI & ALGORITM DIAGNOSTIKASI
+// ==========================================
+
+router.get('/algorithm-pulse/health', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const report = AlgorithmPulseService.getChannelHealth(workspaceId);
+  res.json({ success: true, report });
 });
 
 export default router;
