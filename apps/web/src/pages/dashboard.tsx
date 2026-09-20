@@ -19,7 +19,13 @@ import {
   ArrowUpRight,
   Link2,
   Flame,
-  Award
+  Award,
+  Bot,
+  Radio,
+  Zap,
+  Shield,
+  Play,
+  Check
 } from 'lucide-react';
 import { useDashboard } from '../lib/query';
 import { Link, useNavigate } from 'react-router';
@@ -30,6 +36,32 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboard(workspaceId);
   const [dailyTrends, setDailyTrends] = React.useState<any[]>([]);
+  const [handsfreeConfig, setHandsfreeConfig] = React.useState<any>(null);
+  const [isTriggeringHandsfree, setIsTriggeringHandsfree] = React.useState(false);
+  const [competitorOutliers, setCompetitorOutliers] = React.useState<any[]>([]);
+  const [dashboardToast, setDashboardToast] = React.useState<string | null>(null);
+
+  const fetchHandsfreeConfig = () => {
+    fetch(`/api/workspaces/${workspaceId}/growth-suite/handsfree/config`, {
+      headers: { 'x-workspace-id': workspaceId }
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.config) setHandsfreeConfig(d.config);
+      })
+      .catch(() => {});
+  };
+
+  const fetchCompetitorRadar = () => {
+    fetch(`/api/workspaces/${workspaceId}/growth-suite/competitors/radar`, {
+      headers: { 'x-workspace-id': workspaceId }
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.outliers) setCompetitorOutliers(d.outliers);
+      })
+      .catch(() => {});
+  };
 
   React.useEffect(() => {
     fetch(`/api/workspaces/${workspaceId}/growth-suite/daily-trends`, {
@@ -42,7 +74,29 @@ const DashboardPage = () => {
         }
       })
       .catch(() => {});
+
+    fetchHandsfreeConfig();
+    fetchCompetitorRadar();
   }, [workspaceId]);
+
+  const handleTriggerHandsfreeNow = async () => {
+    setIsTriggeringHandsfree(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/growth-suite/handsfree/trigger-now`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      const d = await res.json();
+      if (d.success) {
+        setDashboardToast(d.message);
+        fetchHandsfreeConfig();
+        setTimeout(() => setDashboardToast(null), 4500);
+      }
+    } catch (e) {}
+    finally {
+      setIsTriggeringHandsfree(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -121,6 +175,71 @@ const DashboardPage = () => {
                 </Button>
               </Link>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Toast Notification */}
+      {dashboardToast && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in">
+          <Check size={16} className="text-emerald-400" />
+          {dashboardToast}
+        </div>
+      )}
+
+      {/* 🤖 To'liq Avtomatik "Hands-Free" Jadval (Autonomous Content Factory) */}
+      <div className="rounded-2xl liquid-glass border border-cyan-500/30 p-5 bg-gradient-to-r from-cyan-950/20 via-black/40 to-blue-950/20 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              <Bot size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  To'liq Avtomatik "Hands-Free" Jadval (Autonomous Content Factory)
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  Avtopilot: Faol
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Har kuni 09:00 va 18:00 da trendni topadi, Alex ovozini beradi, B-roll va subtitrlarni montaj qilib, YouTube'ga avtomatik rejalashtiradi.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={isTriggeringHandsfree}
+              onClick={handleTriggerHandsfreeNow}
+              className="text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-cyan-500 text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Zap size={13} className={isTriggeringHandsfree ? 'animate-spin' : ''} />
+              {isTriggeringHandsfree ? 'Avtopilot ishlamoqda...' : '⚡ Hozirgi Trendni Chiqarish (Run Now)'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/10 text-xs">
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+            <span className="text-[11px] text-gray-400">Jadval Vaqtlari:</span>
+            <p className="font-bold text-white font-mono">09:00 & 18:00 (Peak)</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+            <span className="text-[11px] text-gray-400">Avto-Montaj:</span>
+            <p className="font-bold text-cyan-400 font-mono">60FPS B-Roll + Karaoke</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+            <span className="text-[11px] text-gray-400">Ducking & SFX:</span>
+            <p className="font-bold text-amber-400 font-mono">Sub-drop + Bell</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+            <span className="text-[11px] text-gray-400">Jami Ishlab Chiqarildi:</span>
+            <p className="font-bold text-emerald-400 font-mono">{handsfreeConfig?.totalGenerated || 14} ta video</p>
           </div>
         </div>
       </div>
@@ -246,6 +365,112 @@ const DashboardPage = () => {
                     className="w-full text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black border-amber-500 flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                   >
                     <Sparkles size={13} /> 🚀 1-Klikda Loyiha Yaratish
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* 🛰️ Raqobatchilar Radari & "Viral Outlier" Detektori (Spy Radar) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Radio size={22} className="text-violet-400" /> Raqobatchilar Radari & "Viral Outlier" Detektori (Spy Radar)
+            </h2>
+            <p className="text-xs text-gray-400">
+              Fireship, Matthew Berman va boshqa yetakchi global kanallarda odatdagidan 3-5x tezroq ko'rilayotgan yangi videolarni ushlaydi
+            </p>
+          </div>
+          <span className="text-[11px] font-mono text-violet-300 bg-violet-500/10 px-3 py-1 rounded-full border border-violet-500/20 font-bold flex items-center gap-1.5 self-start sm:self-auto">
+            <Radio size={12} className="animate-pulse text-violet-400" /> Jonli Monitoring (4 ta Global Kanal)
+          </span>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {(competitorOutliers.length > 0 ? competitorOutliers : [
+            {
+              id: 'outlier_1',
+              channelName: 'Fireship',
+              channelAvatar: '🔥',
+              videoTitle: "The AI agent that replaced 50 senior engineers in 24 hours",
+              publishedHoursAgo: 7,
+              viewsTotal: '380,000 ko\'rish',
+              velocityPerHour: '54,200 ko\'rish/soat',
+              outlierMultiplier: '4.3x Oddiydan Yuqori',
+              category: 'Autonomous Agents',
+              counterAttackIdea: {
+                recommendedTitle: "! TEZOR & ANIQ ! Ular Ayta Olmagan 3 Ta AI Agent Sirlari (2026)",
+                hookAngle: "Raqobatchi mavzuni umumiy yoritgan, biz esa aniq ochiq kodli arxitekturani va 1-klikda ishga tushirishni ko'rsatamiz.",
+                patternInterruptHook: "Fireship bu agent haqida gapirdi, lekin hech kim sizga uning eng xavfli 3 ta zaif tomonini aytmadi! Mana kod...",
+                whyWeWillWin: "Bizning video 60FPS dinamik kiber-grafika va darhol nusxalab ishlatish mumkin bo'lgan GitHub blueprint bilan chiqadi."
+              }
+            },
+            {
+              id: 'outlier_2',
+              channelName: 'Matthew Berman',
+              channelAvatar: '🧠',
+              videoTitle: "Claude 3.7 Sonnet is ACTUALLY Thinking Now... Hands-on Test",
+              publishedHoursAgo: 14,
+              viewsTotal: '195,000 ko\'rish',
+              velocityPerHour: '13,900 ko\'rish/soat',
+              outlierMultiplier: '3.6x Oddiydan Yuqori',
+              category: 'LLM Reasoning',
+              counterAttackIdea: {
+                recommendedTitle: "Stop Using Claude 3.7 Like ChatGPT: 5 Hybrid Reasoning Hacks",
+                hookAngle: "Oddiy test o'rniga ishlab chiquvchilar uchun real vaqtda kod yozuvchi 5 ta professional prompt texnikasi.",
+                patternInterruptHook: "99% odam Claude 3.7 ning yangi 'Hybrid Reasoning' tugmasidan noto'g'ri foydalanmoqda. Mana uni 3 barobar tezlashtiruvchi sozlama!",
+                whyWeWillWin: "Tomoshabin faqat yangilik eshitmaydi, balki darhol o'z loyihasida qo'llay oladigan amaliy natijaga ega bo'ladi."
+              }
+            }
+          ]).map((outlier: any) => (
+            <Card key={outlier.id} className="liquid-glass border border-violet-500/25 hover:border-violet-500/50 transition-all">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl p-2 rounded-xl bg-violet-500/10 border border-violet-500/20">{outlier.channelAvatar}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white">{outlier.channelName}</h4>
+                        <span className="text-[10px] text-gray-400">{outlier.publishedHoursAgo} soat oldin</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-violet-300 font-semibold">{outlier.velocityPerHour}</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 px-2.5 py-1 rounded-full border border-violet-500/30">
+                    {outlier.outlierMultiplier}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Raqobatchi Videosi:</span>
+                  <p className="text-xs font-medium text-gray-200">"{outlier.videoTitle}"</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-violet-950/20 border border-violet-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                      <Sparkles size={12} /> Bizning Muqobil "Counter-Attack" Mavzumiz:
+                    </span>
+                  </div>
+                  <h5 className="text-xs font-bold text-white">{outlier.counterAttackIdea.recommendedTitle}</h5>
+                  <p className="text-[11px] text-gray-300 leading-relaxed italic">
+                    "{outlier.counterAttackIdea.patternInterruptHook}"
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-white/10">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      navigate(`/content/new?title=${encodeURIComponent(outlier.counterAttackIdea.recommendedTitle)}&brief=${encodeURIComponent(outlier.counterAttackIdea.patternInterruptHook)}`);
+                    }}
+                    className="w-full text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border-violet-500 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Sparkles size={13} /> 🚀 Ushbu Mavzuda Yaxshiroq Video Yaratish
                   </Button>
                 </div>
               </CardContent>

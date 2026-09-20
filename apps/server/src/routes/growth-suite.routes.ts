@@ -13,6 +13,11 @@ import { getVideoComments, generateReplyForComment } from '../services/comment-a
 import { stitchShortsToLongForm } from '../services/shorts-stitching.service';
 import { calculateEarningsForecast } from '../services/monetization-forecaster.service';
 import { getCustomVoices, saveCustomVoice } from '../services/voice-clone.service';
+import { AudienceSimulatorService } from '../services/audience-simulator.service';
+import { ThumbnailHeatmapService } from '../services/thumbnail-heatmap.service';
+import { HandsfreeFactoryService } from '../services/handsfree-factory.service';
+import { CompetitorRadarService } from '../services/competitor-radar.service';
+import { DualHostDebateService } from '../services/dual-host-debate.service';
 
 const router = Router();
 
@@ -308,6 +313,72 @@ router.post('/voice-clones', (req, res) => {
     clarityBoost: clarityBoost !== false
   });
   res.json({ success: true, avatar });
+});
+
+// ==========================================
+// 15. AUDIENCE SIMULATOR & HOOK STRESS-TEST
+// ==========================================
+
+router.post('/audience-simulator/test', (req, res) => {
+  const { script, topic } = req.body || {};
+  const testResult = AudienceSimulatorService.simulateAudience(script || '', topic || '');
+  res.json({ success: true, ...testResult });
+});
+
+// ==========================================
+// 16. SMART THUMBNAIL HEATMAP & EYE-TRACKING
+// ==========================================
+
+router.post('/thumbnail-heatmap/analyze', (req, res) => {
+  const { thumbnailUrl, title } = req.body || {};
+  const analysis = ThumbnailHeatmapService.analyzeThumbnail(thumbnailUrl || '', title || '');
+  res.json({ success: true, analysis });
+});
+
+// ==========================================
+// 17. AUTONOMOUS HANDSFREE CONTENT FACTORY
+// ==========================================
+
+router.get('/handsfree/config', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const config = HandsfreeFactoryService.getConfig(workspaceId);
+  const recentJobs = HandsfreeFactoryService.getRecentJobs(workspaceId);
+  res.json({ success: true, config, recentJobs });
+});
+
+router.post('/handsfree/config', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const updated = HandsfreeFactoryService.saveConfig(workspaceId, req.body || {});
+  res.json({ success: true, config: updated });
+});
+
+router.post('/handsfree/trigger-now', (req, res) => {
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const result = HandsfreeFactoryService.triggerNow(workspaceId);
+  res.json(result);
+});
+
+// ==========================================
+// 18. COMPETITOR RADAR & VIRAL OUTLIERS
+// ==========================================
+
+router.get('/competitors/radar', (req, res) => {
+  const channels = CompetitorRadarService.getMonitoredChannels();
+  const outliers = CompetitorRadarService.getViralOutliers();
+  res.json({ success: true, channels, outliers });
+});
+
+// ==========================================
+// 19. DUAL-HOST AI DEBATE STUDIO
+// ==========================================
+
+router.post('/dual-host/generate', (req, res) => {
+  const { topic, language, criticGender } = req.body || {};
+  if (!topic) {
+    return res.status(400).json({ success: false, error: 'Bahs mavzusi kiritilishi shart' });
+  }
+  const project = DualHostDebateService.generateDebate(topic, language || 'uz', criticGender || 'female');
+  res.json({ success: true, project });
 });
 
 export default router;
