@@ -21,6 +21,8 @@ export interface AutoPublishSettings {
   customHostImage?: string;
   backgroundMusicMood?: string;
   voiceEmotionPreset?: string;
+  googleFlowApiKey?: string;
+  videoGenerationModel?: string;
 }
 
 const getSettingsDirs = () => [
@@ -54,7 +56,9 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           hostAvatar: parsed.hostAvatar || 'alex',
           customHostImage: parsed.customHostImage,
           backgroundMusicMood: parsed.backgroundMusicMood || 'neon_pulse',
-          voiceEmotionPreset: parsed.voiceEmotionPreset || 'energetic'
+          voiceEmotionPreset: parsed.voiceEmotionPreset || 'energetic',
+          googleFlowApiKey: parsed.googleFlowApiKey || undefined,
+          videoGenerationModel: parsed.videoGenerationModel || 'veo-3.1-generate-preview'
         };
       } catch (e) {}
     }

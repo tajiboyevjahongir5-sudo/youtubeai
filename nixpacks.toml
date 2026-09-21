@@ -4,7 +4,7 @@ nixPkgs = ["nodejs-20_x", "pnpm", "ffmpeg", "python312Packages.pip", "python312P
 [phases.install]
 cmds = [
     "pnpm install --frozen-lockfile",
-    "pip install edge-tts || true"
+    "pip install --break-system-packages edge-tts || true"
 ]
 
 [phases.build]
