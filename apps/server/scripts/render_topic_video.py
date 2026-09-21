@@ -152,7 +152,8 @@ def get_text_width(draw: ImageDraw.ImageDraw, text: str, font) -> int:
 POWER_WORDS = {'2026', 'AI', 'FREE', 'SECRET', 'REVOLUTION', 'AUTOMATIC', 'ILLEGAL', 'PROFIT', 'CODE', 'AUTONOMOUS', 'MONEY', 'STOP', 'NEVER', 'TOOLS', 'TOOL', 'POWER', 'FAST', 'URGENT', 'NEW'}
 
 def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=None, 
-                       max_w=880, base_size=46, min_size=28, stroke_color=(0,0,0), stroke_w=4):
+                       max_w=880, base_size=46, min_size=28, stroke_color=(0,0,0), stroke_w=4,
+                       x_center=None):
     sanitized_lines = [sanitize_text(l) for l in lines]
     if colors is None:
         colors = [(255, 255, 255)] * len(sanitized_lines)
@@ -170,12 +171,13 @@ def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=N
     total_h = len(sanitized_lines) * line_h
     start_y = y_center - (total_h // 2)
     space_w = get_text_width(draw, " ", font)
+    target_cx = (W // 2) if x_center is None else x_center
     
     for i, line in enumerate(sanitized_lines):
         col = colors[i]
         words = line.split()
         total_line_w = get_text_width(draw, line, font)
-        start_x = (W - total_line_w) // 2
+        start_x = target_cx - (total_line_w // 2)
         cur_x = start_x
         y = start_y + i * line_h
         
@@ -213,20 +215,53 @@ def parse_timed_subtitles(script: str, total_duration: float):
     matches = list(pattern.finditer(script))
     
     if matches:
+        parsed_items = []
+        max_script_time = 0.0
         for m in matches:
             s_min, s_sec, e_min, e_sec, tag, text = m.groups()
             st = float(s_min) * 60 + float(s_sec)
             et = float(e_min) * 60 + float(e_sec)
-            et = min(et, total_duration)
-            raw_text = text.replace('\n', ' ').strip().strip('"')
-            sentences = [s.strip() for s in re.split(r'[\.\!\?]+', raw_text) if s.strip()]
+            if et > max_script_time:
+                max_script_time = et
+            parsed_items.append((st, et, text.strip()))
+
+        # Scale timestamps proportionally if script timestamps differ from actual audio duration
+        scale = 1.0
+        if max_script_time > 0 and (max_script_time > total_duration or abs(max_script_time - total_duration) > 5.0):
+            scale = total_duration / max_script_time
+
+        for st, et, raw_text in parsed_items:
+            scaled_st = st * scale
+            scaled_et = min(total_duration, et * scale)
+            if scaled_st >= total_duration or scaled_et <= scaled_st:
+                continue
+
+            # Extract spoken narration (inside quotes) or strip chapter headers
+            quotes = re.findall(r'"([^"]+)"', raw_text)
+            if quotes:
+                speech_text = ' '.join(quotes).strip()
+            else:
+                lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
+                speech_text = ' '.join(lines[1:]) if len(lines) > 1 else ' '.join(lines)
+            clean_t = re.sub(r'CHAPTER \d+:[^"]*', '', speech_text)
+            clean_t = re.sub(r'HOOK[^:]*:', '', clean_t)
+            clean_t = re.sub(r'TOOL \d+[^:]*:', '', clean_t)
+            clean_t = re.sub(r'SCENE \d+[^:]*:', '', clean_t)
+            clean_t = re.sub(r'OUTRO[^:]*:', '', clean_t)
+            clean_t = clean_t.replace('"', '').strip()
+            if not clean_t:
+                clean_t = raw_text.replace('"', '').strip()
+
+            sentences = [s.strip() for s in re.split(r'[\.\!\?]+', clean_t) if s.strip()]
             if not sentences:
-                sentences = [raw_text]
+                sentences = [clean_t]
             
-            sub_dur = (et - st) / max(1, len(sentences))
+            sub_dur = (scaled_et - scaled_st) / max(1, len(sentences))
             for s_idx, sent in enumerate(sentences):
-                c_st = st + s_idx * sub_dur
+                c_st = scaled_st + s_idx * sub_dur
                 c_et = min(total_duration, c_st + sub_dur)
+                if c_st >= total_duration or c_et <= c_st:
+                    continue
                 words = sent.split()
                 if len(words) > 7:
                     mid = len(words) // 2
@@ -238,6 +273,10 @@ def parse_timed_subtitles(script: str, total_duration: float):
                 lines = [line1] if not line2 else [line1, line2]
                 colors = [(255, 255, 255), (255, 230, 0)] if len(lines) > 1 else [(255, 230, 0)]
                 chunks.append((c_st, c_et, lines, colors))
+
+        if chunks and chunks[-1][1] < total_duration:
+            last = chunks[-1]
+            chunks[-1] = (last[0], total_duration, last[2], last[3])
     else:
         clean_text = clean_script_for_tts(script)
         words = clean_text.split()
@@ -1415,9 +1454,16 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 break
 
         if cur_sub:
-            sub_y = int(H * 0.83) if (is_long or t_sec < sc6_start) else 1310
-            max_cap_w = int(W * 0.80) if is_long else 880
-            draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w)
+            if is_long and t_sec >= sc6_start:
+                # 16:9 Outro: position subtitle neatly on left half to never collide with Subscribe card on right
+                sub_y = int(H * 0.82)
+                sub_cx = int(W * 0.28)
+                max_cap_w = int(W * 0.48)
+                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w, x_center=sub_cx)
+            else:
+                sub_y = int(H * 0.83) if (is_long or t_sec < sc6_start) else 1310
+                max_cap_w = int(W * 0.80) if is_long else 880
+                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w)
 
         if t_sec >= sc6_start:
             card_w = min(780, int(W * 0.44)) if is_long else 780
