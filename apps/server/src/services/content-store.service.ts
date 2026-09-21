@@ -310,6 +310,198 @@ Tech stack: Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Tailwind CSS, Strip
     createdAt: new Date().toISOString(),
     publishedAt: new Date(Date.now() - 172800000).toISOString(),
     videoUrl: '/neural_pulse_16x9.mp4'
+  },
+  item_prompt_secrets: {
+    id: 'item_prompt_secrets',
+    workspaceId: 'ws_j7ktjxw0',
+    title: '7 Secret AI Prompts That Will Replace 90% of Junior Devs #Shorts',
+    status: 'review',
+    videoFormat: 'shorts',
+    contentPillar: 'educational',
+    duration: '0:56',
+    durationSeconds: 56,
+    brief: "Dasturchilar va AI muhandislari uchun ish unumdorligini 10 barobar oshiruvchi 7 ta maxfiy ChatGPT va Claude promptlari.",
+    targetAudience: 'Global Developers, Freelancers, Tech Founders',
+    script: `[0:00 - 0:04] HOOK (Fast camera punch-zoom):
+"Stop asking ChatGPT to write code like a junior! These 7 master prompts generate production architectures in 10 seconds."
+
+[0:05 - 0:18] PROMPT 1 & 2 (The Senior Architect & Reverse Prompt):
+"Prompt 1: 'Act as a Principal Engineer at Google. Critique this TypeScript implementation for edge case memory leaks.' Prompt 2: 'Reverse engineering prompt: Ask me 5 clarifying questions before writing a single line of code.'"
+
+[0:19 - 0:32] PROMPT 3 & 4 (Deterministic Testing & Docker):
+"Prompt 3: 'Generate full Vitest test suites with 100% boundary mutation coverage.' Hit like and save this video so you don't lose the exact syntax!"
+
+[0:33 - 0:44] PROMPT 5, 6 & 7 (Regex, Drizzle & Tailwind):
+"Prompts 5 to 7: Instant schema migrations, regex decoders, and zero-runtime Tailwind layouts."
+
+[0:45 - 0:56] OUTRO & CTA:
+"Which prompt will you use today? Drop a comment, subscribe to Neural Pulse AI for daily coding blueprints, and that is why..."`,
+    scenes: [
+      { id: 'hook', title: '1. Secret Prompts Hook', time: 0, tag: '🚨 Alex Hook' },
+      { id: 'part1', title: '2. Principal Engineer Prompt', time: 11, tag: '⚡ Google Prompt' },
+      { id: 'part2', title: '3. Vitest & Save Trigger', time: 22, tag: '💾 Like & Save' },
+      { id: 'part3', title: '4. Drizzle & Tailwind', time: 34, tag: '💻 Full-Stack' },
+      { id: 'outro', title: '5. Obuna & Loop', time: 46, tag: '🔔 Obuna CTA' }
+    ],
+    description: `7 secret AI prompts that high-earning developers use to 10x their coding productivity in 2026.\n\n#promptengineering #chatgpt #claude #coding #shorts #neuralpulseai`,
+    tags: ['prompt engineering', 'chatgpt', 'claude 3.7', 'ai coding', 'software engineering', 'shorts'],
+    seoScore: 98,
+    scheduledAt: new Date(Date.now() + 14400000).toISOString(),
+    createdAt: new Date().toISOString()
+  },
+  item_deepseek_vs_gemini: {
+    id: 'item_deepseek_vs_gemini',
+    workspaceId: 'ws_j7ktjxw0',
+    title: 'DeepSeek R1 vs OpenAI o3: Which AI Is ACTUALLY Smarter? #Shorts',
+    status: 'review',
+    videoFormat: 'shorts',
+    contentPillar: 'educational',
+    duration: '0:54',
+    durationSeconds: 54,
+    brief: "DeepSeek R1 va OpenAI o3 o'rtasidagi real kodlash, mantiq va matematik taqqoslash benchmarki.",
+    targetAudience: 'Tech Leaders, AI Engineers, Students',
+    script: `[0:00 - 0:04] HOOK:
+"Can a free open-source model like DeepSeek R1 beat a 200-dollar-a-month OpenAI o3 subscription? We ran 100 benchmark tests."
+
+[0:05 - 0:17] ROUND 1 (Competitive Coding & LeetCode Hard):
+"Round 1: Complex algorithmic DP optimization. DeepSeek solved it in 18 seconds using recursive chain-of-thought. OpenAI matched it with 2% fewer tokens."
+
+[0:18 - 0:31] ROUND 2 (Cost & Open Source Privacy):
+"Round 2: Economics. Running DeepSeek locally costs virtually zero dollars per million tokens, while cloud proprietary models drain your budget."
+
+[0:32 - 0:43] THE VERDICT:
+"OpenAI still edges out in raw edge-case reasoning, but DeepSeek is the indisputable champion of price-to-performance."
+
+[0:44 - 0:54] OUTRO & CTA:
+"Which model are you using in production? Comment below, subscribe to Neural Pulse AI, and see you tomorrow!"`,
+    scenes: [
+      { id: 'hook', title: '1. Shock Benchmark Hook', time: 0, tag: '🚨 DeepSeek vs o3' },
+      { id: 'round1', title: '2. LeetCode Coding Test', time: 10, tag: '⚡ Kodlash Testi' },
+      { id: 'round2', title: '3. Narx & Maxfiylik', time: 22, tag: '💰 Xarajat Tahlili' },
+      { id: 'verdict', title: '4. Aniq Hukm', time: 33, tag: '🏆 G\'olib Model' },
+      { id: 'outro', title: '5. Obuna & CTA', time: 45, tag: '🔔 Obuna CTA' }
+    ],
+    description: `DeepSeek R1 vs OpenAI o3 head-to-head benchmark comparison. Cost, coding reasoning, and local deployment.\n\n#deepseek #openai #benchmarks #ai #shorts #tech`,
+    tags: ['deepseek r1', 'openai o3', 'gemini 2.5', 'ai benchmark', 'coding', 'shorts'],
+    seoScore: 99,
+    scheduledAt: new Date(Date.now() + 28800000).toISOString(),
+    createdAt: new Date().toISOString()
+  },
+  item_ai_automation_agency: {
+    id: 'item_ai_automation_agency',
+    workspaceId: 'ws_j7ktjxw0',
+    title: 'The Complete Step-by-Step Blueprint to Building an AI Agency in 2026',
+    status: 'review',
+    videoFormat: 'long_form',
+    contentPillar: 'educational',
+    duration: '12:45',
+    durationSeconds: 765,
+    brief: "2026-yilda sun'iy intellekt va avtomatlashtirish agentligini (AAA) noldan qurish va xalqaro mijozlarni jalb qilish bo'yicha to'liq 16:9 masterclass.",
+    targetAudience: 'Agency Founders, Freelancers, Entrepreneurs',
+    script: `[00:00 - 02:15] CHAPTER 1: THE $10K/MONTH AI AGENCY MODEL
+"In 2026, businesses don't need another generic chatbot. They need autonomous workflow integration. Welcome to the complete masterclass on building and scaling an AI Automation Agency."
+
+[02:16 - 05:20] CHAPTER 2: HIGH-TICKET AUTOMATION OFFERS
+"Learn how to package CRM intelligence, automated lead scoring, and customer voice agents into $5,000 monthly retainer contracts."
+
+[05:21 - 08:30] CHAPTER 3: THE MODERN TECH STACK
+"We combine Make.com, LangGraph, PostgreSQL, and custom fine-tuned LLMs with zero server overhead."
+
+[08:31 - 10:45] CHAPTER 4: OUTREACH & CLIENT ACQUISITION
+"How to close international clients in the US and Europe using interactive video audits and ROI calculators."
+
+[10:46 - 12:45] CHAPTER 5: CONTRACT TEMPLATES & SCALING
+"Complete operational blueprints and legal agreement structures. Subscribe to Neural Pulse AI for the full workflow repository!"`,
+    scenes: [
+      { id: 'c1', title: '1. Agency Modeli 2026', time: 0, tag: '💼 Biznes Model' },
+      { id: 'c2', title: '2. Qimmatbaho Takliflar', time: 135, tag: '💰 $5K Retainer' },
+      { id: 'c3', title: '3. Zamonaviy Texnologiyalar', time: 320, tag: '⚙️ Texnologik Stack' },
+      { id: 'c4', title: '4. Xalqaro Mijozlar Topish', time: 510, tag: '🌐 Mijozlar Oqimi' },
+      { id: 'c5', title: '5. Masshtablash & Obuna', time: 645, tag: '🚀 Masshtab & CTA' }
+    ],
+    description: `Complete step-by-step masterclass: How to launch and scale a 6-figure AI Automation Agency (AAA) in 2026.\n\nTimestamps:\n00:00 - The $10K/Month AI Agency Model\n02:16 - High-Ticket Offers\n05:21 - The Modern Tech Stack\n08:31 - Client Acquisition\n10:46 - Scaling & Blueprint\n\n#aiagency #automation #entrepreneurship #business2026 #saas #neuralpulseai`,
+    tags: ['ai automation agency', 'make money online', 'entrepreneur', 'saas 2026', 'freelancing', 'b2b sales'],
+    seoScore: 97,
+    scheduledAt: new Date(Date.now() + 43200000).toISOString(),
+    createdAt: new Date().toISOString(),
+    videoUrl: '/neural_pulse_16x9.mp4'
+  },
+  item_claude_hybrid: {
+    id: 'item_claude_hybrid',
+    workspaceId: 'ws_j7ktjxw0',
+    title: 'Why Anthropic\'s New Claude 3.7 Sonnet Changes Everything for Programmers #Shorts',
+    status: 'review',
+    videoFormat: 'shorts',
+    contentPillar: 'entertaining',
+    duration: '0:55',
+    durationSeconds: 55,
+    brief: "Anthropic kompaniyasining gibrid fikrlovchi Claude 3.7 Sonnet modeli dasturchilar hayotini qanday o'zgartirishi haqida.",
+    targetAudience: 'Software Engineers, Web Developers',
+    script: `[0:00 - 0:04] HOOK:
+"Anthropic just dropped Claude 3.7 Sonnet with hybrid reasoning, and it completely destroyed every coding benchmark on Earth."
+
+[0:05 - 0:17] FEATURE 1 (Hybrid Speed vs Deep Reasoning):
+"You can now toggle between instant millisecond autocomplete and deep recursive architectural reasoning on the fly."
+
+[0:18 - 0:31] FEATURE 2 (Full Repository Comprehension):
+"It reads your entire 50,000-line codebase without hallucinating API imports. Hit like and save this video before starting your next sprint!"
+
+[0:32 - 0:43] FEATURE 3 (Autonomous Refactoring):
+"It refactors spaghetti legacy code into idiomatic clean architecture with full TypeScript type safety in one single prompt."
+
+[0:44 - 0:55] OUTRO & CTA:
+"Are you switching to Claude 3.7 or sticking with Cursor? Comment below and subscribe to Neural Pulse AI!"`,
+    scenes: [
+      { id: 'hook', title: '1. Claude 3.7 Shock Hook', time: 0, tag: '🚨 Claude 3.7 Inqilobi' },
+      { id: 'hybrid', title: '2. Gibrid Fikrlash', time: 11, tag: '🧠 Hybrid Reasoning' },
+      { id: 'repo', title: '3. Katta Kod Bazasini O\'qish', time: 22, tag: '💾 Like & Save' },
+      { id: 'refactor', title: '4. Avtomat Refaktoring', time: 33, tag: '⚡ Toza Kod' },
+      { id: 'outro', title: '5. Obuna & Fikrlar', time: 45, tag: '🔔 Fikrlar & Obuna' }
+    ],
+    description: `Why Anthropic Claude 3.7 Sonnet hybrid reasoning is a generational breakthrough for software engineers in 2026.\n\n#claude37 #anthropic #aicoding #programming #shorts #techtrends`,
+    tags: ['claude 3.7', 'anthropic', 'ai coding', 'cursor ai', 'programming', 'shorts'],
+    seoScore: 98,
+    scheduledAt: new Date(Date.now() + 57600000).toISOString(),
+    createdAt: new Date().toISOString()
+  },
+  item_local_llm_beast: {
+    id: 'item_local_llm_beast',
+    workspaceId: 'ws_j7ktjxw0',
+    title: 'How to Run 100% Private Uncensored AI Locally on Your PC in 2026',
+    status: 'review',
+    videoFormat: 'long_form',
+    contentPillar: 'educational',
+    duration: '11:20',
+    durationSeconds: 680,
+    brief: "O'z kompyuteringizda internetga ulanmasdan, 100% maxfiy va bepul sun'iy intellekt modellarini (Ollama, DeepSeek, Llama 3) ishga tushirish bo'yicha to'liq qo'llanma.",
+    targetAudience: 'Privacy Enthusiasts, Data Scientists, Developers',
+    script: `[00:00 - 02:00] CHAPTER 1: WHY LOCAL AI IS CRITICAL IN 2026
+"Never send your proprietary code, customer data, or personal documents to public cloud AI servers again. Today, we build a local AI powerhouse."
+
+[02:01 - 04:30] CHAPTER 2: HARDWARE & OLLAMA SETUP
+"Installing Ollama and configuring GPU VRAM quantization for maximum tokens-per-second performance."
+
+[04:31 - 07:00] CHAPTER 3: DEEPSEEK & LLAMA 3 INTEGRATION
+"Running DeepSeek R1 and Llama 3.3 locally with zero subscription fees and zero rate limits."
+
+[07:01 - 09:15] CHAPTER 4: CONNECTING TO VS CODE & APPS
+"Plugging local LLMs directly into Continue.dev and OpenWebUI for a private ChatGPT clone."
+
+[09:16 - 11:20] CHAPTER 5: BENCHMARKS & FINAL BLUEPRINT
+"Comparing local inference speeds against OpenAI cloud. Subscribe to Neural Pulse AI for the configuration dotfiles!"`,
+    scenes: [
+      { id: 'c1', title: '1. Maxfiy AI Muhimligi', time: 0, tag: '🔒 100% Maxfiylik' },
+      { id: 'c2', title: '2. Ollama & GPU Sozlash', time: 120, tag: '⚡ Ollama & VRAM' },
+      { id: 'c3', title: '3. DeepSeek & Llama O\'rnatish', time: 270, tag: '🤖 Mahalliy Modellar' },
+      { id: 'c4', title: '4. VS Code & UI Birlashtirish', time: 420, tag: '💻 IDE Integratsiyasi' },
+      { id: 'c5', title: '5. Benchmark & Obuna', time: 555, tag: '🔔 Xulosa & Obuna' }
+    ],
+    description: `Complete guide on running 100% private, uncensored, zero-cost AI models locally on your Windows/Mac PC in 2026.\n\n#localai #ollama #deepseek #privacy #opensource #neuralpulseai`,
+    tags: ['local ai', 'ollama', 'deepseek r1', 'llama 3', 'privacy', 'open source', 'masterclass'],
+    seoScore: 96,
+    scheduledAt: new Date(Date.now() + 72000000).toISOString(),
+    createdAt: new Date().toISOString(),
+    videoUrl: '/neural_pulse_16x9.mp4'
   }
 };
 
@@ -340,10 +532,15 @@ class ContentStoreService {
     }
 
     // Ensure default presets exist
+    let addedDefaults = false;
     for (const [k, v] of Object.entries(DEFAULT_PRESETS)) {
       if (!this.items.has(k)) {
         this.items.set(k, v);
+        addedDefaults = true;
       }
+    }
+    if (addedDefaults) {
+      this.persist();
     }
   }
 

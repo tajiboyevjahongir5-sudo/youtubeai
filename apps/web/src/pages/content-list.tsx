@@ -120,7 +120,7 @@ const fallbackVideos: VideoItem[] = [
 const ContentListPage = () => {
   const workspaceId = getWorkspaceId();
   const queryClient = useQueryClient();
-  const [filterTab, setFilterTab] = useState<'pipeline' | 'approval' | 'scheduled' | 'published'>('pipeline');
+  const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'approval' | 'scheduled' | 'published'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [localizingId, setLocalizingId] = useState<string | null>(null);
@@ -227,7 +227,11 @@ const ContentListPage = () => {
 
     // Merge: Avoid duplicating title if real YouTube video already has it
     pipelineVideos.forEach(pv => {
-      if (!allVideos.some(v => v.title.toLowerCase().includes(pv.title.toLowerCase().slice(0, 20)))) {
+      const isAlreadyOnYoutube = allVideos.some(v => v.id.startsWith('yt_') && (
+        v.title.toLowerCase().trim() === pv.title.toLowerCase().trim() ||
+        (pv.status === 'published' && v.title.toLowerCase().includes(pv.title.toLowerCase().slice(0, 25)))
+      ));
+      if (!isAlreadyOnYoutube && !allVideos.some(v => v.id === pv.id)) {
         allVideos.push(pv);
       }
     });
@@ -236,7 +240,7 @@ const ContentListPage = () => {
   // If list is still minimal and channel is connected, supplement with fallback items
   if (isChannelConnected && allVideos.length < fallbackVideos.length) {
     fallbackVideos.forEach(fv => {
-      if (!allVideos.some(v => v.title.toLowerCase() === fv.title.toLowerCase())) {
+      if (!allVideos.some(v => v.id === fv.id || v.title.toLowerCase() === fv.title.toLowerCase())) {
         allVideos.push(fv);
       }
     });
@@ -249,6 +253,10 @@ const ContentListPage = () => {
   const countPublished = allVideos.filter(v => v.status === 'published').length;
 
   const filteredVideos = allVideos.filter(video => {
+    if (filterTab === 'all') {
+      if (searchQuery && !video.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    }
     if (filterTab === 'pipeline' && video.status === 'published') return false;
     if (filterTab === 'approval' && video.status !== 'awaiting_approval') return false;
     if (filterTab === 'scheduled' && video.status !== 'scheduled') return false;
@@ -309,10 +317,16 @@ const ContentListPage = () => {
         {/* Tabs */}
         <div className="flex items-center p-1 rounded-xl bg-white/[0.04] border border-white/10 w-full sm:w-auto overflow-x-auto">
           <button 
+            onClick={() => setFilterTab('all')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'all' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+          >
+            Barchasi ({allVideos.length})
+          </button>
+          <button 
             onClick={() => setFilterTab('pipeline')}
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'pipeline' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Yangi Kontentlar ({countPipeline})
+            Yangi G'oyalar ({countPipeline})
           </button>
           <button 
             onClick={() => setFilterTab('approval')}
@@ -330,7 +344,7 @@ const ContentListPage = () => {
             onClick={() => setFilterTab('published')}
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filterTab === 'published' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
           >
-            Nashr etilgan ({countPublished})
+            YouTube'da Nashr Etilgan ({countPublished})
           </button>
         </div>
 
