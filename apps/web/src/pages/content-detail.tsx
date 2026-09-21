@@ -93,7 +93,7 @@ export const ContentDetailPage = () => {
 
   const [activeTab, setActiveTab] = useState('tasdiqlash');
   const [status, setStatus] = useState<FlowStatus>(
-    (contentId === 'item_1' || contentId === 'item_2' || contentId === 'item_3' || contentId === 'item_coding_agents' || contentId === 'item_illegal_websites') 
+    (contentId === 'item_1' || contentId === 'item_2' || contentId === 'item_3' || contentId === 'item_coding_agents' || contentId === 'item_illegal_websites' || contentId === 'item_prompt_secrets') 
       ? 'ready_for_review' 
       : 'awaiting_generation'
   );
@@ -1957,7 +1957,9 @@ export const ContentDetailPage = () => {
                       ? `/media/videos/item_coding_agents.mp4?v=${videoVersion}`
                       : (contentId === 'item_illegal_websites'
                           ? `/media/videos/item_illegal_websites.mp4?v=${videoVersion}`
-                          : undefined))))));
+                          : (contentId === 'item_prompt_secrets'
+                              ? `/media/videos/item_prompt_secrets.mp4?v=${videoVersion}`
+                              : undefined)))))));
 
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
@@ -2134,8 +2136,8 @@ export const ContentDetailPage = () => {
       clearTimeout(timer2);
       if (renderPollRef.current) clearInterval(renderPollRef.current);
       console.error('Video render error:', err);
-      setStatus('ready_for_review');
-      setToast("✅ Video tayyorlandi!");
+      setStatus('awaiting_generation');
+      setToast("❌ Video yaratishda xatolik yuz berdi: " + (err?.message || 'Server xatosi'));
     }
   };
 
