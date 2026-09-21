@@ -41,4 +41,18 @@ router.post('/heal', async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
+// Run live diagnostic test on an individual AI model
+router.post('/test-model/:modelId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.workspaceId || (req.params as any).id || (req.query.workspaceId as string) || 'default';
+    const modelId = req.params.modelId;
+    console.log(`🔬 [Bosh AI Direktor] "${modelId}" modelini sinash boshlandi...`);
+    const result = await aiDirectorService.testSpecificModel(modelId, workspaceId);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    console.error('AI Director model test error:', err);
+    res.status(500).json({ error: err.message || 'Model test failed' });
+  }
+});
+
 export default router;

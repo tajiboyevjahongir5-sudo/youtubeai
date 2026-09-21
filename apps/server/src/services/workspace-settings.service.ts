@@ -22,6 +22,10 @@ export interface AutoPublishSettings {
   backgroundMusicMood?: string;
   voiceEmotionPreset?: string;
   googleFlowApiKey?: string;
+  geminiApiKey?: string;
+  groqApiKey?: string;
+  deepseekApiKey?: string;
+  openrouterApiKey?: string;
   videoGenerationModel?: string;
 }
 
@@ -58,6 +62,10 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           backgroundMusicMood: parsed.backgroundMusicMood || 'neon_pulse',
           voiceEmotionPreset: parsed.voiceEmotionPreset || 'energetic',
           googleFlowApiKey: parsed.googleFlowApiKey || undefined,
+          geminiApiKey: parsed.geminiApiKey || undefined,
+          groqApiKey: parsed.groqApiKey || undefined,
+          deepseekApiKey: parsed.deepseekApiKey || undefined,
+          openrouterApiKey: parsed.openrouterApiKey || undefined,
           videoGenerationModel: parsed.videoGenerationModel || 'veo-3.1-generate-preview'
         };
       } catch (e) {}

@@ -75,8 +75,31 @@ export default function AiDirectorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isHealing, setIsHealing] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [testingModelId, setTestingModelId] = useState<string | null>(null);
+
+  const handleTestSingleModel = async (modelId: string, modelNameUz: string) => {
+    setTestingModelId(modelId);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/ai-director/test-model/${modelId}`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      const json = await res.json();
+      if (json.success && json.result) {
+        setToastMessage(`✅ ${modelNameUz} sinovdan muvaffaqiyatli o'tdi (${json.result.latencyMs} ms): ${json.result.diagnosticOutputUz}`);
+        fetchDashboardData();
+      } else {
+        setToastMessage(`⚠️ ${modelNameUz} sinovi: ${json.error || 'Kutilmagan kechikish'}`);
+      }
+    } catch (e: any) {
+      setToastMessage(`❌ ${modelNameUz} bilan bog'lanishda xatolik yuz berdi.`);
+    } finally {
+      setTestingModelId(null);
+      setTimeout(() => setToastMessage(null), 8000);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -411,6 +434,20 @@ export default function AiDirectorPage() {
                   <span className="text-slate-400 block text-[11px] font-medium">Direktor diagnostikasi:</span>
                   <span className="text-emerald-300/90 text-[11px] line-clamp-2">{model.diagnosticNoteUz}</span>
                 </div>
+              </div>
+
+              {/* Action: Interactive Live Test Button */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestSingleModel(model.id, model.nameUz)}
+                  disabled={testingModelId === model.id}
+                  className="w-full text-xs font-semibold border-slate-700 bg-slate-900 hover:bg-blue-600 hover:border-blue-500 hover:text-white text-slate-300 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Zap className={`w-3.5 h-3.5 text-amber-400 ${testingModelId === model.id ? 'animate-spin' : ''}`} />
+                  {testingModelId === model.id ? "Sinov O'tkazilmoqda..." : "Jonli Sinovdan O'tkazish"}
+                </Button>
               </div>
             </CardContent>
           </Card>
