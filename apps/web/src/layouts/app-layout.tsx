@@ -23,7 +23,8 @@ import {
   Cpu,
   CheckCircle2,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Bot
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getWorkspaceId, resetWorkspace } from '../lib/workspace';
@@ -93,6 +94,7 @@ const AppLayout = () => {
     {
       title: 'TIZIM & MONITORING',
       items: [
+        { path: '/ai-director', label: 'Bosh AI Direktor', icon: Bot, badge: 'DIREKTOR' },
         { path: '/settings', label: 'Studiya Sozlamalari', icon: Settings },
         { path: '/activity', label: 'Jonli Faollik Jurnali', icon: Activity },
       ]

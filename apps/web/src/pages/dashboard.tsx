@@ -228,6 +228,35 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* 🤖 Bosh AI Direktor Nazorat Paneli Vidjeti */}
+      <Link to="/ai-director" className="block group">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-purple-950/40 border border-blue-500/30 hover:border-blue-500/60 transition-all shadow-xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
+              <Bot size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors">
+                  Bosh AI Direktor (Chief AI Director)
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  9/9 Modellar Faol & Nazoratda
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5 line-clamp-1">
+                Barcha sun'iy intellekt modellarining ishi, video render va xavfsizlik to'liq nazorat ostida.
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-blue-400 group-hover:text-blue-300 shrink-0">
+            <span>Direktor Markaziga O'tish</span>
+            <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </div>
+      </Link>
+
       {/* ⚡ Studiya Tezkor Amallar Qatori (Studio Action Cockpit) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 animate-fade-in-up">
         <Link to="/content/new?format=shorts" className="group">

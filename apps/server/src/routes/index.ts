@@ -24,6 +24,7 @@ import seoRankRoutes from './seo-rank.routes';
 import videoRelaunchRoutes from './video-relaunch.routes';
 import smartToolsRoutes from './smart-tools.routes';
 import growthSuiteRoutes from './growth-suite.routes';
+import aiDirectorRoutes from './ai-director.routes';
 import { requireAuth, requireUser } from '../middleware/auth';
 import { requireWorkspace } from '../middleware/workspace';
 
@@ -65,10 +66,12 @@ workspaceRouter.use('/seo-rank', seoRankRoutes);
 workspaceRouter.use('/video-relaunch', videoRelaunchRoutes);
 workspaceRouter.use('/smart-tools', smartToolsRoutes);
 workspaceRouter.use('/growth-suite', growthSuiteRoutes);
+workspaceRouter.use('/ai-director', aiDirectorRoutes);
 workspaceRouter.use('/telegram', telegramRoutes);
 workspaceRouter.use('/billing', billingRoutes);
 workspaceRouter.use('/', auditRoutes); // For /audit-logs and /activity
 
+router.use('/ai-director', aiDirectorRoutes);
 router.use('/workspaces/:id', workspaceRouter);
 
 export default router;

@@ -18,6 +18,7 @@ import SettingsPage from './pages/settings';
 import ActivityPage from './pages/activity';
 import AdminPage from './pages/admin';
 import TrendSpyPage from './pages/trend-spy';
+import AiDirectorPage from './pages/ai-director';
 
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: '/integrations', element: <IntegrationsPage /> },
           { path: '/settings', element: <SettingsPage /> },
           { path: '/activity', element: <ActivityPage /> },
+          { path: '/ai-director', element: <AiDirectorPage /> },
           { path: '/admin', element: <AdminPage /> },
         ],
       },
