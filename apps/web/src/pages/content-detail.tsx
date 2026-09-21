@@ -1901,8 +1901,10 @@ export const ContentDetailPage = () => {
       fetchABTest();
       fetchSeriesData();
       handleAnalyzeSeo();
-      fetchRelaunchStatus();
-      fetchPerformanceAlerts();
+      if (itemData.status === 'published') {
+        fetchRelaunchStatus();
+        fetchPerformanceAlerts();
+      }
       fetchCommunityPosts();
       fetchCommentsList();
       fetchCustomVoices();
@@ -11627,32 +11629,41 @@ CMD ["pnpm", "start:production"]`,
                     {/* Video Info & Final Approval Action */}
                     <div className="md:col-span-7 space-y-5">
                       <div className="space-y-1.5">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
-                          2-Bosqich: Multi-Scene Shorts Tayyor (Ko'rish & Tasdiqlash)
+                        <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border inline-block ${
+                          activeVideoSrc 
+                            ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
+                            : 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+                        }`}>
+                          {activeVideoSrc 
+                            ? (isLong ? "2-Bosqich: 16:9 Masterclass Tayyor (Ko'rish & Tasdiqlash)" : "2-Bosqich: Multi-Scene Shorts Tayyor (Ko'rish & Tasdiqlash)")
+                            : "2-Bosqich: Ssenariy & Sozlamalar (Generatsiyaga Tayyor)"}
                         </span>
                         <h3 className="text-2xl font-black text-white">{videoTitle}</h3>
                         <p className="text-xs text-gray-300 leading-relaxed">
-                          AI ushbu video uchun {scenes.length} ta alohida sahnani ketma-ket montaj qildi: {scenes.map((s: any) => s.tag || s.title).join(', ')}. 
-                          Microsoft Azure Neural Studio ovozi va ritmik fon musiqasi to'liq sinxronlandi.
+                          {activeVideoSrc 
+                            ? `AI ushbu video uchun ${scenes.length} ta alohida sahnani ketma-ket montaj qildi: ${scenes.map((s: any) => s.tag || s.title).join(', ')}. Microsoft Azure Neural Studio ovozi va ritmik fon musiqasi to'liq sinxronlandi.`
+                            : `Ushbu mavzu uchun ${scenes.length} ta sahna ssenariysi tuzilgan. "Mavzuga Mos Video Generatsiya Qilish" tugmasi orqali Azure Neural diktor ovozi, dinamik kadrlar va kinetik subtitrlar bilan video yaratishingiz mumkin.`}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                          <span className="text-gray-400 block">Format & AI Video Footage</span>
-                          <span className="font-bold text-white">1080x1920 • Hailuo AI & 2K B-Roll</span>
+                          <span className="text-gray-400 block">Format</span>
+                          <span className="font-bold text-white">{isLong ? '16:9 Gorizontal (1920x1080)' : '9:16 Vertikal (1080x1920)'}</span>
                         </div>
                         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                          <span className="text-gray-400 block">Davomiyligi & Bitrate</span>
-                          <span className="font-bold text-white">45.4s • 3.5 Mbps Ultra-HD</span>
+                          <span className="text-gray-400 block">Davomiyligi</span>
+                          <span className="font-bold text-white">{duration ? `${Math.round(duration)} soniya` : (itemData?.duration || '55 soniya')}</span>
                         </div>
                         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
                           <span className="text-gray-400 block">Audio & Ovoz Dizayni</span>
-                          <span className="font-bold text-emerald-400">Azure Neural + 5 ta Sinematik SFX</span>
+                          <span className="font-bold text-emerald-400">Azure Neural Christopher + SFX</span>
                         </div>
                         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                          <span className="text-gray-400 block">Fayl hajmi & Master</span>
-                          <span className="font-bold text-white">20.0 MB (High Profile H.264)</span>
+                          <span className="text-gray-400 block">Holati</span>
+                          <span className={`font-bold ${activeVideoSrc ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {activeVideoSrc ? "Video Tayyor (Full HD H.264)" : "Generatsiya Kutilmoqda"}
+                          </span>
                         </div>
                       </div>
 
@@ -11674,7 +11685,7 @@ CMD ["pnpm", "start:production"]`,
                       </div>
 
                       {/* Post-Publish Performance Alerts Card (System 5) */}
-                      {performanceAlerts && (
+                      {itemData?.status === 'published' && performanceAlerts && (
                         <div className="p-4 rounded-2xl bg-gradient-to-br from-[#12162a] via-[#101c2e] to-[#0c1424] border border-blue-500/30 space-y-3.5 shadow-xl">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
                             <div className="flex items-center gap-2.5">
@@ -11749,99 +11760,101 @@ CMD ["pnpm", "start:production"]`,
                       )}
 
                       {/* Viral Relaunch Engine Card */}
-                      <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1a111a] via-[#161224] to-[#12182b] border border-rose-500/30 space-y-3.5 shadow-xl">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
-                          <div className="flex items-center gap-2.5">
-                            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                              <Flame size={18} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-bold text-white">Viral Relaunch Engine</h4>
-                                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                                  relaunchStatus?.velocityRating === 'viral'
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                                    : relaunchStatus?.velocityRating === 'normal'
-                                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                                }`}>
-                                  {relaunchStatus?.velocityRating === 'viral' ? '🔥 Trendda' :
-                                   relaunchStatus?.velocityRating === 'normal' ? '✅ Barqaror' :
-                                   relaunchStatus?.velocityRating === 'underperforming' ? '⚠️ Sekinlashgan' : '🚨 Qayta Tiriltirish Kerak'}
-                                </span>
+                      {itemData?.status === 'published' && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1a111a] via-[#161224] to-[#12182b] border border-rose-500/30 space-y-3.5 shadow-xl">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                <Flame size={18} />
                               </div>
-                              <p className="text-[11px] text-gray-400">
-                                24 soat ichida algoritmdan qolib ketgan videolarni yangi sarlavha va muqova bilan ikkinchi to'lqinga olib chiqish
-                              </p>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-white">Viral Relaunch Engine</h4>
+                                  <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                                    relaunchStatus?.velocityRating === 'viral'
+                                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                      : relaunchStatus?.velocityRating === 'normal'
+                                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                                      : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                                  }`}>
+                                    {relaunchStatus?.velocityRating === 'viral' ? '🔥 Trendda' :
+                                     relaunchStatus?.velocityRating === 'normal' ? '✅ Barqaror' :
+                                     relaunchStatus?.velocityRating === 'underperforming' ? '⚠️ Sekinlashgan' : '🚨 Qayta Tiriltirish Kerak'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400">
+                                  24 soat ichida algoritmdan qolib ketgan videolarni yangi sarlavha va muqova bilan ikkinchi to'lqinga olib chiqish
+                                </p>
+                              </div>
                             </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={isTriggeringRelaunch}
+                              onClick={handleTriggerRelaunch}
+                              className="text-xs flex items-center gap-1.5 border-rose-500/40 hover:bg-rose-500/10 text-rose-300 cursor-pointer"
+                            >
+                              <Sparkles size={14} className={isTriggeringRelaunch ? 'animate-spin' : ''} />
+                              {isTriggeringRelaunch ? 'Qayta tiriltirilmoqda...' : '⚡ Relaunch Paketini Yaratish'}
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={isTriggeringRelaunch}
-                            onClick={handleTriggerRelaunch}
-                            className="text-xs flex items-center gap-1.5 border-rose-500/40 hover:bg-rose-500/10 text-rose-300 cursor-pointer"
-                          >
-                            <Sparkles size={14} className={isTriggeringRelaunch ? 'animate-spin' : ''} />
-                            {isTriggeringRelaunch ? 'Qayta tiriltirilmoqda...' : '⚡ Relaunch Paketini Yaratish'}
-                          </Button>
-                        </div>
 
-                        {relaunchStatus && (
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                              <span className="text-[10px] text-gray-400 block">Ko'rishlar</span>
-                              <span className="font-bold text-white text-sm">{relaunchStatus.currentViews || 140}</span>
+                          {relaunchStatus && (
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                <span className="text-[10px] text-gray-400 block">Ko'rishlar</span>
+                                <span className="font-bold text-white text-sm">{relaunchStatus.currentViews || 140}</span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                <span className="text-[10px] text-gray-400 block">Joriy CTR</span>
+                                <span className="font-bold text-amber-400 text-sm">{relaunchStatus.currentCtr || 3.8}%</span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                <span className="text-[10px] text-gray-400 block">Yuklangandan beri</span>
+                                <span className="font-bold text-cyan-400 text-sm">{relaunchStatus.hoursSincePublished || 36} soat</span>
+                              </div>
                             </div>
-                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                              <span className="text-[10px] text-gray-400 block">Joriy CTR</span>
-                              <span className="font-bold text-amber-400 text-sm">{relaunchStatus.currentCtr || 3.8}%</span>
-                            </div>
-                            <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                              <span className="text-[10px] text-gray-400 block">Yuklangandan beri</span>
-                              <span className="font-bold text-cyan-400 text-sm">{relaunchStatus.hoursSincePublished || 36} soat</span>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {relaunchStatus?.diagnosis && (
-                          <p className="text-xs text-gray-300 italic bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                            🩺 <strong>Diagnostika:</strong> {relaunchStatus.diagnosis}
-                          </p>
-                        )}
-
-                        {relaunchPack && (
-                          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 space-y-2.5 animate-fade-in">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-                                <Sparkles size={13} /> Yangi Algoritmik Sarlavha (+{relaunchPack.predictedCTRBoost || '85%'} CTR):
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={handleApplyRelaunchPack}
-                                className="text-[11px] h-7 px-3 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 cursor-pointer"
-                              >
-                                1-Bosishda Qo'llash
-                              </Button>
-                            </div>
-                            <p className="text-xs font-bold text-white bg-black/40 p-2.5 rounded-lg border border-white/10 font-mono">
-                              {relaunchPack.newTitle}
+                          {relaunchStatus?.diagnosis && (
+                            <p className="text-xs text-gray-300 italic bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                              🩺 <strong>Diagnostika:</strong> {relaunchStatus.diagnosis}
                             </p>
-                            <div className="grid sm:grid-cols-2 gap-2 text-[11px] pt-1">
-                              <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                                <span className="text-gray-400 font-semibold block">🖼️ Muqova Strategiyasi:</span>
-                                <span className="text-gray-200">{relaunchPack.newThumbnailConcept || 'Yuqori kontrastli neon matn'}</span>
+                          )}
+
+                          {relaunchPack && (
+                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 space-y-2.5 animate-fade-in">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                                  <Sparkles size={13} /> Yangi Algoritmik Sarlavha (+{relaunchPack.predictedCTRBoost || '85%'} CTR):
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={handleApplyRelaunchPack}
+                                  className="text-[11px] h-7 px-3 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 cursor-pointer"
+                                >
+                                  1-Bosishda Qo'llash
+                                </Button>
                               </div>
-                              <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                                <span className="text-gray-400 font-semibold block">💬 Munozarali Qadalgan Izoh:</span>
-                                <span className="text-gray-200 truncate block">{relaunchPack.newPinnedComment || 'Munozaraga undovchi savol'}</span>
+                              <p className="text-xs font-bold text-white bg-black/40 p-2.5 rounded-lg border border-white/10 font-mono">
+                                {relaunchPack.newTitle}
+                              </p>
+                              <div className="grid sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                                  <span className="text-gray-400 font-semibold block">🖼️ Muqova Strategiyasi:</span>
+                                  <span className="text-gray-200">{relaunchPack.newThumbnailConcept || 'Yuqori kontrastli neon matn'}</span>
+                                </div>
+                                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                                  <span className="text-gray-400 font-semibold block">💬 Munozarali Qadalgan Izoh:</span>
+                                  <span className="text-gray-200 truncate block">{relaunchPack.newPinnedComment || 'Munozaraga undovchi savol'}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Scheduling Controls */}
                       {renderSchedulingControls()}
