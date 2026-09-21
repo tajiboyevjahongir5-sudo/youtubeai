@@ -484,24 +484,64 @@ def apply_ken_burns(img_bgr: np.ndarray, progress: float, motion_type: int) -> n
         crop = cv2.resize(crop, (target_w, target_h))
     return crop
 
-def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list, high_cpm_keywords: list, save_dirs: list) -> dict:
-    palettes = [
-        ('cyber_amber', (255, 185, 40), (190, 60, 255), (16, 12, 26), (6, 8, 14), (0, 240, 255)),
-        ('quantum_cyan', (0, 235, 255), (40, 120, 255), (8, 16, 32), (4, 8, 16), (255, 200, 40)),
-        ('matrix_emerald', (0, 255, 140), (0, 210, 240), (6, 24, 16), (3, 10, 8), (255, 180, 50)),
-        ('crimson_alert', (255, 60, 80), (255, 160, 40), (26, 10, 14), (10, 6, 8), (0, 240, 220)),
-        ('ultraviolet', (240, 80, 255), (90, 140, 255), (24, 10, 34), (10, 6, 18), (0, 255, 200))
-    ]
-    seed_val = 0
-    for ch in f"{item_id}_{title}":
-        seed_val = (seed_val * 31 + ord(ch)) & 0xFFFFFFFF
+def classify_topic_category(item_id: str, title: str, tags: list = None, keywords: list = None, script: str = "") -> str:
+    tags_str = ' '.join(tags) if isinstance(tags, list) else ''
+    kw_str = ' '.join(str(k) for k in keywords) if isinstance(keywords, list) else ''
+    text = f"{item_id} {title} {tags_str} {kw_str} {script[:500]}".lower()
+    if any(k in text for k in ['prompt', 'dev', 'developer', 'code', 'coding', 'typescript', 'python', 'github', 'git', 'fullstack', 'css', 'tailwind', 'vitest', 'drizzle', 'senior architect', 'junior']):
+        return 'coding_prompts'
+    elif any(k in text for k in ['vs', 'deepseek', 'gemini', 'o3', 'gpt', 'claude', 'benchmark', 'model', 'reasoning', 'r1', 'llm', 'smarter', 'ai battle', 'duel']):
+        return 'model_duel'
+    elif any(k in text for k in ['illegal', 'website', 'dark', 'secret site', 'free tools', 'web', 'browser', 'extensions', 'tools', 'hacker']):
+        return 'secret_tools'
+    elif any(k in text for k in ['agent', 'crewai', 'autogen', 'swarm', 'autonomous', 'workflow', 'bot', 'multi-agent']):
+        return 'agent_swarm'
+    return 'tech_breakthrough'
+
+def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list, high_cpm_keywords: list, save_dirs: list, script: str = "", tags: list = None) -> dict:
+    topic_cat = classify_topic_category(item_id, title, tags, high_cpm_keywords, script)
     
-    pal = palettes[seed_val % len(palettes)]
-    primary = pal[1]
-    secondary = pal[2]
-    bg_top = pal[3]
-    bg_bot = pal[4]
-    accent = pal[5]
+    # Category-tailored color palettes & identity
+    if topic_cat == 'coding_prompts':
+        pal_name = 'matrix_emerald'
+        primary = (0, 255, 140)
+        secondary = (0, 220, 255)
+        bg_top = (6, 20, 24)
+        bg_bot = (3, 10, 14)
+        accent = (255, 200, 50)
+        badge_prefix = "[ 2026 DEVELOPER BLUEPRINT ]"
+    elif topic_cat == 'model_duel':
+        pal_name = 'crimson_alert'
+        primary = (255, 50, 75)
+        secondary = (0, 240, 255)
+        bg_top = (24, 10, 16)
+        bg_bot = (10, 5, 8)
+        accent = (255, 185, 40)
+        badge_prefix = "[ 2026 AI BENCHMARK DUEL ]"
+    elif topic_cat == 'secret_tools':
+        pal_name = 'cyber_amber'
+        primary = (255, 185, 40)
+        secondary = (190, 60, 255)
+        bg_top = (18, 12, 28)
+        bg_bot = (8, 6, 14)
+        accent = (0, 255, 200)
+        badge_prefix = "[ RESTRICTED SITES ARCHIVE ]"
+    elif topic_cat == 'agent_swarm':
+        pal_name = 'ultraviolet'
+        primary = (220, 70, 255)
+        secondary = (0, 230, 255)
+        bg_top = (20, 10, 32)
+        bg_bot = (8, 5, 16)
+        accent = (0, 255, 160)
+        badge_prefix = "[ AUTONOMOUS AGENT PROTOCOL ]"
+    else:
+        pal_name = 'quantum_cyan'
+        primary = (0, 235, 255)
+        secondary = (40, 130, 255)
+        bg_top = (8, 16, 32)
+        bg_bot = (4, 8, 16)
+        accent = (255, 200, 40)
+        badge_prefix = "! 2026 EXCLUSIVE AI REPORT !"
 
     font_hero = get_font(52, bold=True)
     font_sub = get_font(28, bold=False)
@@ -510,7 +550,6 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
     font_badge = get_font(22, bold=True)
 
     scenes_res = {}
-
     is_landscape = (W > H)
 
     for s_idx in range(1, 6):
@@ -538,114 +577,154 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
         draw = ImageDraw.Draw(img_pil, 'RGBA')
 
         if s_idx == 1:
-            cx, cy = (int(W * 0.28), int(H * 0.48)) if is_landscape else (W // 2, 600)
-            for radius in ([200, 160, 120] if is_landscape else [260, 220, 180, 140]):
-                draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], outline=(*primary, 80), width=2)
-            draw.ellipse([cx - 80, cy - 80, cx + 80, cy + 80], fill=(*bg_top, 220), outline=(*accent, 220), width=3)
-            
-            line_ext = 220 if is_landscape else 300
-            draw.line([(cx - line_ext, cy), (cx + line_ext, cy)], fill=(*primary, 90), width=2)
-            draw.line([(cx, cy - line_ext), (cx, cy + line_ext)], fill=(*primary, 90), width=2)
-
-            draw.rounded_rectangle([cx - 200, cy - 30, cx + 200, cy + 30], radius=16, fill=(10, 12, 20, 230), outline=(*primary, 240), width=2)
-            draw.text((cx - 150, cy - 12), "! RESTRICTED INTEL 2026 !", font=font_badge, fill=(*primary, 255))
-
-            card_box = [int(W * 0.52), int(H * 0.18), int(W * 0.94), int(H * 0.82)] if is_landscape else [70, 920, W - 70, 1220]
-            draw.rounded_rectangle(card_box, radius=24, fill=(12, 16, 26, 230), outline=(*primary, 160), width=2)
-            tag_box = [card_box[0] + 25, card_box[1] + 25, card_box[0] + 240, card_box[1] + 68]
-            draw.rounded_rectangle(tag_box, radius=12, fill=(*primary, 40), outline=(*primary, 200), width=1)
-            draw.text((tag_box[0] + 20, tag_box[1] + 10), "TARGET TOPIC", font=font_badge, fill=(*primary, 255))
-            
-            clean_t = sanitize_text(title).upper()
-            w_words = clean_t.split()
-            lines = []
-            cur_line = ""
-            max_line_w = card_box[2] - card_box[0] - 50
-            for word in w_words:
-                test = f"{cur_line} {word}".strip()
-                if get_text_width(draw, test, font_title) < max_line_w:
-                    cur_line = test
+            # === SCENE 1: TOPIC HOOK CARD ===
+            if is_landscape:
+                cx, cy = int(W * 0.28), int(H * 0.48)
+                draw.rounded_rectangle([60, int(H * 0.18), int(W * 0.48), int(H * 0.82)], radius=24, fill=(10, 16, 26, 235), outline=(*primary, 180), width=2)
+                draw.text((90, int(H * 0.22)), badge_prefix, font=font_badge, fill=(*accent, 255))
+                draw.text((90, int(H * 0.30)), "PRODUCTION SYSTEM PROMPT", font=font_title, fill=(255, 255, 255))
+                draw.text((90, int(H * 0.40)), "> /act-as: Principal Engineer L7", font=font_mono, fill=(*primary, 240))
+                draw.text((90, int(H * 0.48)), "> /critique: Concurrency & memory leaks", font=font_mono, fill=(*secondary, 240))
+                draw.text((90, int(H * 0.56)), "> /reverse: 5 questions before code", font=font_mono, fill=(*accent, 240))
+                
+                card_box = [int(W * 0.52), int(H * 0.18), int(W * 0.94), int(H * 0.82)]
+                draw.rounded_rectangle(card_box, radius=24, fill=(12, 16, 26, 230), outline=(*secondary, 160), width=2)
+                draw.text((card_box[0] + 30, card_box[1] + 30), "VERIFIED BLUEPRINT", font=font_badge, fill=(*primary, 255))
+                clean_t = sanitize_text(title).upper()
+                draw.text((card_box[0] + 30, card_box[1] + 90), clean_t[:36], font=font_title, fill=(255, 255, 255))
+            else:
+                if topic_cat == 'coding_prompts':
+                    draw.rounded_rectangle([70, 360, W - 70, 780], radius=24, fill=(10, 18, 26, 240), outline=(*primary, 180), width=2)
+                    draw.rounded_rectangle([70, 360, W - 70, 420], radius=24, fill=(16, 26, 36, 240))
+                    draw.ellipse([95, 382, 115, 402], fill=(255, 75, 75))
+                    draw.ellipse([125, 382, 145, 402], fill=(255, 200, 50))
+                    draw.ellipse([155, 382, 175, 402], fill=(50, 220, 100))
+                    draw.text((200, 382), "prompt://principal-engineer/v2026", font=font_mono, fill=(120, 200, 160))
+                    
+                    draw.text((100, 440), badge_prefix, font=font_badge, fill=(*accent, 255))
+                    draw.text((100, 485), '> SYSTEM: "Act as Google Principal Engineer"', font=font_mono, fill=(255, 255, 255))
+                    draw.text((100, 535), '  "Critique TypeScript for edge-case memory leaks"', font=font_mono, fill=(*secondary, 240))
+                    draw.text((100, 595), '> REVERSE: "Ask 5 clarifying questions first"', font=font_mono, fill=(*primary, 255))
+                    draw.text((100, 645), '  "Before writing a single line of production code"', font=font_mono, fill=(200, 210, 230))
+                    
+                    pills = ["[ TypeScript 5.8 ]", "[ Vitest 100% ]", "[ Zero-Runtime ]"]
+                    for pi, p_txt in enumerate(pills):
+                        px = 100 + pi * 270
+                        draw.rounded_rectangle([px, 710, px + 250, 755], radius=12, fill=(*primary, 30), outline=(*primary, 140), width=1)
+                        draw.text((px + 18, 722), p_txt, font=font_badge, fill=(*primary, 255))
+                elif topic_cat == 'model_duel':
+                    draw.rounded_rectangle([70, 360, W - 70, 780], radius=24, fill=(18, 12, 22, 240), outline=(*primary, 180), width=2)
+                    draw.text((100, 390), badge_prefix, font=font_badge, fill=(*accent, 255))
+                    draw.rounded_rectangle([95, 440, W // 2 - 20, 680], radius=18, fill=(30, 12, 20, 230), outline=(*primary, 180), width=2)
+                    draw.text((115, 465), "DEEPSEEK R1", font=font_title, fill=(255, 255, 255))
+                    draw.text((115, 520), "Reasoning: 99.4%", font=font_sub, fill=(*primary, 255))
+                    draw.text((115, 570), "Open Source Local", font=font_mono, fill=(200, 200, 200))
+                    draw.text((115, 620), "$0.14 / 1M Tokens", font=font_mono, fill=(50, 255, 120))
+                    
+                    draw.rounded_rectangle([W // 2 + 20, 440, W - 95, 680], radius=18, fill=(10, 22, 35, 230), outline=(*secondary, 180), width=2)
+                    draw.text((W // 2 + 40, 465), "OPENAI o3", font=font_title, fill=(255, 255, 255))
+                    draw.text((W // 2 + 40, 520), "Logic: 99.7%", font=font_sub, fill=(*secondary, 255))
+                    draw.text((W // 2 + 40, 570), "Cloud Proprietary", font=font_mono, fill=(200, 200, 200))
+                    draw.text((W // 2 + 40, 620), "$200 / Month", font=font_mono, fill=(255, 80, 80))
+                    
+                    draw.ellipse([W // 2 - 35, 535, W // 2 + 35, 605], fill=(12, 10, 20, 255), outline=(255, 220, 50), width=3)
+                    draw.text((W // 2 - 18, 555), "VS", font=font_title, fill=(255, 220, 50))
                 else:
-                    if cur_line: lines.append(cur_line)
-                    cur_line = word
-            if cur_line: lines.append(cur_line)
-            lines = lines[:4 if is_landscape else 3]
-            for li, line_str in enumerate(lines):
-                draw.text((card_box[0] + 25, card_box[1] + 90 + li * 48), line_str, font=font_title, fill=(255, 255, 255))
+                    cx, cy = W // 2, 570
+                    for radius in [240, 190, 140]:
+                        draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], outline=(*primary, 80), width=2)
+                    draw.ellipse([cx - 70, cy - 70, cx + 70, cy + 70], fill=(*bg_top, 220), outline=(*accent, 220), width=3)
+                    draw.line([(cx - 260, cy), (cx + 260, cy)], fill=(*primary, 90), width=2)
+                    draw.line([(cx, cy - 260), (cx, cy + 260)], fill=(*primary, 90), width=2)
+                    draw.rounded_rectangle([cx - 180, cy - 25, cx + 180, cy + 25], radius=14, fill=(10, 12, 20, 230), outline=(*primary, 240), width=2)
+                    draw.text((cx - 140, cy - 10), badge_prefix, font=font_badge, fill=(*primary, 255))
+
+                card_box = [70, 830, W - 70, 1160]
+                draw.rounded_rectangle(card_box, radius=24, fill=(12, 16, 26, 235), outline=(*primary, 160), width=2)
+                tag_box = [card_box[0] + 25, card_box[1] + 25, card_box[0] + 260, card_box[1] + 68]
+                draw.rounded_rectangle(tag_box, radius=12, fill=(*primary, 40), outline=(*primary, 200), width=1)
+                draw.text((tag_box[0] + 20, tag_box[1] + 10), "TARGET TOPIC", font=font_badge, fill=(*primary, 255))
+                
+                clean_t = sanitize_text(title).upper()
+                w_words = clean_t.split()
+                lines = []
+                cur_line = ""
+                max_line_w = card_box[2] - card_box[0] - 50
+                for word in w_words:
+                    test = f"{cur_line} {word}".strip()
+                    if get_text_width(draw, test, font_title) < max_line_w:
+                        cur_line = test
+                    else:
+                        if cur_line: lines.append(cur_line)
+                        cur_line = word
+                if cur_line: lines.append(cur_line)
+                lines = lines[:3]
+                for li, line_str in enumerate(lines):
+                    draw.text((card_box[0] + 25, card_box[1] + 90 + li * 48), line_str, font=font_title, fill=(255, 255, 255))
 
         elif s_idx == 2:
-            if is_landscape:
-                cx, cy = int(W * 0.26), int(H * 0.48)
-                draw.rounded_rectangle([60, int(H * 0.16), int(W * 0.48), int(H * 0.84)], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
-                draw.text((90, int(H * 0.20)), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
-                for r in [130, 95, 60]:
-                    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
-                draw.line([(cx - 160, cy), (cx + 160, cy)], fill=(*secondary, 100), width=1)
-                draw.line([(cx, cy - 160), (cx, cy + 160)], fill=(*secondary, 100), width=1)
-                draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
+            # === SCENE 2: CORE BREAKDOWN & METRIC CARDS ===
+            sc2_title = sanitize_text(scenes_data[1].get('title', 'PILLAR 1: ARCHITECTURE') if len(scenes_data) > 1 else 'PILLAR 1: ARCHITECTURE').upper()[:34]
+            draw.rounded_rectangle([70, 240, W - 70, 360], radius=24, fill=(12, 16, 28, 235), outline=(*secondary, 180), width=2)
+            draw.text((105, 265), "DEEP ANALYSIS & STRATEGY", font=font_badge, fill=(*accent, 255))
+            draw.text((105, 305), sc2_title, font=font_title, fill=(255, 255, 255))
 
-                kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
-                kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
-                draw.rounded_rectangle([int(W * 0.52), int(H * 0.16), int(W * 0.94), int(H * 0.48)], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
-                draw.text((int(W * 0.52) + 35, int(H * 0.20)), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
-                draw.text((int(W * 0.52) + 35, int(H * 0.28)), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
-                draw.text((int(W * 0.94) - 180, int(H * 0.24)), "99.4%", font=font_hero, fill=(*primary, 255))
-
-                draw.rounded_rectangle([int(W * 0.52), int(H * 0.52), int(W * 0.94), int(H * 0.84)], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
-                draw.text((int(W * 0.52) + 35, int(H * 0.56)), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
-                draw.text((int(W * 0.52) + 35, int(H * 0.64)), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
-                draw.text((int(W * 0.94) - 180, int(H * 0.60)), "100%", font=font_hero, fill=(*secondary, 255))
+            if topic_cat == 'coding_prompts':
+                card1_title = "PROMPT 1: SENIOR ARCHITECT"
+                card1_sub = "Full TypeScript edge-case & memory leak audit"
+                card1_metric = "10x Speed"
+                card2_title = "PROMPT 2: REVERSE PROMPT"
+                card2_sub = "5 Clarifying questions before writing single line"
+                card2_metric = "100% Precision"
+            elif topic_cat == 'model_duel':
+                card1_title = "ROUND 1: LEETCODE HARD"
+                card1_sub = "Recursive DP chain-of-thought optimization"
+                card1_metric = "18s Solver"
+                card2_title = "ROUND 2: COST PER TOKEN"
+                card2_sub = "Open source local inference vs cloud pricing"
+                card2_metric = "95% Savings"
             else:
-                draw.rounded_rectangle([70, 260, W - 70, 580], radius=24, fill=(12, 16, 28, 230), outline=(*secondary, 180), width=2)
-                draw.text((105, 290), "DEEP ANALYSIS & RADAR", font=font_title, fill=(*accent, 255))
-                cx, cy = W // 2, 440
-                for r in [110, 80, 50]:
-                    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*secondary, 120), width=2)
-                draw.line([(cx - 130, cy), (cx + 130, cy)], fill=(*secondary, 100), width=1)
-                draw.line([(cx, cy - 130), (cx, cy + 130)], fill=(*secondary, 100), width=1)
-                draw.text((cx - 70, cy - 10), "ACTIVE SCAN", font=font_mono, fill=(*primary, 220))
+                card1_title = sanitize_text(str(high_cpm_keywords[0])).upper()[:24] if len(high_cpm_keywords) > 0 else "AUTONOMOUS PIPELINE"
+                card1_sub = "Performance: 10x Efficiency Multiplier"
+                card1_metric = "99.4%"
+                card2_title = sanitize_text(str(high_cpm_keywords[1])).upper()[:24] if len(high_cpm_keywords) > 1 else "ZERO LATENCY CLUSTER"
+                card2_sub = "Verification: Production Ready Systems"
+                card2_metric = "100%"
 
-                kw1 = high_cpm_keywords[0] if len(high_cpm_keywords) > 0 else "Autonomous Engine"
-                kw2 = high_cpm_keywords[1] if len(high_cpm_keywords) > 1 else "Zero Latency"
-                draw.rounded_rectangle([70, 630, W - 70, 800], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 150), width=2)
-                draw.text((105, 655), sanitize_text(str(kw1)).upper()[:24], font=font_title, fill=(255, 255, 255))
-                draw.text((105, 715), "Performance: 10x Efficiency Multiplier", font=font_sub, fill=(*accent, 230))
-                draw.text((W - 240, 680), "99.4%", font=font_hero, fill=(*primary, 255))
+            draw.rounded_rectangle([70, 420, W - 70, 620], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 160), width=2)
+            draw.text((105, 450), card1_title, font=font_title, fill=(255, 255, 255))
+            draw.text((105, 510), card1_sub, font=font_sub, fill=(*accent, 230))
+            draw.text((W - 270, 540), card1_metric, font=font_hero, fill=(*primary, 255))
 
-                draw.rounded_rectangle([70, 840, W - 70, 1010], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 150), width=2)
-                draw.text((105, 865), sanitize_text(str(kw2)).upper()[:24], font=font_title, fill=(255, 255, 255))
-                draw.text((105, 925), "Verification: Production Ready Cluster", font=font_sub, fill=(*accent, 230))
-                draw.text((W - 240, 890), "100%", font=font_hero, fill=(*secondary, 255))
+            draw.rounded_rectangle([70, 660, W - 70, 860], radius=20, fill=(10, 18, 30, 235), outline=(*secondary, 160), width=2)
+            draw.text((105, 690), card2_title, font=font_title, fill=(255, 255, 255))
+            draw.text((105, 750), card2_sub, font=font_sub, fill=(*accent, 230))
+            draw.text((W - 270, 780), card2_metric, font=font_hero, fill=(*secondary, 255))
 
         elif s_idx == 3:
-            card_box = [60, int(H * 0.16), W - 60, int(H * 0.84)] if is_landscape else [70, 260, W - 70, 1100]
-            draw.rounded_rectangle(card_box, radius=26, fill=(10, 14, 24, 235), outline=(*primary, 160), width=2)
-            draw.text((card_box[0] + 35, card_box[1] + 30), "NEURAL REASONING ARCHITECTURE", font=font_title, fill=(*primary, 255))
-            draw.text((card_box[0] + 35, card_box[1] + 80), "Real-time Multi-agent Cognitive Core", font=font_sub, fill=(180, 200, 220))
+            # === SCENE 3: TEST RUNNER / BENCHMARK / DEEP TECHNIQUE ===
+            sc3_title = sanitize_text(scenes_data[2].get('title', 'PILLAR 2: DEEP TECHNIQUE') if len(scenes_data) > 2 else 'PILLAR 2: DEEP TECHNIQUE').upper()[:34]
+            card_box = [70, 240, W - 70, 1100]
+            draw.rounded_rectangle(card_box, radius=26, fill=(10, 14, 24, 240), outline=(*primary, 160), width=2)
+            draw.text((card_box[0] + 35, card_box[1] + 30), sc3_title, font=font_title, fill=(*primary, 255))
+            draw.text((card_box[0] + 35, card_box[1] + 80), "Production Verification & Coverage Audit", font=font_sub, fill=(180, 200, 220))
 
-            if is_landscape:
-                nodes = [
-                    (180, 420), (180, 580), (180, 740),
-                    (540, 360), (540, 500), (540, 640), (540, 780),
-                    (960, 380), (960, 540), (960, 700),
-                    (1380, 420), (1380, 600), (1380, 760),
-                    (1740, 520), (1740, 680)
+            if topic_cat == 'coding_prompts':
+                draw.rounded_rectangle([card_box[0] + 35, card_box[1] + 130, card_box[2] - 35, card_box[1] + 180], radius=12, fill=(18, 26, 38, 240))
+                draw.text((card_box[0] + 55, card_box[1] + 145), "vitest://test-runner/boundary-mutation", font=font_mono, fill=(120, 210, 160))
+                
+                test_items = [
+                    ("PASS src/memory-leak.spec.ts (18 tests)", (50, 255, 120)),
+                    ("PASS src/architecture-audit.spec.ts (24 tests)", (50, 255, 120)),
+                    ("PASS src/boundary-mutations.spec.ts (36 tests)", (50, 255, 120)),
+                    ("--------------------------------------------------", (100, 120, 140)),
+                    ("Statements: 100% | Branches: 98.6% | Funcs: 100%", (*accent, 255)),
+                    ("[OK] Zero Memory Leaks in V8 Heap Profiler", (50, 255, 120)),
+                    ("[OK] Boundary Mutation Coverage: 100% Passed", (50, 255, 120)),
+                    (">>> SAVE THIS VIDEO TO KEEP EXACT PROMPT SYNTAX <<<", (*secondary, 255))
                 ]
-                for n1 in nodes[:3]:
-                    for n2 in nodes[3:7]:
-                        draw.line([n1, n2], fill=(*secondary, 50), width=2)
-                for n1 in nodes[3:7]:
-                    for n2 in nodes[7:10]:
-                        draw.line([n1, n2], fill=(*primary, 50), width=2)
-                for n1 in nodes[7:10]:
-                    for n2 in nodes[10:13]:
-                        draw.line([n1, n2], fill=(*accent, 50), width=2)
-                for n1 in nodes[10:13]:
-                    for n2 in nodes[13:]:
-                        draw.line([n1, n2], fill=(*primary, 60), width=2)
-                for (nx, ny) in nodes:
-                    draw.ellipse([nx - 22, ny - 22, nx + 22, ny + 22], fill=(*bg_top, 240), outline=(*accent, 230), width=3)
-                    draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
+                for ti, (t_txt, t_col) in enumerate(test_items):
+                    draw.text((card_box[0] + 55, card_box[1] + 210 + ti * 68), t_txt, font=font_mono, fill=t_col)
             else:
                 nodes = [
                     (200, 480), (200, 620), (200, 760), (200, 900),
@@ -663,43 +742,88 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
                     draw.ellipse([nx - 8, ny - 8, nx + 8, ny + 8], fill=(*primary, 255))
 
         elif s_idx == 4:
-            card_box = [60, int(H * 0.16), W - 60, int(H * 0.84)] if is_landscape else [70, 260, W - 70, 1140]
+            # === SCENE 4: PRODUCTION CLUSTER / PIPELINE EXECUTION ===
+            sc4_title = sanitize_text(scenes_data[3].get('title', 'PILLAR 3: PRODUCTION DEPLOY') if len(scenes_data) > 3 else 'PILLAR 3: PRODUCTION DEPLOY').upper()[:34]
+            card_box = [70, 240, W - 70, 1140]
             draw.rounded_rectangle(card_box, radius=24, fill=(6, 12, 10, 245), outline=(*accent, 160), width=2)
             draw.ellipse([card_box[0] + 35, card_box[1] + 30, card_box[0] + 55, card_box[1] + 50], fill=(255, 70, 70))
             draw.ellipse([card_box[0] + 70, card_box[1] + 30, card_box[0] + 90, card_box[1] + 50], fill=(255, 200, 50))
             draw.ellipse([card_box[0] + 105, card_box[1] + 30, card_box[0] + 125, card_box[1] + 50], fill=(50, 220, 100))
-            draw.text((card_box[0] + 150, card_box[1] + 28), "terminal://neuralpulse/benchmark", font=font_mono, fill=(120, 180, 140))
+            draw.text((card_box[0] + 150, card_box[1] + 28), f"terminal://neuralpulse/{topic_cat}", font=font_mono, fill=(120, 180, 140))
             draw.line([(card_box[0], card_box[1] + 65), (card_box[2], card_box[1] + 65)], fill=(*accent, 80), width=1)
 
-            t_lines = [
-                (f"$ run-engine --topic \"{sanitize_text(title)[:32]}\"", (*primary, 255)),
-                ("[INIT] Loading neural weights & models...", (180, 190, 200)),
-                ("[BENCHMARK] Executing high-throughput test...", (*secondary, 255)),
-                ("[PASSED] 128 / 128 Test Suites Succeeded in 18ms", (50, 255, 120)),
-                ("[STATUS] Zero-latency distributed inference active", (50, 255, 120)),
-                ("[DEPLOY] Live production cluster ready and verified", (*accent, 255)),
-                (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
-            ]
-            line_spacing = 65 if is_landscape else 95
-            for li, (txt, col) in enumerate(t_lines[:6 if is_landscape else 7]):
-                draw.text((card_box[0] + 35, card_box[1] + 95 + li * line_spacing), txt, font=font_mono, fill=col)
+            if topic_cat == 'coding_prompts':
+                t_lines = [
+                    (f"$ pnpm run deploy:production --target \"{sanitize_text(title)[:24]}\"", (*primary, 255)),
+                    ("[DRIZZLE] Synthesizing zero-downtime schema migrations...", (180, 190, 200)),
+                    ("[TAILWIND] Compiling zero-runtime CSS tokens & layouts...", (*secondary, 255)),
+                    ("[VITEST] 128 / 128 Boundary Unit Tests Passed (14ms)", (50, 255, 120)),
+                    ("[STATUS] Clean architecture deployed with zero memory leaks", (50, 255, 120)),
+                    ("[DEPLOY] Cloud edge workers synchronized globally", (*accent, 255)),
+                    (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
+                ]
+            else:
+                t_lines = [
+                    (f"$ run-engine --topic \"{sanitize_text(title)[:28]}\"", (*primary, 255)),
+                    ("[INIT] Loading neural weights & models...", (180, 190, 200)),
+                    ("[BENCHMARK] Executing high-throughput inference test...", (*secondary, 255)),
+                    ("[PASSED] 128 / 128 Test Suites Succeeded in 18ms", (50, 255, 120)),
+                    ("[STATUS] Zero-latency distributed inference active", (50, 255, 120)),
+                    ("[DEPLOY] Live production cluster ready and verified", (*accent, 255)),
+                    (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
+                ]
+            for li, (txt, col) in enumerate(t_lines):
+                draw.text((card_box[0] + 35, card_box[1] + 95 + li * 95), txt, font=font_mono, fill=col)
 
         else:
-            cx, cy = (W // 2, int(H * 0.44)) if is_landscape else (W // 2, 540)
-            box_hw = 360 if is_landscape else 240
-            box_hh = 130 if is_landscape else 180
-            draw.rounded_rectangle([cx - box_hw, cy - box_hh, cx + box_hw, cy + box_hh], radius=32, fill=(16, 12, 24, 235), outline=(255, 50, 70, 200), width=3)
-            draw.polygon([(cx - 40, cy - 45), (cx - 40, cy + 45), (cx + 55, cy)], fill=(255, 50, 70))
-            
-            q_box = [cx - box_hw, cy + box_hh + 20, cx + box_hw, cy + box_hh + 120] if is_landscape else [100, 800, W - 100, 930]
-            draw.rounded_rectangle(q_box, radius=22, fill=(14, 18, 30, 240), outline=(*primary, 180), width=2)
-            draw.text((q_box[0] + 30, q_box[1] + 25), "WHICH TOOL WILL YOU TEST FIRST?", font=font_title, fill=(255, 255, 255))
-            draw.text((q_box[0] + 30, q_box[1] + 70), "Comment your favorite below!", font=font_sub, fill=(*accent, 240))
+            # === SCENE 5: OUTRO / COMMUNITY QUESTION (ZERO STATIC DUPLICATE BUTTONS!) ===
+            q_text = ""
+            if script:
+                q_matches = re.findall(r'([A-Z][a-zA-Z0-9\s,\'\"\-]{10,65}\?)', script)
+                if q_matches:
+                    q_text = sanitize_text(q_matches[-1]).strip().upper()
+            if not q_text:
+                if topic_cat == 'coding_prompts':
+                    q_text = "WHICH PROMPT WILL YOU TEST FIRST?"
+                elif topic_cat == 'model_duel':
+                    q_text = "WHICH AI MODEL DO YOU PREFER?"
+                elif topic_cat == 'secret_tools':
+                    q_text = "WHICH TOOL WILL YOU BOOKMARK?"
+                else:
+                    q_text = "SHARE YOUR THOUGHTS IN THE COMMENTS!"
 
-            sub_btn = [cx - 200, q_box[1] + 130, cx + 200, q_box[1] + 200] if not is_landscape else [cx - 180, cy + box_hh + 135, cx + 180, cy + box_hh + 185]
-            if not is_landscape:
-                draw.rounded_rectangle([140, 980, W - 140, 1080], radius=24, fill=(255, 40, 60, 240))
-                draw.text((W // 2 - 130, 1005), "SUBSCRIBE NOW", font=font_title, fill=(255, 255, 255))
+            cx, cy = (W // 2, int(H * 0.44)) if is_landscape else (W // 2, 600)
+            box_hw = 380 if is_landscape else 420
+            box_hh = 120 if is_landscape else 130
+            q_box = [cx - box_hw, cy - box_hh, cx + box_hw, cy + box_hh]
+            draw.rounded_rectangle(q_box, radius=24, fill=(14, 18, 30, 240), outline=(*primary, 180), width=3)
+            
+            badge_txt = "[ COMMUNITY QUESTION ]"
+            bw = get_text_width(draw, badge_txt, font_badge)
+            draw.rounded_rectangle([cx - bw // 2 - 20, q_box[1] + 20, cx + bw // 2 + 20, q_box[1] + 60], radius=10, fill=(*primary, 40), outline=(*primary, 180), width=1)
+            draw.text((cx - bw // 2, q_box[1] + 28), badge_txt, font=font_badge, fill=(*primary, 255))
+            
+            qw_words = q_text.split()
+            qlines = []
+            cur_ql = ""
+            max_ql_w = (box_hw * 2) - 60
+            for qw in qw_words:
+                test = f"{cur_ql} {qw}".strip()
+                if get_text_width(draw, test, font_title) < max_ql_w:
+                    cur_ql = test
+                else:
+                    if cur_ql: qlines.append(cur_ql)
+                    cur_ql = qw
+            if cur_ql: qlines.append(cur_ql)
+            qlines = qlines[:2]
+            
+            for qli, q_line in enumerate(qlines):
+                tw = get_text_width(draw, q_line, font_title)
+                draw.text((cx - tw // 2, q_box[1] + 80 + qli * 46), q_line, font=font_title, fill=(255, 255, 255))
+                
+            sub_cta = "> Drop a comment below & save this video <"
+            sc_w = get_text_width(draw, sub_cta, font_sub)
+            draw.text((cx - sc_w // 2, q_box[1] + 80 + len(qlines) * 46 + 10), sub_cta, font=font_sub, fill=(*accent, 240))
 
         out_rgb = img_pil.convert('RGB')
         out_bgr = cv2.cvtColor(np.array(out_rgb), cv2.COLOR_RGB2BGR)
@@ -709,12 +833,12 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
                 os.makedirs(sd, exist_ok=True)
                 out_path = os.path.join(sd, f"scene_{s_idx}.jpg")
                 cv2.imwrite(out_path, out_bgr, [cv2.IMWRITE_JPEG_QUALITY, 92])
-            except Exception as e:
+            except Exception:
                 pass
 
         scenes_res[s_idx] = out_bgr
 
-    print(f"✨ Automatically generated 5 unique topic-isolated procedural scenes for [{item_id}] (Palette: {pal[0]})!", flush=True)
+    print(f"✨ Automatically generated 5 unique topic-isolated procedural scenes for [{item_id}] (Category: {topic_cat}, Palette: {pal_name})!", flush=True)
     return scenes_res
 
 def generate_smart_thumbnail(data: dict, output_thumb_path: str, host_path: str = None, palette_info=None):
@@ -913,20 +1037,63 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
 
     subtitles = parse_timed_subtitles(script, duration)
 
-    # 6 scene boundaries proportionally
-    sc1_end = duration * 0.16
-    sc2_end = duration * 0.35
-    sc3_end = duration * 0.53
-    sc4_end = duration * 0.70
-    sc5_end = duration * 0.85
-    sc6_start = sc5_end
+    # Dynamic scene boundaries derived from script timestamps or scenes metadata
+    scenes_meta = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
+    script_time_pattern = re.compile(r'\[(\d+):(\d+)\s*-\s*(\d+):(\d+)\]')
+    script_intervals = list(script_time_pattern.finditer(script))
 
-    scene_cuts = [sc1_end, sc2_end, sc3_end, sc4_end, sc5_end]
+    found_cuts = []
+    if len(script_intervals) >= 4:
+        last_m = script_intervals[-1]
+        script_max_sec = float(last_m.group(3)) * 60 + float(last_m.group(4))
+        scale = (duration / script_max_sec) if script_max_sec > 10 else 1.0
+        for m in script_intervals[1:]:
+            st = (float(m.group(1)) * 60 + float(m.group(2))) * scale
+            if 1.0 < st < duration - 1.0:
+                found_cuts.append(st)
+    elif len(scenes_meta) >= 4 and any(isinstance(s, dict) and s.get('time', 0) > 0 for s in scenes_meta):
+        times = [float(s.get('time', 0)) for s in scenes_meta if isinstance(s, dict)]
+        meta_dur = max(times[-1] + 8.0, float(data.get('durationSeconds', duration)))
+        scale = (duration / meta_dur) if meta_dur > 10 else 1.0
+        for t in times[1:]:
+            st = t * scale
+            if 1.0 < st < duration - 1.0:
+                found_cuts.append(st)
+
+    if len(found_cuts) >= 4:
+        sc1_end = found_cuts[0]
+        sc2_end = found_cuts[1]
+        sc3_end = found_cuts[2]
+        sc4_end = found_cuts[3]
+        sc5_end = found_cuts[4] if len(found_cuts) > 4 else duration * 0.96
+    elif len(found_cuts) == 3:
+        sc1_end, sc2_end, sc3_end = found_cuts
+        sc4_end = sc3_end + (duration - sc3_end) * 0.5
+        sc5_end = duration * 0.96
+    else:
+        sc1_end = duration * 0.18
+        sc2_end = duration * 0.38
+        sc3_end = duration * 0.58
+        sc4_end = duration * 0.78
+        sc5_end = duration * 0.95
+
+    sc6_start = sc4_end  # Outro CTA starts with Scene 5
+    scene_cuts = [sc1_end, sc2_end, sc3_end, sc4_end]
+
     if beat_sync:
         bpm = 138 if 'phonk' in music_mood else (118 if 'synthwave' in music_mood else (92 if ('chill' in music_mood or 'lofi' in music_mood) else 124))
         beat_dur = 60.0 / bpm
-        scene_cuts = [round(c / beat_dur) * beat_dur for c in scene_cuts]
-        print(f"🥁 [Beat-Sync] 5 ta sahna o'tishi va oq fleshlar musiqa zarbasiga (BPM: {bpm}) millisekund aniqlikda sinxronlandi!", flush=True)
+        snapped_cuts = []
+        for c in scene_cuts:
+            beat_c = round(c / beat_dur) * beat_dur
+            if abs(beat_c - c) <= 0.45:
+                snapped_cuts.append(beat_c)
+            else:
+                snapped_cuts.append(c)
+        sc1_end, sc2_end, sc3_end, sc4_end = snapped_cuts
+        sc6_start = sc4_end
+        scene_cuts = snapped_cuts
+        print(f"🥁 [Beat-Sync] Sahna o'tishlari musiqa zarbasiga (BPM: {bpm}) sinxronlandi: {[round(c, 2) for c in scene_cuts]}", flush=True)
 
     for cut in scene_cuts:
         add_sfx(sfx_track, sfx_whoosh, cut, vol=0.35)
@@ -1053,7 +1220,6 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     font_metric = get_font(36, bold=True)
 
     item_id = data.get('id', '')
-    topic_scenes = {}
     topic_scenes_dirs = [
         os.path.join(os.path.dirname(__file__), f'../public/assets/scenes/{item_id}'),
         os.path.join(os.path.dirname(__file__), f'../../web/public/assets/scenes/{item_id}'),
@@ -1061,23 +1227,13 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
         os.path.join(os.getcwd(), f'apps/web/public/assets/scenes/{item_id}'),
         os.path.join(os.getcwd(), f'public/assets/scenes/{item_id}')
     ]
-    for d in topic_scenes_dirs:
-        if os.path.isdir(d):
-            for s_idx in range(1, 6):
-                for ext in ['.jpg', '.png', '.jpeg', '.webp']:
-                    p = os.path.join(d, f'scene_{s_idx}{ext}')
-                    if os.path.exists(p) and s_idx not in topic_scenes:
-                        img = cv2.imread(p)
-                        if img is not None:
-                            topic_scenes[s_idx] = img
-            if len(topic_scenes) >= 3:
-                break
-
-    if len(topic_scenes) < 3:
-        scenes_data_init = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
-        high_cpm_init = data.get('highCpmKeywords', []) if isinstance(data.get('highCpmKeywords'), list) else []
-        topic_scenes = generate_topic_procedural_scenes(item_id, clean_title, scenes_data_init, high_cpm_init, topic_scenes_dirs[:3])
-
+    # Always generate 100% fresh, topic-tailored procedural scenes for every render
+    scenes_data_init = data.get('scenes', []) if isinstance(data.get('scenes'), list) else []
+    high_cpm_init = data.get('highCpmKeywords', []) if isinstance(data.get('highCpmKeywords'), list) else []
+    topic_scenes = generate_topic_procedural_scenes(
+        item_id, clean_title, scenes_data_init, high_cpm_init, topic_scenes_dirs,
+        script=script, tags=data.get('tags', [])
+    )
     has_topic_scenes = len(topic_scenes) >= 3
     if has_topic_scenes:
         print(f"🌟 Activated 100% Topic-Isolated Visual Engine with {len(topic_scenes)} unique scenes for [{item_id}]!", flush=True)
@@ -1125,6 +1281,56 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
             ("Cloud Dispatch", "Realtime Sync")
         ]
 
+    topic_cat = classify_topic_category(item_id, clean_title, data.get('tags', []), high_cpm_keywords, script)
+    print(f"🎯 Dynamic B-Roll Orchestration: Category [{topic_cat.upper()}] for [{item_id}]", flush=True)
+
+    if topic_cat == 'coding_prompts':
+        # Pure computational, high-tech AI & datacenter vibe (NO umbrella rain guy!)
+        scene_caps = [
+            cap_ai or cap_datacenter,
+            cap_datacenter or cap_ai,
+            cap_storm or cap_datacenter,
+            cap_datacenter or cap_ai,
+            cap_ai or cap_datacenter
+        ]
+    elif topic_cat == 'model_duel':
+        # Epic showdown between titans
+        scene_caps = [
+            cap_storm or cap_datacenter,
+            cap_datacenter or cap_ai,
+            cap_ai or cap_datacenter,
+            cap_datacenter or cap_storm,
+            cap_storm or cap_datacenter
+        ]
+    elif topic_cat == 'secret_tools':
+        # Underground cyberpunk hacker vibe (hailuo ONLY in hook!)
+        scene_caps = [
+            cap_hailuo or cap_ai,
+            cap_datacenter or cap_ai,
+            cap_ai or cap_datacenter,
+            cap_storm or cap_datacenter,
+            cap_datacenter or cap_ai
+        ]
+    elif topic_cat == 'agent_swarm':
+        # Autonomous multi-agent network
+        scene_caps = [
+            cap_datacenter or cap_ai,
+            cap_ai or cap_datacenter,
+            cap_storm or cap_ai,
+            cap_hailuo or cap_datacenter,
+            cap_ai or cap_datacenter
+        ]
+    else:
+        all_caps = [c for c in [cap_datacenter, cap_ai, cap_storm, cap_hailuo] if c is not None]
+        if all_caps:
+            s_seed = sum(ord(c) for c in f"{item_id}_{clean_title}")
+            off = s_seed % len(all_caps)
+            scene_caps = [all_caps[(off + i) % len(all_caps)] for i in range(5)]
+            if scene_caps[0] == scene_caps[4] and len(all_caps) > 1:
+                scene_caps[4] = all_caps[(off + 2) % len(all_caps)]
+        else:
+            scene_caps = [None] * 5
+
     for frame_idx in range(total_frames):
         t_sec = frame_idx / FPS
 
@@ -1133,27 +1339,27 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 prog = t_sec / max(0.1, sc1_end)
                 s_img = topic_scenes.get(1, list(topic_scenes.values())[0])
                 cur_sc_idx = 0
-                target_cap = cap_hailuo or cap_storm or cap_datacenter
+                target_cap = scene_caps[0]
             elif sc1_end <= t_sec < sc2_end:
                 prog = (t_sec - sc1_end) / max(0.1, sc2_end - sc1_end)
                 s_img = topic_scenes.get(2, list(topic_scenes.values())[1 if len(topic_scenes) > 1 else 0])
                 cur_sc_idx = 1
-                target_cap = cap_datacenter or cap_ai or cap_hailuo
+                target_cap = scene_caps[1]
             elif sc2_end <= t_sec < sc3_end:
                 prog = (t_sec - sc2_end) / max(0.1, sc3_end - sc2_end)
                 s_img = topic_scenes.get(3, list(topic_scenes.values())[2 if len(topic_scenes) > 2 else 0])
                 cur_sc_idx = 2
-                target_cap = cap_ai or cap_datacenter or cap_hailuo
+                target_cap = scene_caps[2]
             elif sc3_end <= t_sec < sc4_end:
                 prog = (t_sec - sc3_end) / max(0.1, sc4_end - sc3_end)
                 s_img = topic_scenes.get(4, list(topic_scenes.values())[3 if len(topic_scenes) > 3 else 0])
                 cur_sc_idx = 3
-                target_cap = cap_storm or cap_datacenter or cap_hailuo
+                target_cap = scene_caps[3]
             else:
                 prog = (t_sec - sc4_end) / max(0.1, duration - sc4_end)
                 s_img = topic_scenes.get(5, list(topic_scenes.values())[-1])
                 cur_sc_idx = 4
-                target_cap = cap_hailuo or cap_ai or cap_datacenter
+                target_cap = scene_caps[4]
 
             # --- REAL 60FPS MOTION VIDEO FOOTAGE INTEGRATION ---
             motion_frame = read_looped_frame(target_cap, W, H)
