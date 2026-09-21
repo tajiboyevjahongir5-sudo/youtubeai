@@ -60,10 +60,24 @@ REPLACEMENTS = {
     '💡': '',
 }
 
+EMOJI_PATTERN = re.compile(
+    "["
+    "\U00010000-\U0010ffff"
+    "\u2600-\u27bf"
+    "\u2300-\u23ff"
+    "\u2b50\u2b55\u2934\u2935\u25aa\u25ab\u25fe\u25fd\u25fb\u25fc\u25b6\u25c0"
+    "\ufe0f\ufe0e\u200d"
+    "]+", flags=re.UNICODE
+)
+
 def sanitize_text(text: str) -> str:
+    if not text:
+        return ""
     for k, v in REPLACEMENTS.items():
         text = text.replace(k, v)
-    return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
+    text = re.sub(r"[‘’ʻʼ`]", "'", text)
+    text = EMOJI_PATTERN.sub('', text)
+    return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text).strip()
 
 def get_ffmpeg_bin() -> str:
     path_bin = shutil.which('ffmpeg')

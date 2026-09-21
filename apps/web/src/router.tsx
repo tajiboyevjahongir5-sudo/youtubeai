@@ -43,8 +43,10 @@ export const router = createBrowserRouter([
           { path: '/activity', element: <ActivityPage /> },
           { path: '/ai-director', element: <AiDirectorPage /> },
           { path: '/admin', element: <AdminPage /> },
+          { path: '*', element: <Navigate to="/dashboard" replace /> },
         ],
       },
     ],
   },
+  { path: '*', element: <Navigate to="/" replace /> },
 ]);

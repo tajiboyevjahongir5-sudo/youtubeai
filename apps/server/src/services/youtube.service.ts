@@ -73,9 +73,16 @@ export class YouTubeService implements IYouTubeService {
   loadTokens(workspaceId: string): any {
     if (!workspaceId) return null;
     try {
-      const filePath = this.getTokenFilePath(workspaceId);
-      if (fs.existsSync(filePath)) {
-        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const id = this.sanitizeId(workspaceId);
+      const candidates = [
+        path.join(this.tokensDir, `${id}.json`),
+        path.resolve(process.cwd(), 'apps/server/data/tokens', `${id}.json`),
+        path.resolve(process.cwd(), 'data/tokens', `${id}.json`)
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          return JSON.parse(fs.readFileSync(p, 'utf-8'));
+        }
       }
 
       // STRICT WORKSPACE ISOLATION:
@@ -126,9 +133,16 @@ export class YouTubeService implements IYouTubeService {
   loadChannelInfo(workspaceId: string): any {
     if (!workspaceId) return null;
     try {
-      const filePath = this.getChannelFilePath(workspaceId);
-      if (fs.existsSync(filePath)) {
-        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const id = this.sanitizeId(workspaceId);
+      const candidates = [
+        path.join(this.channelsDir, `${id}.json`),
+        path.resolve(process.cwd(), 'apps/server/data/channels', `${id}.json`),
+        path.resolve(process.cwd(), 'data/channels', `${id}.json`)
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          return JSON.parse(fs.readFileSync(p, 'utf-8'));
+        }
       }
 
       // STRICT WORKSPACE ISOLATION:

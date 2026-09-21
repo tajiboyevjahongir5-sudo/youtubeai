@@ -11,6 +11,10 @@ def get_font(paths, size):
     return ImageFont.load_default()
 
 def strip_emojis(text):
+    if not text:
+        return ""
+    import re
+    text = re.sub(r"[‘’ʻʼ`]", "'", text)
     clean = ''
     for char in text:
         if ord(char) < 0x2000 or (0x2000 <= ord(char) <= 0x206F) or (0x20A0 <= ord(char) <= 0x20CF):
