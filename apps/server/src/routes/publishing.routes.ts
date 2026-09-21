@@ -82,17 +82,29 @@ router.post('/:contentId/publish', async (req: Request, res: Response, next: Nex
       path.resolve(process.cwd(), 'apps/server/public/videos', `${contentId}.mp4`),
       path.resolve(process.cwd(), 'public/videos', `${contentId}.mp4`),
       path.resolve(process.cwd(), 'apps/web/public/videos', `${contentId}.mp4`),
-      path.resolve(process.cwd(), '../web/public/videos', `${contentId}.mp4`),
-      'C:\\Users\\user\\Downloads\\neural_pulse_short.mp4',
-      path.resolve(process.cwd(), '../web/public/neural_pulse_short.mp4'),
-      path.resolve(process.cwd(), 'storage/neural_pulse_short.mp4')
+      path.resolve(process.cwd(), '../web/public/videos', `${contentId}.mp4`)
     ];
+
+    if (contentId === 'item_1') {
+      candidatePaths.push(
+        path.resolve(process.cwd(), 'apps/server/public/neural_pulse_short.mp4'),
+        path.resolve(process.cwd(), '../web/public/neural_pulse_short.mp4'),
+        path.resolve(process.cwd(), 'storage/neural_pulse_short.mp4'),
+        'C:\\Users\\user\\Downloads\\neural_pulse_short.mp4'
+      );
+    } else if (contentId === 'item_2') {
+      candidatePaths.push(
+        path.resolve(process.cwd(), 'apps/server/public/neural_pulse_16x9.mp4'),
+        path.resolve(process.cwd(), '../web/public/neural_pulse_16x9.mp4')
+      );
+    }
+
     const videoPath = candidatePaths.find(p => fs.existsSync(p));
     if (!videoPath) {
       return res.status(404).json({
         success: false,
         error: 'video_not_found',
-        message: `Yuklanadigan video fayli topilmadi (${contentId}.mp4 yoki neural_pulse_short.mp4)`
+        message: `Ushbu mavzu uchun video hali yaratilmagan (${contentId}.mp4). Iltimos, avval videoni generatsiya qiling!`
       });
     }
 

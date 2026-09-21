@@ -210,7 +210,8 @@ const DEFAULT_PRESETS: Record<string, ContentItemRecord> = {
     seoScore: 92,
     scheduledAt: new Date(Date.now() + 28800000).toISOString(),
     createdAt: new Date().toISOString(),
-    videoUrl: '/neural_pulse_16x9.mp4'
+    videoUrl: '/media/videos/item_2.mp4',
+    thumbnailUrl: '/media/videos/item_2_thumb.jpg'
   },
   item_3: {
     id: 'item_3',
@@ -391,21 +392,21 @@ Tech stack: Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Tailwind CSS, Strip
     id: 'item_ai_automation_agency',
     workspaceId: 'ws_j7ktjxw0',
     title: 'The Complete Step-by-Step Blueprint to Building an AI Agency in 2026',
-    status: 'review',
+    status: 'idea',
     videoFormat: 'long_form',
     contentPillar: 'educational',
     duration: '12:45',
     durationSeconds: 765,
-    brief: "2026-yilda sun'iy intellekt va avtomatlashtirish agentligini (AAA) noldan qurish va xalqaro mijozlarni jalb qilish bo'yicha to'liq 16:9 masterclass.",
+    brief: "To'liq 16:9 formatdagi masterclass: 2026-yilda 0 dan AI Avtomatlashtirish Agentligini (AAA) qurish, mijozlar topish va $10,000/oy daromadga chiqish.",
     targetAudience: 'Agency Founders, Freelancers, Entrepreneurs',
     script: `[00:00 - 02:15] CHAPTER 1: THE $10K/MONTH AI AGENCY MODEL
-"In 2026, businesses don't need another generic chatbot. They need autonomous workflow integration. Welcome to the complete masterclass on building and scaling an AI Automation Agency."
+"The traditional digital agency model is completely dead. Today, clients do not pay for manual hours—they pay for autonomous systems that generate revenue on autopilot. Here is how to build a 6-figure AI agency in 2026."
 
-[02:16 - 05:20] CHAPTER 2: HIGH-TICKET AUTOMATION OFFERS
-"Learn how to package CRM intelligence, automated lead scoring, and customer voice agents into $5,000 monthly retainer contracts."
+[02:16 - 05:20] CHAPTER 2: HIGH-TICKET SERVICE OFFERINGS
+"Three services clients gladly pay $5,000/month for: Autonomous Customer Support Swarms, Automated Cold Inbound Engines, and Internal Knowledge Graph Agents."
 
 [05:21 - 08:30] CHAPTER 3: THE MODERN TECH STACK
-"We combine Make.com, LangGraph, PostgreSQL, and custom fine-tuned LLMs with zero server overhead."
+"We deploy Voiceflow, Make.com, LangGraph, and Supabase vectors. Fast to deliver, bulletproof reliability, and zero ongoing maintenance overhead."
 
 [08:31 - 10:45] CHAPTER 4: OUTREACH & CLIENT ACQUISITION
 "How to close international clients in the US and Europe using interactive video audits and ROI calculators."
@@ -423,8 +424,7 @@ Tech stack: Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Tailwind CSS, Strip
     tags: ['ai automation agency', 'make money online', 'entrepreneur', 'saas 2026', 'freelancing', 'b2b sales'],
     seoScore: 97,
     scheduledAt: new Date(Date.now() + 43200000).toISOString(),
-    createdAt: new Date().toISOString(),
-    videoUrl: '/neural_pulse_16x9.mp4'
+    createdAt: new Date().toISOString()
   },
   item_claude_hybrid: {
     id: 'item_claude_hybrid',
@@ -468,7 +468,7 @@ Tech stack: Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Tailwind CSS, Strip
     id: 'item_local_llm_beast',
     workspaceId: 'ws_j7ktjxw0',
     title: 'How to Run 100% Private Uncensored AI Locally on Your PC in 2026',
-    status: 'review',
+    status: 'idea',
     videoFormat: 'long_form',
     contentPillar: 'educational',
     duration: '11:20',
@@ -500,8 +500,7 @@ Tech stack: Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Tailwind CSS, Strip
     tags: ['local ai', 'ollama', 'deepseek r1', 'llama 3', 'privacy', 'open source', 'masterclass'],
     seoScore: 96,
     scheduledAt: new Date(Date.now() + 72000000).toISOString(),
-    createdAt: new Date().toISOString(),
-    videoUrl: '/neural_pulse_16x9.mp4'
+    createdAt: new Date().toISOString()
   }
 };
 

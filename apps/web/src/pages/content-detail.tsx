@@ -92,7 +92,11 @@ export const ContentDetailPage = () => {
   }, [contentId, itemData]);
 
   const [activeTab, setActiveTab] = useState('tasdiqlash');
-  const [status, setStatus] = useState<FlowStatus>('ready_for_review');
+  const [status, setStatus] = useState<FlowStatus>(
+    (contentId === 'item_1' || contentId === 'item_2' || contentId === 'item_3' || contentId === 'item_coding_agents' || contentId === 'item_illegal_websites') 
+      ? 'ready_for_review' 
+      : 'awaiting_generation'
+  );
   const [genProgress, setGenProgress] = useState(100);
   const [genStep, setGenStep] = useState('Video muvaffaqiyatli tayyorlandi!');
   const [showYouTubeEmbed, setShowYouTubeEmbed] = useState(false);
@@ -1938,7 +1942,7 @@ export const ContentDetailPage = () => {
 
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
-  // Strict topic-isolated video source: NEVER fallback to neural_pulse_short.mp4 for different topics!
+  // Strict topic-isolated video source: NEVER fallback to static/unrelated videos for different topics!
   const activeVideoSrc: string | undefined = customVideoUrl 
     ? (customVideoUrl.startsWith('http') ? customVideoUrl : `${customVideoUrl}?v=${videoVersion}`)
     : (itemData?.videoUrl 
@@ -1946,10 +1950,14 @@ export const ContentDetailPage = () => {
       : (contentId === 'item_1' 
           ? `/neural_pulse_short.mp4?v=${videoVersion}` 
           : (contentId === 'item_2' 
-              ? `/neural_pulse_16x9.mp4?v=${videoVersion}` 
+              ? `/media/videos/item_2.mp4?v=${videoVersion}` 
               : (contentId === 'item_3' 
                   ? `/media/videos/item_3.mp4?v=${videoVersion}` 
-                  : (isLong ? `/neural_pulse_16x9.mp4?v=${videoVersion}` : undefined)))));
+                  : (contentId === 'item_coding_agents'
+                      ? `/media/videos/item_coding_agents.mp4?v=${videoVersion}`
+                      : (contentId === 'item_illegal_websites'
+                          ? `/media/videos/item_illegal_websites.mp4?v=${videoVersion}`
+                          : undefined))))));
 
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
@@ -11198,41 +11206,83 @@ CMD ["pnpm", "start:production"]`,
                             </span>
                           </div>
 
-                          <video 
-                            ref={videoRef}
-                            key={activeVideoSrc}
-                            poster={`/banner.jpg?v=${videoVersion}`} 
-                            playsInline
-                            preload="auto"
-                            loop
-                            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 615)}
-                            onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
-                            onEnded={() => setIsPlaying(false)}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={togglePlay}
-                          >
-                            <source src={activeVideoSrc} type="video/mp4" />
-                            {contentId && <source src={`/media/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
-                            {contentId && <source src={`/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
-                          </video>
+                          {activeVideoSrc ? (
+                            <>
+                              <video 
+                                ref={videoRef}
+                                key={activeVideoSrc}
+                                poster={itemData?.thumbnailUrl || `/media/videos/${contentId}_thumb_landscape.jpg?v=${videoVersion}` || `/media/videos/${contentId}_thumb.jpg?v=${videoVersion}` || `/banner.jpg?v=${videoVersion}`} 
+                                playsInline
+                                preload="auto"
+                                loop
+                                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 615)}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                                onEnded={() => setIsPlaying(false)}
+                                className="w-full h-full object-cover cursor-pointer"
+                                onClick={togglePlay}
+                              >
+                                <source src={activeVideoSrc} type="video/mp4" />
+                                {contentId && <source src={`/media/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
+                                {contentId && <source src={`/videos/${contentId}.mp4?v=${videoVersion}`} type="video/mp4" />}
+                              </video>
 
-                          {/* Center Play Overlay */}
-                          {!isPlaying && (
-                            <div 
-                              onClick={togglePlay}
-                              className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
-                            >
-                              <div className="w-20 h-20 rounded-full bg-blue-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(59,130,246,0.85)] transform transition-transform hover:scale-110 active:scale-95">
-                                <Play size={36} className="ml-1.5 fill-white" />
-                              </div>
-                              <span className="mt-4 text-xs font-bold text-white bg-black/80 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
-                                ▶ {videoTitle}
-                              </span>
-                              <span className="text-[11px] text-blue-400 font-semibold mt-1.5 bg-black/60 px-2.5 py-0.5 rounded-md">
-                                📺 1920x1080 Full HD • {itemData?.duration || '10:15'} Davomiylik
-                              </span>
+                              {/* Center Play Overlay */}
+                              {!isPlaying && (
+                                <div 
+                                  onClick={togglePlay}
+                                  className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-black/35"
+                                >
+                                  <div className="w-20 h-20 rounded-full bg-blue-600/90 text-white flex items-center justify-center shadow-[0_0_35px_rgba(59,130,246,0.85)] transform transition-transform hover:scale-110 active:scale-95">
+                                    <Play size={36} className="ml-1.5 fill-white" />
+                                  </div>
+                                  <span className="mt-4 text-xs font-bold text-white bg-black/80 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md max-w-[85%] truncate text-center">
+                                    ▶ {videoTitle}
+                                  </span>
+                                  <span className="text-[11px] text-blue-400 font-semibold mt-1.5 bg-black/60 px-2.5 py-0.5 rounded-md">
+                                    📺 1920x1080 Full HD • {itemData?.duration || '10:15'} Davomiylik
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="absolute inset-0 bg-zinc-950/95 flex flex-col items-center justify-center p-6 text-center z-10">
+                              {isGeneratingVideo ? (
+                                <div className="flex flex-col items-center justify-center max-w-md space-y-4">
+                                  <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 animate-spin">
+                                    <Sparkles size={32} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-base font-bold text-white mb-2">16:9 Masterclass Video Yaratilmoqda...</h4>
+                                    <p className="text-xs text-gray-300 leading-relaxed">
+                                      Azure Neural diktor ovozi (Christopher), 1080p mavzuga xos kadrlar, beat-sync animatsiyalar va kinetik subtitrlar generatsiya qilinmoqda.
+                                    </p>
+                                  </div>
+                                  <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden border border-white/10">
+                                    <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 h-full w-2/3 animate-pulse rounded-full"></div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center max-w-md space-y-4">
+                                  <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.2)]">
+                                    <Video size={32} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-base font-bold text-white mb-1.5">16:9 Masterclass Video Hali Generatsiya Qilinmagan</h4>
+                                    <p className="text-xs text-gray-400 leading-relaxed px-4">
+                                      Statik banner yoki boshqa mavzudagi videoni ko'rsatmaslik uchun, aynan shu mavzuga mos 1080p Full HD video yarating!
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={handleGenerateVideo}
+                                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 transform active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <Sparkles size={16} />
+                                    Mavzuga Mos 16:9 Video Generatsiya Qilish
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
 
@@ -11441,7 +11491,7 @@ CMD ["pnpm", "start:production"]`,
                               <video 
                                 ref={videoRef}
                                 key={activeVideoSrc}
-                                poster={`/host_alex.jpg?v=${videoVersion}`} 
+                                poster={itemData?.thumbnailUrl || `/media/videos/${contentId}_thumb.jpg?v=${videoVersion}` || `/host_alex.jpg?v=${videoVersion}`} 
                                 playsInline
                                 preload="auto"
                                 loop

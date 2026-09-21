@@ -92,7 +92,7 @@ export class VideoInspectorService {
       path.resolve(process.cwd(), `apps/server/public/${item.id}.mp4`)
     );
 
-    if (item.id === 'item_2' || item.id === 'item_4') {
+    if (item.id === 'item_2') {
       candidates.push(
         path.resolve(process.cwd(), 'apps/server/public/neural_pulse_16x9.mp4'),
         path.resolve(process.cwd(), 'apps/web/public/neural_pulse_16x9.mp4')

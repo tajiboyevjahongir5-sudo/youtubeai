@@ -132,6 +132,21 @@ export class VideoRenderService {
               if (fs.existsSync(landscapeThumb)) {
                 fs.copyFileSync(landscapeThumb, path.join(webVideosDir, `${item.id}_thumb_landscape.jpg`));
               }
+
+              // If long form or item_2, keep root 16:9 fallback updated
+              if (isLong || item.id === 'item_2') {
+                const serverPublicRoot = path.resolve(publicVideosDir, '..');
+                const webPublicRoot = path.resolve(webVideosDir, '..');
+                const roots = [serverPublicRoot, webPublicRoot];
+                for (const r of roots) {
+                  try {
+                    fs.copyFileSync(outputPath, path.join(r, 'neural_pulse_16x9.mp4'));
+                    if (fs.existsSync(landscapeThumb)) {
+                      fs.copyFileSync(landscapeThumb, path.join(r, 'banner.jpg'));
+                    }
+                  } catch (copyRootErr) {}
+                }
+              }
             } catch (e) {}
           }
 
