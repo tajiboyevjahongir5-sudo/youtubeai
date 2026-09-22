@@ -76,7 +76,12 @@ export class VideoRenderService {
 
     // Fetch topic-matched dynamic B-Roll footage (Pexels HD 9:16 or high-res curated pool)
     try {
-      updateRenderProgress(item.id, 20, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
+      const isPexels = pexelsBrollService.isConfigured(item.workspaceId);
+      if (isPexels) {
+        updateRenderProgress(item.id, 25, '2/4: Pexels orqali mavzuga mos 4K/HD vertikal kadrlar yuklanmoqda...', 2, 4, 'rendering');
+      } else {
+        updateRenderProgress(item.id, 20, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
+      }
       await Promise.race([
         pexelsBrollService.getOrFetchTopicClips(item, 2),
         new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 3.5s')), 3500))
@@ -85,9 +90,9 @@ export class VideoRenderService {
       console.warn('[B-Roll Notice]:', brollErr?.message || brollErr);
     }
 
-    // If Google Flow / Veo is configured, attempt AI video scene generation with strict 4s limit
-    if (googleFlowVeoService.isConfigured(item.workspaceId)) {
-      updateRenderProgress(item.id, 25, '2/3: Google Flow (Veo) kinematik video generatsiya qilmoqda...', 2, 4, 'rendering');
+    // Only attempt Google Flow / Veo if Pexels is NOT configured and Veo is explicitly configured
+    if (!pexelsBrollService.isConfigured(item.workspaceId) && googleFlowVeoService.isConfigured(item.workspaceId)) {
+      updateRenderProgress(item.id, 25, '2/4: Google Flow (Veo) kinematik video generatsiya qilmoqda...', 2, 4, 'rendering');
       try {
         const scenePrompt = `${item.title}, high quality cinematic vertical video, 9:16, 4k ultra-hd`;
         const veoClipPath = path.join(publicVideosDir, `veo_${item.id}.mp4`);

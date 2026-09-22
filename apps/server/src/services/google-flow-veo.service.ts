@@ -21,12 +21,16 @@ export class GoogleFlowVeoService {
   public getApiKey(workspaceId: string = 'default'): string | null {
     const ws = getWorkspaceSettings(workspaceId);
     if ((ws as any).googleFlowApiKey && (ws as any).googleFlowApiKey.trim()) {
-      return (ws as any).googleFlowApiKey.trim();
+      const k = (ws as any).googleFlowApiKey.trim();
+      // Only treat as Google Flow if explicitly entered by user and not the shared Gemini text key
+      if (!k.startsWith('AQ.') && k !== env.GEMINI_API_KEY) {
+        return k;
+      }
     }
-    if (env.GEMINI_API_KEY && !env.GEMINI_API_KEY.includes('placeholder')) {
-      return env.GEMINI_API_KEY;
+    if (process.env.GOOGLE_FLOW_API_KEY && !process.env.GOOGLE_FLOW_API_KEY.includes('placeholder')) {
+      return process.env.GOOGLE_FLOW_API_KEY;
     }
-    return process.env.GOOGLE_FLOW_API_KEY || null;
+    return null;
   }
 
   public isConfigured(workspaceId: string = 'default'): boolean {
