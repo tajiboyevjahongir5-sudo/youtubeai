@@ -223,14 +223,31 @@ export class VideoRenderService {
 
     console.log(`⚡ [Autonomous Fast Render] "${item.title}" uchun tezyurar FFmpeg neyron montajchi ishga tushirildi...`);
 
-    const assetCandidates = [
-      path.resolve(publicVideosDir, '../assets/clip_ai.webm'),
-      path.resolve(publicVideosDir, '../assets/clip_datacenter.mp4'),
-      path.resolve(publicVideosDir, '../assets/cyberpunk_hailuo.webm'),
-      path.resolve(process.cwd(), 'apps/server/public/assets/clip_ai.webm'),
-      path.resolve(process.cwd(), 'apps/server/public/assets/clip_datacenter.mp4')
-    ];
-    let chosenAsset = assetCandidates.find(c => fs.existsSync(c)) || assetCandidates[0];
+    const tLower = (item.title + ' ' + ((item.tags && Array.isArray(item.tags)) ? item.tags.join(' ') : '')).toLowerCase();
+    const veoCandidate = path.join(publicVideosDir, `veo_${item.id}.mp4`);
+
+    let chosenAsset = '';
+    if (fs.existsSync(veoCandidate)) {
+      console.log(`🎬 [Autonomous Render] Mavzuga mos Google Veo AI video klipi topildi: ${veoCandidate}`);
+      chosenAsset = veoCandidate;
+    } else if (tLower.includes('server') || tLower.includes('cloud') || tLower.includes('datacenter') || tLower.includes('infra') || tLower.includes('devops')) {
+      chosenAsset = path.resolve(publicVideosDir, '../assets/clip_datacenter.mp4');
+    } else if (tLower.includes('secret') || tLower.includes('illegal') || tLower.includes('dark') || tLower.includes('hacker') || tLower.includes('cyber') || tLower.includes('money')) {
+      chosenAsset = path.resolve(publicVideosDir, '../assets/cyberpunk_hailuo.webm');
+    } else {
+      chosenAsset = path.resolve(publicVideosDir, '../assets/clip_ai.webm');
+    }
+
+    // Safety fallback if chosen asset doesn't exist on disk
+    if (!fs.existsSync(chosenAsset)) {
+      const fallbackList = [
+        path.resolve(publicVideosDir, '../assets/clip_ai.webm'),
+        path.resolve(publicVideosDir, '../assets/clip_datacenter.mp4'),
+        path.resolve(publicVideosDir, '../assets/cyberpunk_hailuo.webm'),
+        path.resolve(process.cwd(), 'apps/server/public/assets/clip_ai.webm')
+      ];
+      chosenAsset = fallbackList.find(c => fs.existsSync(c)) || '';
+    }
 
     const vfScale = isLong 
       ? `scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080`
