@@ -56,12 +56,16 @@ export class GoogleFlowVeoService {
     try {
       console.log(`✨ [Google Flow / Veo] Google bulutida AI video generatsiyasi boshlandi (${model}, ${aspect})...`);
       
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateVideos?key=${apiKey}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predictLongRunning?key=${apiKey}`;
       const payload = {
-        prompt: prompt,
-        config: {
+        instances: [
+          {
+            prompt: prompt
+          }
+        ],
+        parameters: {
           aspectRatio: aspect,
-          resolution: resolution
+          sampleCount: 1
         }
       };
 
@@ -73,7 +77,11 @@ export class GoogleFlowVeoService {
 
       if (!response.ok) {
         const errText = await response.text();
-        console.warn(`⚠️ [Google Flow / Veo] API so'rovida xatolik (${response.status}): ${errText}`);
+        if (response.status === 429) {
+          console.warn(`⚠️ [Google Flow / Veo] Veo video kvotasi (RESOURCE_EXHAUSTED). Google Veo video generatsiyasi uchun Google Cloud loyihasida to'lov (billing yoki $300 bepul kredit) faollashtirilgan bo'lishi kerak. O'rnatilgan avtonom neyron montajchiga o'tilmoqda...`);
+        } else {
+          console.warn(`⚠️ [Google Flow / Veo] API so'rovida ogohlantirish (${response.status}): ${errText}`);
+        }
         return { success: false, error: errText };
       }
 
