@@ -79,13 +79,13 @@ export class VideoRenderService {
       updateRenderProgress(item.id, 20, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
       await Promise.race([
         pexelsBrollService.getOrFetchTopicClips(item, 2),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 6s')), 6000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 3.5s')), 3500))
       ]);
     } catch (brollErr: any) {
       console.warn('[B-Roll Notice]:', brollErr?.message || brollErr);
     }
 
-    // If Google Flow / Veo is configured, attempt AI video scene generation with strict 10s limit
+    // If Google Flow / Veo is configured, attempt AI video scene generation with strict 4s limit
     if (googleFlowVeoService.isConfigured(item.workspaceId)) {
       updateRenderProgress(item.id, 25, '2/3: Google Flow (Veo) kinematik video generatsiya qilmoqda...', 2, 4, 'rendering');
       try {
@@ -95,7 +95,7 @@ export class VideoRenderService {
           googleFlowVeoService.generateSceneVideo(scenePrompt, veoClipPath, item.workspaceId, {
             aspectRatio: isLong ? '16:9' : '9:16'
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Veo 10s budget reached')), 10000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Veo 4s budget reached')), 4000))
         ]);
       } catch (veoErr: any) {
         console.warn('Google Flow / Veo notice (continuing instantly):', veoErr?.message || veoErr);
@@ -147,15 +147,15 @@ export class VideoRenderService {
       });
 
       // Railway timeout safeguard: Cloud proxies drop requests at 30s.
-      // We set a strict 16s safeguard so the entire pipeline finishes in under 18s (ZERO upstream errors).
+      // We set a strict 11s safeguard so the entire pipeline finishes in under 15s (ZERO upstream errors).
       const timeoutId = setTimeout(async () => {
         if (!pythonFinished && !fs.existsSync(outputPath)) {
-          console.warn(`⏳ [Railway Proxy Safeguard] Python render 16s chegarasiga yetdi, zudlik bilan tezyurar avtonom FFmpeg dvigateliga o'tilmoqda...`);
+          console.warn(`⏳ [Railway Proxy Safeguard] Python render 11s chegarasiga yetdi, zudlik bilan tezyurar avtonom FFmpeg dvigateliga o'tilmoqda...`);
           try { pythonProcess.kill(); } catch (e) {}
           const fallbackRes = await this.renderFastAutonomousVideo(item, outputPath, isLong);
           resolve(fallbackRes);
         }
-      }, 16000);
+      }, 11000);
 
       pythonProcess.on('close', async (code) => {
         pythonFinished = true;

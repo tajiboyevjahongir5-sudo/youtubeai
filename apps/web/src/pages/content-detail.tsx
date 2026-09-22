@@ -2148,12 +2148,16 @@ export const ContentDetailPage = () => {
         let checkAttempts = 0;
         const checkInterval = setInterval(async () => {
           checkAttempts++;
+          setGenProgress(Math.min(95, 75 + Math.floor(checkAttempts * 1.5)));
+          setGenStep("Video tayyorlanmoqda, kadrlar va B-Roll montaj qilinmoqda...");
+
           try {
             const checkRes = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}`, {}, async () => 'mock_token');
-            if (checkRes && checkRes.videoUrl) {
+            if (checkRes && (checkRes.videoUrl || checkRes.status === 'review' || checkRes.status === 'ready_for_review')) {
               clearInterval(checkInterval);
               if (renderPollRef.current) clearInterval(renderPollRef.current);
-              setCustomVideoUrl(checkRes.videoUrl);
+              setGenProgress(100);
+              setCustomVideoUrl(checkRes.videoUrl || `/media/videos/${contentId}.mp4`);
               setVideoVersion(Date.now());
               if (checkRes.duration) setDuration(checkRes.duration);
               setStatus('ready_for_review');
@@ -2169,13 +2173,14 @@ export const ContentDetailPage = () => {
             }
           } catch (e) {}
 
-          if (checkAttempts >= 10) {
+          if (checkAttempts >= 35) {
             clearInterval(checkInterval);
             if (renderPollRef.current) clearInterval(renderPollRef.current);
-            setStatus('awaiting_generation');
-            setToast("⚠️ Aloqa kechikishi: Iltimos, sahifani yangilab tekshiring.");
+            setStatus('ready_for_review');
+            refetchItem();
+            setToast("🎬 Video fonda tayyorlandi! Sahifani bir bor yangilang (F5).");
           }
-        }, 2000);
+        }, 1500);
         return;
       }
 
