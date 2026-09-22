@@ -14,7 +14,9 @@ import {
   Copy,
   AlertTriangle,
   Check,
-  Video
+  Video,
+  Film,
+  Play
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
@@ -27,10 +29,16 @@ export const IntegrationsPage = () => {
   const [testSent, setTestSent] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [googleFlowApiKey, setGoogleFlowApiKey] = useState('');
+  const [pexelsApiKey, setPexelsApiKey] = useState('');
   const [savedSettings, setSavedSettings] = useState<any>(null);
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [keySavedToast, setKeySavedToast] = useState(false);
   const [showKeyInput, setShowKeyInput] = useState(false);
+  const [isSavingPexelsKey, setIsSavingPexelsKey] = useState(false);
+  const [pexelsKeySavedToast, setPexelsKeySavedToast] = useState(false);
+  const [isTestingPexels, setIsTestingPexels] = useState(false);
+  const [pexelsTestResult, setPexelsTestResult] = useState<any>(null);
+  const [showPexelsKeyInput, setShowPexelsKeyInput] = useState(false);
 
   const linkCode = 'JP-77492';
   const wsId = getWorkspaceId();
@@ -60,6 +68,9 @@ export const IntegrationsPage = () => {
           if (data.settings.googleFlowApiKey) {
             setGoogleFlowApiKey(data.settings.googleFlowApiKey);
           }
+          if (data.settings.pexelsApiKey) {
+            setPexelsApiKey(data.settings.pexelsApiKey);
+          }
         }
       })
       .catch(() => {});
@@ -87,6 +98,53 @@ export const IntegrationsPage = () => {
       console.error(e);
     } finally {
       setIsSavingKey(false);
+    }
+  };
+
+  const handleSavePexelsKey = async () => {
+    setIsSavingPexelsKey(true);
+    try {
+      const updated = {
+        ...(savedSettings || {}),
+        pexelsApiKey: pexelsApiKey.trim()
+      };
+      await fetch(`/api/workspaces/${wsId}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': wsId
+        },
+        body: JSON.stringify({ settings: updated })
+      });
+      setSavedSettings(updated);
+      setPexelsKeySavedToast(true);
+      setTimeout(() => setPexelsKeySavedToast(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingPexelsKey(false);
+    }
+  };
+
+  const handleTestPexelsKey = async () => {
+    if (!pexelsApiKey.trim()) return;
+    setIsTestingPexels(true);
+    setPexelsTestResult(null);
+    try {
+      const res = await fetch('/api/broll/test-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-workspace-id': wsId
+        },
+        body: JSON.stringify({ apiKey: pexelsApiKey.trim() })
+      });
+      const data = await res.json();
+      setPexelsTestResult(data);
+    } catch (e: any) {
+      setPexelsTestResult({ success: false, message: e.message || 'Sinashda xatolik yuz berdi' });
+    } finally {
+      setIsTestingPexels(false);
     }
   };
 
@@ -414,6 +472,156 @@ export const IntegrationsPage = () => {
             )}
             <p className="text-[11px] text-gray-500">
               Ushbu kalit faqat sizning workspace'ingizga tegishli bo'ladi. Agar kalit kiritmasangiz ham, tizim o'rnatilgan avtonom neyron dvigatel orqali videolarni to'liq generatsiya qilaveradi.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Pexels & Pixabay 100% Free Dynamic B-Roll Video Studio Section */}
+      <div className="liquid-glass rounded-3xl p-6 sm:p-7 border border-cyan-500/20 bg-cyan-500/[0.02] space-y-6 animate-fade-in-up stagger-5 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+              <Film size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-base">Pexels & Pixabay Dinamik B-Roll Video Studiyasi</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  100% BEPUL VA CHEKSIZ ($0)
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Har bir mavzu uchun 4K/HD vertikal (9:16) haqiqiy videolarni avtomatik yuklaydi. Google'ga 30 dollar to'lash shart emas!
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowPexelsKeyInput(!showPexelsKeyInput)}
+            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-all self-start sm:self-auto cursor-pointer"
+          >
+            <KeyRound size={13} />
+            {showPexelsKeyInput ? "Sozlamalarni yopish" : (pexelsApiKey ? "Pexels API Kaliti (Ulagan)" : "Pexels API Kalitini Sozlash")}
+          </button>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-cyan-500/20">
+            <span className="text-xs text-gray-400 block mb-1">To'lov va Narx</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-cyan-400">$0.00 / Mutlaqo Bepul</span>
+              <CheckCircle2 size={14} className="text-cyan-400" />
+            </div>
+            <span className="text-[11px] text-gray-500 mt-1 block">Kredit karta talab etilmaydi</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+            <span className="text-xs text-gray-400 block mb-1">Kadr Formati</span>
+            <span className="text-sm font-bold text-white block">9:16 Vertikal HD 60FPS</span>
+            <span className="text-[11px] text-gray-500 mt-1 block">YouTube Shorts va Reels uchun mos</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+            <span className="text-xs text-gray-400 block mb-1">Mualliflik Huquqi</span>
+            <span className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+              <ShieldCheck size={16} className="text-emerald-400" />
+              Royalty-Free & 100% Xavfsiz
+            </span>
+            <span className="text-[11px] text-gray-500 mt-1 block">Monetizatsiya va algoritmlar uchun toza</span>
+          </div>
+        </div>
+
+        {/* Pexels API Key Section */}
+        {showPexelsKeyInput && (
+          <div className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-gray-200">
+                Pexels API Kaliti (1 daqiqada bepul beriladi, karta so'ralmaydi):
+              </span>
+              <a
+                href="https://www.pexels.com/api/new/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 underline underline-offset-2"
+              >
+                Pexels'dan bepul API kalit olish (30 soniya) <ExternalLink size={12} />
+              </a>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="text"
+                value={pexelsApiKey}
+                onChange={(e) => setPexelsApiKey(e.target.value)}
+                placeholder="Pexels API kalitingizni kiriting..."
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-cyan-500"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSavePexelsKey}
+                  disabled={isSavingPexelsKey}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-4"
+                >
+                  {isSavingPexelsKey ? "Saqlanmoqda..." : "Saqlash"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestPexelsKey}
+                  disabled={isTestingPexels || !pexelsApiKey.trim()}
+                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 text-xs px-4 flex items-center gap-1.5"
+                >
+                  <RefreshCw size={13} className={isTestingPexels ? "animate-spin" : ""} />
+                  {isTestingPexels ? "Tekshirilmoqda..." : "Jonli Sinash"}
+                </Button>
+              </div>
+            </div>
+
+            {pexelsKeySavedToast && (
+              <p className="text-xs text-emerald-400 flex items-center gap-1 animate-fade-in">
+                <Check size={13} /> Pexels API kaliti muvaffaqiyatli saqlandi!
+              </p>
+            )}
+
+            {pexelsTestResult && (
+              <div className={`p-4 rounded-xl text-xs space-y-3 animate-fade-in ${
+                pexelsTestResult.success 
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' 
+                  : 'bg-red-500/10 border border-red-500/30 text-red-300'
+              }`}>
+                <div className="flex items-center gap-2 font-semibold">
+                  {pexelsTestResult.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                  <span>{pexelsTestResult.message}</span>
+                </div>
+
+                {pexelsTestResult.sampleVideos && pexelsTestResult.sampleVideos.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-emerald-500/20">
+                    <span className="text-[11px] text-gray-400 block">Pexels'dan topilgan namuna 9:16 vertikal kadrlar:</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {pexelsTestResult.sampleVideos.map((s: any) => (
+                        <div key={s.id} className="relative rounded-lg overflow-hidden border border-white/10 group aspect-[9/16] max-h-32 bg-black">
+                          <img src={s.image} alt="Sample" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play size={16} className="text-white" />
+                          </div>
+                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] bg-black/70 text-white font-mono">
+                            {s.duration}s
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <p className="text-[11px] text-gray-500">
+              💡 <strong>Eslatma:</strong> Pexels API butunlay bepul va unda hech qanday oylik to'lov yo'q. Agar kalit kiritmasangiz ham, tizim o'rnatilgan yuqori aniqlikdagi texnologik va neyron harakatli kadrlar orqali videolarni uzluksiz yaratib beradi.
             </p>
           </div>
         )}

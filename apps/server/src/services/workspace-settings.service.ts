@@ -22,6 +22,7 @@ export interface AutoPublishSettings {
   backgroundMusicMood?: string;
   voiceEmotionPreset?: string;
   googleFlowApiKey?: string;
+  pexelsApiKey?: string;
   geminiApiKey?: string;
   groqApiKey?: string;
   deepseekApiKey?: string;
@@ -62,6 +63,7 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           backgroundMusicMood: parsed.backgroundMusicMood || 'neon_pulse',
           voiceEmotionPreset: parsed.voiceEmotionPreset || 'energetic',
           googleFlowApiKey: parsed.googleFlowApiKey || undefined,
+          pexelsApiKey: parsed.pexelsApiKey || undefined,
           geminiApiKey: parsed.geminiApiKey || undefined,
           groqApiKey: parsed.groqApiKey || undefined,
           deepseekApiKey: parsed.deepseekApiKey || undefined,

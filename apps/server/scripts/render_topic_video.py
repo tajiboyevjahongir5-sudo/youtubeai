@@ -1177,6 +1177,21 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     ])
     cap_storm = cv2.VideoCapture(storm_path) if storm_path else None
 
+    # Dynamic Topic B-Roll footage (Pexels HD 9:16 or custom topic scenes)
+    broll_scene1_path = find_file([
+        os.path.join(os.path.dirname(__file__), f'../public/assets/broll/{item_id}_scene_1.mp4'),
+        os.path.join(os.getcwd(), f'apps/server/public/assets/broll/{item_id}_scene_1.mp4'),
+        os.path.join(os.getcwd(), f'public/assets/broll/{item_id}_scene_1.mp4')
+    ])
+    cap_broll_1 = cv2.VideoCapture(broll_scene1_path) if broll_scene1_path else None
+
+    broll_scene2_path = find_file([
+        os.path.join(os.path.dirname(__file__), f'../public/assets/broll/{item_id}_scene_2.mp4'),
+        os.path.join(os.getcwd(), f'apps/server/public/assets/broll/{item_id}_scene_2.mp4'),
+        os.path.join(os.getcwd(), f'public/assets/broll/{item_id}_scene_2.mp4')
+    ])
+    cap_broll_2 = cv2.VideoCapture(broll_scene2_path) if broll_scene2_path else None
+
     def read_looped_frame(cap, target_w, target_h):
         if cap is None:
             return None
@@ -1284,7 +1299,18 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     topic_cat = classify_topic_category(item_id, clean_title, data.get('tags', []), high_cpm_keywords, script)
     print(f"🎯 Dynamic B-Roll Orchestration: Category [{topic_cat.upper()}] for [{item_id}]", flush=True)
 
-    if topic_cat == 'coding_prompts':
+    if cap_broll_1 or cap_broll_2:
+        print(f"🎬 [Pexels Dynamic Footage] Topic video clips loaded for all scenes of [{item_id}]!", flush=True)
+        b1 = cap_broll_1 or cap_broll_2
+        b2 = cap_broll_2 or cap_broll_1
+        scene_caps = [
+            b1,
+            b2,
+            b1,
+            b2,
+            b1
+        ]
+    elif topic_cat == 'coding_prompts':
         # Pure computational, high-tech AI & datacenter vibe (NO umbrella rain guy!)
         scene_caps = [
             cap_ai or cap_datacenter,

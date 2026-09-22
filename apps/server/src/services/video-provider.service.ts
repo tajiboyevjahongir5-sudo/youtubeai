@@ -1,4 +1,5 @@
 import { googleFlowVeoService } from './google-flow-veo.service';
+import { pexelsBrollService } from './pexels-broll.service';
 
 export interface IVideoProvider {
   generateVideo(script: any, workspaceId?: string): Promise<string>;
@@ -8,23 +9,40 @@ export interface IVideoProvider {
   getProviderCapabilities(): any;
 }
 
-export class GoogleFlowVeoVideoProvider implements IVideoProvider {
+export class HybridVideoProvider implements IVideoProvider {
   async generateVideo(script: any, workspaceId: string = 'default') {
-    const isConfigured = googleFlowVeoService.isConfigured(workspaceId);
-    return isConfigured ? `google_veo_${Date.now()}` : `built_in_neural_${Date.now()}`;
+    if (googleFlowVeoService.isConfigured(workspaceId)) {
+      return `google_veo_${Date.now()}`;
+    }
+    if (pexelsBrollService.isConfigured(workspaceId)) {
+      return `pexels_hd_${Date.now()}`;
+    }
+    return `built_in_neural_${Date.now()}`;
   }
-  async getGenerationStatus(jobId: string) { return 'completed'; }
-  async cancelGeneration(jobId: string) { return true; }
-  async downloadResult(jobId: string) { return Buffer.from('video'); }
+
+  async getGenerationStatus(jobId: string) { 
+    return 'completed'; 
+  }
+
+  async cancelGeneration(jobId: string) { 
+    return true; 
+  }
+
+  async downloadResult(jobId: string) { 
+    return Buffer.from('video'); 
+  }
+
   getProviderCapabilities() { 
     return { 
-      provider: 'google_flow_veo',
-      model: 'veo-3.1-generate-preview',
+      provider: 'hybrid_broll_neural',
+      models: ['pexels-4k-portrait', 'google-veo-3.1', 'neural-kinetic-motion'],
+      primarySource: 'pexels_broll_free',
       maxDuration: 60,
       aspectRatios: ['9:16', '16:9'],
-      resolutions: ['720p', '1080p']
+      resolutions: ['720p', '1080p', '4K']
     }; 
   }
 }
 
-export const videoProviderService = new GoogleFlowVeoVideoProvider();
+export const videoProviderService = new HybridVideoProvider();
+export const GoogleFlowVeoVideoProvider = HybridVideoProvider;

@@ -5,6 +5,7 @@ import { contentStore, ContentItemRecord } from './content-store.service';
 import { videoInspectorService } from './video-inspector.service';
 import { getWorkspaceSettings } from './workspace-settings.service';
 import { googleFlowVeoService } from './google-flow-veo.service';
+import { pexelsBrollService } from './pexels-broll.service';
 import { updateRenderProgress } from './render-progress.service';
 
 export class VideoRenderService {
@@ -72,6 +73,17 @@ export class VideoRenderService {
 
     updateRenderProgress(item.id, 10, '1/3: Mavzu va ssenariy tahlil qilinmoqda...', 1, 4, 'rendering');
     console.log(`🎬 Starting video render for "${item.title}" [${item.id}]...`);
+
+    // Fetch topic-matched dynamic B-Roll footage (Pexels HD 9:16 or high-res curated pool)
+    try {
+      updateRenderProgress(item.id, 20, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
+      await Promise.race([
+        pexelsBrollService.getOrFetchTopicClips(item, 2),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 6s')), 6000))
+      ]);
+    } catch (brollErr: any) {
+      console.warn('[B-Roll Notice]:', brollErr?.message || brollErr);
+    }
 
     // If Google Flow / Veo is configured, attempt AI video scene generation with strict 10s limit
     if (googleFlowVeoService.isConfigured(item.workspaceId)) {
@@ -226,8 +238,17 @@ export class VideoRenderService {
     const tLower = (item.title + ' ' + ((item.tags && Array.isArray(item.tags)) ? item.tags.join(' ') : '')).toLowerCase();
     const veoCandidate = path.join(publicVideosDir, `veo_${item.id}.mp4`);
 
+    const brollCandidate1 = path.resolve(publicVideosDir, `../assets/broll/${item.id}_scene_1.mp4`);
+    const brollCandidate2 = path.resolve(publicVideosDir, `../assets/broll/${item.id}_scene_2.mp4`);
+
     let chosenAsset = '';
-    if (fs.existsSync(veoCandidate)) {
+    if (fs.existsSync(brollCandidate1)) {
+      console.log(`🎬 [Autonomous Render] Mavzuga mos Pexels 4K/HD video klipi topildi: ${brollCandidate1}`);
+      chosenAsset = brollCandidate1;
+    } else if (fs.existsSync(brollCandidate2)) {
+      console.log(`🎬 [Autonomous Render] Mavzuga mos Pexels video klipi topildi: ${brollCandidate2}`);
+      chosenAsset = brollCandidate2;
+    } else if (fs.existsSync(veoCandidate)) {
       console.log(`🎬 [Autonomous Render] Mavzuga mos Google Veo AI video klipi topildi: ${veoCandidate}`);
       chosenAsset = veoCandidate;
     } else if (tLower.includes('server') || tLower.includes('cloud') || tLower.includes('datacenter') || tLower.includes('infra') || tLower.includes('devops')) {
