@@ -1892,8 +1892,11 @@ export const ContentDetailPage = () => {
         setStatus('published');
       } else if (itemData.status === 'scheduled') {
         setStatus('ready_for_review');
-      } else if (itemData.videoUrl && itemData.videoUrl.trim() !== '') {
+      } else if (itemData.status === 'review' || itemData.status === 'ready_for_review' || (itemData.videoUrl && itemData.videoUrl.trim() !== '')) {
         setStatus('ready_for_review');
+        if (itemData.videoUrl) setCustomVideoUrl(itemData.videoUrl);
+      } else if (itemData.status === 'rendering' || itemData.status === 'generating') {
+        setStatus('generating');
       } else {
         setStatus('awaiting_generation');
       }
@@ -2176,9 +2179,8 @@ export const ContentDetailPage = () => {
           if (checkAttempts >= 35) {
             clearInterval(checkInterval);
             if (renderPollRef.current) clearInterval(renderPollRef.current);
-            setStatus('ready_for_review');
             refetchItem();
-            setToast("🎬 Video fonda tayyorlandi! Sahifani bir bor yangilang (F5).");
+            setToast("⚠️ Serverda render davom etmoqda. Birozdan so'ng sahifani yangilang yoki qayta bosing.");
           }
         }, 1500);
         return;

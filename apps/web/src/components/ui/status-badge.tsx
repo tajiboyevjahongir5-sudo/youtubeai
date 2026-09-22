@@ -9,10 +9,13 @@ export const StatusBadge = ({ status }: { status: string }) => {
   if (s.includes('publish')) { 
     variant = 'success'; 
     label = 'Nashr etilgan'; 
-  } else if (s.includes('review') || s.includes('ready')) {
+  } else if (s.includes('review') || s === 'ready_for_review') {
     variant = 'default';
     label = 'Videoni ko\'rishga tayyor';
-  } else if (s.includes('render') || s.includes('gen') || s.includes('progress')) {
+  } else if (s === 'awaiting_generation' || s.includes('draft') || s.includes('script_ready')) {
+    variant = 'secondary';
+    label = 'Generatsiyaga tayyor';
+  } else if (s.includes('render') || s === 'generating' || s.includes('progress')) {
     variant = 'outline';
     label = 'Render qilinmoqda...';
   } else if (s.includes('approval') || s.includes('needs')) { 
