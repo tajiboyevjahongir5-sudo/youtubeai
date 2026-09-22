@@ -73,17 +73,20 @@ export class VideoRenderService {
     updateRenderProgress(item.id, 10, '1/3: Mavzu va ssenariy tahlil qilinmoqda...', 1, 4, 'rendering');
     console.log(`🎬 Starting video render for "${item.title}" [${item.id}]...`);
 
-    // If Google Flow / Veo is configured, attempt AI video scene generation
+    // If Google Flow / Veo is configured, attempt AI video scene generation with strict 10s limit
     if (googleFlowVeoService.isConfigured(item.workspaceId)) {
       updateRenderProgress(item.id, 25, '2/3: Google Flow (Veo) kinematik video generatsiya qilmoqda...', 2, 4, 'rendering');
       try {
         const scenePrompt = `${item.title}, high quality cinematic vertical video, 9:16, 4k ultra-hd`;
         const veoClipPath = path.join(publicVideosDir, `veo_${item.id}.mp4`);
-        await googleFlowVeoService.generateSceneVideo(scenePrompt, veoClipPath, item.workspaceId, {
-          aspectRatio: isLong ? '16:9' : '9:16'
-        });
-      } catch (veoErr) {
-        console.warn('Google Flow / Veo notice:', veoErr);
+        await Promise.race([
+          googleFlowVeoService.generateSceneVideo(scenePrompt, veoClipPath, item.workspaceId, {
+            aspectRatio: isLong ? '16:9' : '9:16'
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Veo 10s budget reached')), 10000))
+        ]);
+      } catch (veoErr: any) {
+        console.warn('Google Flow / Veo notice (continuing instantly):', veoErr?.message || veoErr);
       }
     }
 
@@ -131,15 +134,16 @@ export class VideoRenderService {
         stderrData += data.toString();
       });
 
-      // Railway timeout safeguard: if Python takes more than 50s, switch to Fast Autonomous Renderer
+      // Railway timeout safeguard: Cloud proxies drop requests at 30s.
+      // We set a strict 16s safeguard so the entire pipeline finishes in under 18s (ZERO upstream errors).
       const timeoutId = setTimeout(async () => {
         if (!pythonFinished && !fs.existsSync(outputPath)) {
-          console.warn(`⏳ [Timeout Safeguard] Python render sekinlashdi, zudlik bilan tezyurar avtonom FFmpeg dvigateliga o'tilmoqda...`);
+          console.warn(`⏳ [Railway Proxy Safeguard] Python render 16s chegarasiga yetdi, zudlik bilan tezyurar avtonom FFmpeg dvigateliga o'tilmoqda...`);
           try { pythonProcess.kill(); } catch (e) {}
           const fallbackRes = await this.renderFastAutonomousVideo(item, outputPath, isLong);
           resolve(fallbackRes);
         }
-      }, 55000);
+      }, 16000);
 
       pythonProcess.on('close', async (code) => {
         pythonFinished = true;

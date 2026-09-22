@@ -2136,8 +2136,50 @@ export const ContentDetailPage = () => {
     } catch (err: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      console.error('Video render notice:', err);
+
+      // Graceful Auto-Recovery: Railway proxy may drop HTTP connection at 30s with "upstream error",
+      // but the server continues and finishes rendering in the background. Check if video is ready!
+      const errStr = (err?.message || '').toLowerCase();
+      const isUpstreamOrTimeout = errStr.includes('upstream') || errStr.includes('502') || errStr.includes('504') || errStr.includes('network');
+
+      if (isUpstreamOrTimeout) {
+        setToast("⏳ Server foni videoni yig'moqda, bir zum kuting...");
+        let checkAttempts = 0;
+        const checkInterval = setInterval(async () => {
+          checkAttempts++;
+          try {
+            const checkRes = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}`, {}, async () => 'mock_token');
+            if (checkRes && checkRes.videoUrl) {
+              clearInterval(checkInterval);
+              if (renderPollRef.current) clearInterval(renderPollRef.current);
+              setCustomVideoUrl(checkRes.videoUrl);
+              setVideoVersion(Date.now());
+              if (checkRes.duration) setDuration(checkRes.duration);
+              setStatus('ready_for_review');
+              setToast(`🎬 "${videoTitle}" mavzusi bo'yicha video muvaffaqiyatli tayyorlandi!`);
+              refetchItem();
+              setTimeout(() => {
+                if (videoRef.current) {
+                  videoRef.current.load();
+                  videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                }
+              }, 500);
+              return;
+            }
+          } catch (e) {}
+
+          if (checkAttempts >= 10) {
+            clearInterval(checkInterval);
+            if (renderPollRef.current) clearInterval(renderPollRef.current);
+            setStatus('awaiting_generation');
+            setToast("⚠️ Aloqa kechikishi: Iltimos, sahifani yangilab tekshiring.");
+          }
+        }, 2000);
+        return;
+      }
+
       if (renderPollRef.current) clearInterval(renderPollRef.current);
-      console.error('Video render error:', err);
       setStatus('awaiting_generation');
       setToast("❌ Video yaratishda xatolik yuz berdi: " + (err?.message || 'Server xatosi'));
     }
