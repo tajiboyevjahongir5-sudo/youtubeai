@@ -4,6 +4,7 @@ import { analyticsService } from './analytics.service';
 
 import { getWorkspaceSettings } from './workspace-settings.service';
 import { aiCouncilService } from './ai-council.service';
+import { freeAiService } from './free-ai.service';
 
 export interface IAiService {
   generateIdea(context: any): Promise<any>;
@@ -31,9 +32,25 @@ export class GeminiAiService implements IAiService {
       return result.response.text();
     } catch (err: any) {
       console.warn(`⚠️ [${this.primaryModel}] so'rovida xatolik, zaxira modelga [${this.fallbackModel}] o'tilmoqda...`, err?.message || err);
-      const fallback = this.genAI.getGenerativeModel({ model: this.fallbackModel });
-      const result = await fallback.generateContent(prompt);
-      return result.response.text();
+      try {
+        const fallback = this.genAI.getGenerativeModel({ model: this.fallbackModel });
+        const result = await fallback.generateContent(prompt);
+        return result.response.text();
+      } catch (err2: any) {
+        console.warn(`⚠️ [Gemini Fallback] ham xato berdi. 100% Tekin GitHub AI (Pollinations GPT-4o / Llama 3.3) ishga tushirilmoqda...`, err2?.message || err2);
+        try {
+          const freeResult = await freeAiService.generateText(prompt, { model: 'openai' });
+          if (freeResult && freeResult.length > 20) {
+            console.log('✅ [Free AI / Pollinations GPT-4o] Muvaffaqiyatli generatsiya qilindi!');
+            return freeResult;
+          }
+        } catch (err3: any) {
+          console.warn('⚠️ [Free AI Primary] xato, Llama 3.3 ga o\'tilmoqda...', err3?.message || err3);
+          const llamaResult = await freeAiService.generateText(prompt, { model: 'llama' });
+          return llamaResult;
+        }
+        throw err2;
+      }
     }
   }
 

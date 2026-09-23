@@ -57,18 +57,44 @@ def generate_thumbnail(output_path, width=1080, height=1920, headline='STOP CODI
     badge_clean = strip_emojis(badge).upper()
     brand_clean = strip_emojis(brand).upper()
 
-    img = Image.new('RGB', (width, height), bg_color)
-    glow_overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow_overlay)
-    center_x = width // 2
-    center_y = int(height * 0.42)
-    radius = int(min(width, height) * 0.75)
-    
-    for r in range(radius, 0, -25):
-        alpha = int(45 * (1 - r / radius))
-        glow_draw.ellipse([center_x - r, center_y - r, center_x + r, center_y + r], fill=(glow_color[0], glow_color[1], glow_color[2], alpha))
-    
-    img = Image.alpha_composite(img.convert('RGBA'), glow_overlay).convert('RGB')
+    # AI Background Generator via Pollinations FLUX.1 (Keyless, Free)
+    ai_bg_loaded = False
+    try:
+        import urllib.request, urllib.parse, io
+        # Clean topic prompt for FLUX
+        clean_keywords = ' '.join([w for w in headline_clean.split() if len(w) > 2][:6])
+        flux_prompt = f"cinematic dark cyberpunk {clean_keywords} artificial intelligence hyper-realistic high-tech neon lighting 8k wallpaper"
+        flux_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(flux_prompt)}?width={width}&height={height}&model=flux&nologo=true"
+        req = urllib.request.Request(flux_url, headers={'User-Agent': 'Jpilot-Studio/1.0'})
+        with urllib.request.urlopen(req, timeout=12) as response:
+            ai_data = response.read()
+            ai_img = Image.open(io.BytesIO(ai_data)).convert('RGBA')
+            if ai_img.size != (width, height):
+                ai_img = ai_img.resize((width, height), Image.Resampling.LANCZOS)
+            
+            # Dim the background image so text is punchy and readable
+            darkener = Image.new('RGBA', (width, height), (bg_color[0], bg_color[1], bg_color[2], 180))
+            ai_img = Image.alpha_composite(ai_img, darkener)
+            img = ai_img.convert('RGB')
+            ai_bg_loaded = True
+            print(f"[Thumbnail AI] FLUX.1 fon rasmi muvaffaqiyatli generatsiya qilindi: {clean_keywords}")
+    except Exception as e:
+        print(f"[Thumbnail AI] FLUX.1 zaxira protsessual fonga o'tildi ({e})")
+
+    if not ai_bg_loaded:
+        img = Image.new('RGB', (width, height), bg_color)
+        glow_overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow_overlay)
+        center_x = width // 2
+        center_y = int(height * 0.42)
+        radius = int(min(width, height) * 0.75)
+        
+        for r in range(radius, 0, -25):
+            alpha = int(45 * (1 - r / radius))
+            glow_draw.ellipse([center_x - r, center_y - r, center_x + r, center_y + r], fill=(glow_color[0], glow_color[1], glow_color[2], alpha))
+        
+        img = Image.alpha_composite(img.convert('RGBA'), glow_overlay).convert('RGB')
+
     draw = ImageDraw.Draw(img)
 
     grid_color = (glow_color[0] // 5, glow_color[1] // 5, glow_color[2] // 5)

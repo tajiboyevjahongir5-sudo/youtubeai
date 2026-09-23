@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getWorkspaceSettings, saveWorkspaceSettings } from './workspace-settings.service';
+import { freeAiService } from './free-ai.service';
 
 export interface ChannelAnalysis {
   channelId: string;
@@ -268,9 +269,15 @@ IMPORTANT: Return ONLY the raw JSON object. No markdown, no code blocks, no extr
     }
   }
 
-  // If AI generation was unavailable, provide high quality heuristic fallback
-  if (!analysisText && lastError) {
-    console.warn(`[Channel Analysis] AI generation vaqtincha band, avtomatik profiling ishlatiladi:`, lastError.message);
+  // If Gemini failed all attempts, seamlessly fallback to Free AI (Pollinations GPT-4o / Llama 3.3)
+  if (!analysisText) {
+    try {
+      console.log('🔄 [Channel Analysis] Gemini band, 100% Tekin Free AI (Pollinations) orqali tahlil qilinmoqda...');
+      analysisText = await freeAiService.generateText(analysisPrompt, { model: 'openai', timeoutMs: 25000 });
+      console.log('✅ [Channel Analysis] Free AI orqali muvaffaqiyatli tahlil olindi!');
+    } catch (freeErr: any) {
+      console.warn(`[Channel Analysis] Free AI ham xato berdi, evristik tahlilga o'tilmoqda:`, freeErr?.message || freeErr);
+    }
   }
 
   // Parse AI response
