@@ -57,6 +57,27 @@ if (env.CLERK_SECRET_KEY && !env.CLERK_SECRET_KEY.includes('placeholder')) {
 
 app.use('/api', routes);
 
+// Static frontend serving: serves the React web app on GET / when dist exists
+import fs from 'fs';
+const webDistCandidates = [
+  path.resolve(__dirname, '../../web/dist'),
+  path.resolve(process.cwd(), 'apps/web/dist'),
+  path.resolve(__dirname, '../public/dist')
+];
+for (const distPath of webDistCandidates) {
+  if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
+    console.log(`🌐 [Static Web] Web frontend ulangan dist papkasi topildi: ${distPath}`);
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/media') || req.path.startsWith('/health')) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+    break;
+  }
+}
+
 app.use(errorHandler);
 
 process.on('uncaughtException', (err) => {
