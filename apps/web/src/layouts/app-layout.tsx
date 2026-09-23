@@ -79,7 +79,7 @@ const AppLayout = () => {
       items: [
         { path: '/dashboard', label: 'Boshqaruv paneli', icon: LayoutDashboard },
         { path: '/content', label: 'Kontent Fabrikasi', icon: FileText },
-        { path: '/trends', label: 'Trend Ovchisi (Radar)', icon: Flame, badge: 'HOT' },
+        { path: '/trends', label: 'Trend Mavzular & Rek', icon: Flame, badge: 'REK' },
         { path: '/calendar', label: 'Nashrlar Taqvim', icon: Calendar },
       ]
     },

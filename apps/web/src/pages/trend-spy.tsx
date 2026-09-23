@@ -26,8 +26,34 @@ export const TrendSpyPage = () => {
   const workspaceId = getWorkspaceId();
   const navigate = useNavigate();
   const [adoptingId, setAdoptingId] = useState<string | null>(null);
+  const [applyingNicheId, setApplyingNicheId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Barchasi');
   const [copiedPollId, setCopiedPollId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const handleSetAsChannelNiche = async (trend: any) => {
+    const targetNiche = trend.targetNiche || trend.title.replace(/#shorts/gi, '').trim();
+    const targetSubNiches = trend.targetSubNiches || 'AI Tools, Coding, Automation, Python';
+    setApplyingNicheId(trend.id);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/trends/set-channel-niche`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({ targetNiche, targetSubNiches })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`🎯 Kanal mavzusi muvaffaqiyatli "${targetNiche}" ga o'zgartirildi! Endi avtopilot shu yo'nalishda video chiqaradi.`);
+        setTimeout(() => setToast(null), 5000);
+      } else {
+        setToast('❌ Xatolik: ' + (data.error || 'Mavzuni saqlab bo\'lmadi'));
+      }
+    } catch (e: any) {
+      setToast('❌ Tarmoq xatosi: ' + e?.message);
+    } finally {
+      setApplyingNicheId(null);
+    }
+  };
 
   // 1. Fetch Viral Trends
   const { data: trendsData, isLoading: isTrendsLoading, refetch: refetchTrends } = useQuery({
@@ -326,61 +352,108 @@ export const TrendSpyPage = () => {
           </div>
         </div>
       </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <TrendingUp size={20} className="text-red-500" />
-            Eng Yuqori Bosilish Ko'rsatkichiga Ega Viral Trendlar
-          </h3>
-          <span className="text-xs text-gray-400">Top 4 ta viral namuna</span>
+      <div className="space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div>
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+              <Flame size={22} className="text-amber-400 fill-amber-400 animate-pulse" />
+              Rekga Chiqishi Oson Bo'lgan Trend Mavzular (2026)
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Raqobati kam, qiziqishi yuqori va YouTube Shorts algoritmi hozir eng ko'p tavsiya qilayotgan tayyor mavzular
+            </p>
+          </div>
+          <span className="text-xs text-emerald-400 font-semibold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 self-start sm:self-auto">
+            ⚡ Algoritm tomonidan tasdiqlangan
+          </span>
         </div>
 
+        {/* Toifalar filteri */}
+        <div className="flex flex-wrap gap-2">
+          {['Barchasi', 'AI & Avtomatlashtirish', 'AI & Neyrotarmoqlar', 'Mahsuldorlik & Vositalar', 'Biznes & Pul Topish', 'Dasturlash & IT'].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                  : 'bg-white/[0.04] text-gray-300 hover:bg-white/[0.08] border border-white/10'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Trendlar qatori */}
         <div className="grid md:grid-cols-2 gap-5">
-          {trendsData && trendsData.map((trend: any) => (
-            <Card key={trend.id} className="liquid-glass border border-white/10 hover:border-red-500/40 transition-all group">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                        Viral Score: {trend.viralScore}/100
-                      </span>
-                      <span className="text-xs font-semibold text-gray-400 flex items-center gap-1">
-                        <Eye size={12} /> {trend.viewsFormatted}
-                      </span>
+          {trendsData && trendsData
+            .filter((t: any) => selectedCategory === 'Barchasi' || !t.category || t.category === selectedCategory)
+            .map((trend: any) => (
+            <Card key={trend.id} className="liquid-glass border border-white/10 hover:border-amber-500/40 transition-all group flex flex-col justify-between">
+              <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      🔥 Viral Score: {trend.viralScore || 98}/100
+                    </span>
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      {trend.viralEaseLabel || "🟢 Juda Oson (Kam raqobat)"}
+                    </span>
+                  </div>
+
+                  <h4 className="text-base font-black text-white group-hover:text-amber-300 transition-colors leading-snug">
+                    "{trend.title}"
+                  </h4>
+
+                  {trend.whyViral && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
+                      <strong className="text-amber-400 block font-bold text-[10px] uppercase mb-0.5">Nega Rekga Chiqadi?</strong>
+                      {trend.whyViral}
                     </div>
-                    <h4 className="text-base font-bold text-white group-hover:text-red-400 transition-colors pt-1">
-                      {trend.title}
-                    </h4>
-                    <p className="text-xs text-gray-400">Muallif / Kanal: {trend.channelTitle}</p>
+                  )}
+
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Qarmoq Formulasi:</span>
+                      <span className="font-semibold text-cyan-400">{trend.hookPattern || "Curiosity Shock"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Kutilayotgan CTR:</span>
+                      <span className="font-bold text-emerald-400">{trend.predictedCtr || "14.2%"}</span>
+                    </div>
+                    {trend.targetNiche && (
+                      <div className="flex justify-between pt-1 border-t border-white/5">
+                        <span className="text-gray-400">Kanal Nishasi:</span>
+                        <span className="font-semibold text-white">{trend.targetNiche}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Hook Turi (Qarmoq):</span>
-                    <span className="font-semibold text-cyan-400">{trend.hookPattern}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Kutilayotgan CTR:</span>
-                    <span className="font-bold text-emerald-400">{trend.predictedCtr}</span>
-                  </div>
-                  <div className="pt-1.5 border-t border-white/5 text-[11px] text-gray-300">
-                    <span className="text-amber-400 font-semibold block mb-0.5">Kanalimizga Moslash Rejasi:</span>
-                    {trend.adaptationIdea}
-                  </div>
-                </div>
+                {/* 2 TA ASOSIY AMAL TUGMASI */}
+                <div className="space-y-2 pt-2">
+                  <Button
+                    onClick={() => handleSetAsChannelNiche(trend)}
+                    disabled={applyingNicheId === trend.id}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg text-xs font-bold py-2.5 rounded-xl cursor-pointer border border-emerald-400/30"
+                  >
+                    <Check size={14} className={applyingNicheId === trend.id ? 'animate-spin' : ''} />
+                    {applyingNicheId === trend.id ? "Kanalga O'rnatilmoqda..." : "🎯 Kanal Mavzusiga Aylantirish"}
+                  </Button>
 
-                <Button
-                  variant="primary"
-                  onClick={() => handleAdoptTrend(trend)}
-                  disabled={adoptingId === trend.id}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg text-xs font-bold py-2.5 cursor-pointer"
-                >
-                  <Zap size={14} className={adoptingId === trend.id ? 'animate-spin' : ''} />
-                  {adoptingId === trend.id ? 'Loyiha Yaratilmoqda...' : 'Ushbu Trend Asosida Video Yaratish'}
-                  <ArrowRight size={14} />
-                </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleAdoptTrend(trend)}
+                    disabled={adoptingId === trend.id}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2.5 rounded-xl cursor-pointer border-white/15 hover:border-amber-400/40 text-gray-200"
+                  >
+                    <Zap size={14} className={adoptingId === trend.id ? 'animate-spin text-amber-400' : 'text-amber-400'} />
+                    {adoptingId === trend.id ? "Loyiha Yaratilmoqda..." : "⚡ Shu Mavzuda Video Yasash"}
+                    <ArrowRight size={13} />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

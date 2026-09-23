@@ -1,9 +1,10 @@
 import { google } from 'googleapis';
-import { getWorkspaceSettings } from './workspace-settings.service';
+import { getWorkspaceSettings, saveWorkspaceSettings } from './workspace-settings.service';
 import { youtubeService } from './youtube.service';
 import { aiService } from './ai.service';
 import { contentStore } from './content-store.service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { freeAiService } from './free-ai.service';
 import { env } from '../env';
 
 export interface ViralTrendItem {
@@ -17,6 +18,13 @@ export interface ViralTrendItem {
   hookPattern: string;
   predictedCtr: string;
   adaptationIdea: string;
+  // Rekga chiqish va nisha parametrlari:
+  viralEase?: 'juda_oson' | 'oson' | 'orta';
+  viralEaseLabel?: string;
+  category?: string;
+  targetNiche?: string;
+  targetSubNiches?: string;
+  whyViral?: string;
 }
 
 export class TrendSpyService {
@@ -79,36 +87,46 @@ export class TrendSpyService {
     return this.generateSynthesizedTrends(niche, subNiches);
   }
 
-  private async generateSynthesizedTrends(niche: string, subNiches: string): Promise<ViralTrendItem[]> {
-    if (this.genAI) {
-      try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `You are a YouTube Shorts trend intelligence expert.
-For niche: "${niche}" (Sub-topics: ${subNiches}), identify 5 massive viral YouTube Shorts trends blowing up right now in 2026.
+  private async generateSynthesizedTrends(niche: string, subNiches: string, category?: string): Promise<ViralTrendItem[]> {
+    const prompt = `You are a YouTube Shorts viral algorithm specialist.
+Target category: "${category || 'Barchasi (AI, Tech, Coding, Wealth)'}". Channel niche: "${niche}" (${subNiches}).
+Identify 6 high-velocity YouTube Shorts topics that are guaranteed to go viral ("rekga chiqishi oson") right now in 2026.
+Focus on topics with: Low competition, high curiosity shock, beginner accessible, high retention.
+
 Return strictly a JSON array of objects:
 [
   {
-    "id": "trend_1",
-    "title": "Exact Clickable Viral Title Here #Shorts",
-    "channelTitle": "AI Frontier / Matthew Berman",
-    "viewsFormatted": "450K views",
-    "publishedAt": "2 days ago",
+    "id": "trend_unique_id",
+    "title": "Exact High-CTR Viral Title with #Shorts",
+    "channelTitle": "Viral Tech Spotlight",
+    "viewsFormatted": "780K views",
+    "publishedAt": "Bugun",
+    "thumbnailUrl": "/host_alex.jpg",
     "viralScore": 98,
-    "hookPattern": "Curiosity gap: 'Stop using X, do this instead'",
-    "predictedCtr": "13.8%",
-    "adaptationIdea": "Tailored angle for our channel"
+    "hookPattern": "Curiosity Shock: 'Stop trading hours for code'",
+    "predictedCtr": "14.2%",
+    "adaptationIdea": "Tailored strategy angle",
+    "viralEase": "juda_oson",
+    "viralEaseLabel": "Juda Oson (Kam raqobat, yuqori qiziqish)",
+    "category": "AI & Avtomatlashtirish",
+    "targetNiche": "AI Tools & Automation",
+    "targetSubNiches": "Coding, AI Agents, SaaS, Automation",
+    "whyViral": "Odamlar o'rniga ishlaydigan yangi AI vositalariga qiziqish rekord darajada yuqori."
   }
 ]`;
-        const res = await model.generateContent(prompt);
-        const text = res.response.text();
-        const jsonStart = text.indexOf('[');
-        const jsonEnd = text.lastIndexOf(']') + 1;
-        if (jsonStart !== -1 && jsonEnd > jsonStart) {
-          return JSON.parse(text.slice(jsonStart, jsonEnd));
+
+    try {
+      const freeRes = await freeAiService.generateText(prompt, { model: 'openai', timeoutMs: 25000 });
+      const jsonStart = freeRes.indexOf('[');
+      const jsonEnd = freeRes.lastIndexOf(']') + 1;
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        const parsed = JSON.parse(freeRes.slice(jsonStart, jsonEnd));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
-      } catch (aiErr) {
-        console.warn('Gemini TrendSpy fallback:', aiErr);
       }
+    } catch (aiErr) {
+      console.warn('Free AI TrendSpy notice, using curated viral dataset:', aiErr);
     }
 
     return [
@@ -122,7 +140,31 @@ Return strictly a JSON array of objects:
         viralScore: 99,
         hookPattern: "Curiosity Shock: 'Stop trading hours for code'",
         predictedCtr: '14.2%',
-        adaptationIdea: 'Top 5 AI Tools That Work While You Sleep in 2026'
+        adaptationIdea: 'Top 5 AI Tools That Work While You Sleep in 2026',
+        viralEase: 'juda_oson',
+        viralEaseLabel: 'Juda Oson (Kam raqobat, yuqori qiziqish)',
+        category: 'AI & Avtomatlashtirish',
+        targetNiche: 'Autonomous AI Agents & Coding',
+        targetSubNiches: 'AI Agents, Dev Tools, Python, Automation',
+        whyViral: 'Dasturchilar va frilanserlar avtonom agentlar haqidagi videolarni oxirigacha ko\'rmoqda (APV 95%+).'
+      },
+      {
+        id: 'trend_deepseek_r1_local',
+        title: 'How to Run DeepSeek-R1 Locally on Any Cheap Laptop for Free #Shorts',
+        channelTitle: 'Open Source AI Wizard',
+        viewsFormatted: '1.2M views',
+        publishedAt: 'Kecha',
+        thumbnailUrl: '/host_alex.jpg',
+        viralScore: 98,
+        hookPattern: "Free Value Shock: 'You don't need a $2,000 GPU'",
+        predictedCtr: '15.6%',
+        adaptationIdea: 'Running 70B Models on a 6GB Budget GPU: Step-by-Step',
+        viralEase: 'juda_oson',
+        viralEaseLabel: 'Juda Oson (Ommaviy talab)',
+        category: 'AI & Neyrotarmoqlar',
+        targetNiche: 'Local AI & Open Source Models',
+        targetSubNiches: 'DeepSeek, Local LLMs, Ollama, Free AI',
+        whyViral: 'Pullik ChatGPT va Claude o\'rniga tekin lokal modellarni ishlatishga qiziqish eng cho\'qqisida.'
       },
       {
         id: 'trend_illegal_tools',
@@ -134,7 +176,31 @@ Return strictly a JSON array of objects:
         viralScore: 96,
         hookPattern: "Taboo Allure: 'Websites they don't want you to know'",
         predictedCtr: '12.8%',
-        adaptationIdea: 'Secret Autonomous SaaS Blueprint for Solo Founders'
+        adaptationIdea: 'Secret Autonomous SaaS Blueprint for Solo Founders',
+        viralEase: 'juda_oson',
+        viralEaseLabel: 'Juda Oson (Viral format)',
+        category: 'Mahsuldorlik & Vositalar',
+        targetNiche: 'Secret AI Productivity Tools',
+        targetSubNiches: 'Productivity, Chrome Extensions, Free Software',
+        whyViral: '"Illegal to know" formati YouTube Shorts tarixidagi eng yuqori bosilish foiziga (CTR 13%+) ega.'
+      },
+      {
+        id: 'trend_passive_ai_income',
+        title: 'How I Built an Autonomous $5,000/Month YouTube Channel with AI #Shorts',
+        channelTitle: 'Cashflow Creator',
+        viewsFormatted: '910K views',
+        publishedAt: '2 kun oldin',
+        thumbnailUrl: '/host_alex.jpg',
+        viralScore: 95,
+        hookPattern: "Financial Proof: 'Zero face, zero voice, 100% automated'",
+        predictedCtr: '13.4%',
+        adaptationIdea: 'Faceless YouTube Automation Architecture in 2026',
+        viralEase: 'oson',
+        viralEaseLabel: 'Oson (Yuqori daromad qiziqishi)',
+        category: 'Biznes & Pul Topish',
+        targetNiche: 'AI Automation & Passive Income',
+        targetSubNiches: 'YouTube Automation, Faceless Channels, Side Hustle',
+        whyViral: 'Moliyaviy erkinlik va avtomatlashtirish auditoriyani eng tez jalb qiluvchi nisha hisoblanadi.'
       },
       {
         id: 'trend_claude_benchmark',
@@ -146,7 +212,13 @@ Return strictly a JSON array of objects:
         viralScore: 94,
         hookPattern: "Benchmark Showdown: 1v1 Battle",
         predictedCtr: '11.9%',
-        adaptationIdea: 'Why Autonomous Coding Agents Beat Senior Engineers in 2026'
+        adaptationIdea: 'Why Autonomous Coding Agents Beat Senior Engineers in 2026',
+        viralEase: 'oson',
+        viralEaseLabel: 'Oson (Bahsli mavzu)',
+        category: 'Dasturlash & IT',
+        targetNiche: 'AI Coding Benchmarks & Battles',
+        targetSubNiches: 'Coding, LLM Battles, Software Engineering',
+        whyViral: 'Izohlarda qizg\'in bahs-munozara (engagement) keltirib chiqaradi, bu algoritmni portlatadi.'
       },
       {
         id: 'trend_prompt_engineering_dead',
@@ -158,9 +230,31 @@ Return strictly a JSON array of objects:
         viralScore: 92,
         hookPattern: "Contrarian Truth: 'Everything you learned is obsolete'",
         predictedCtr: '11.5%',
-        adaptationIdea: 'The Death of Prompts: How AI Swarms Write Their Own Instructions'
+        adaptationIdea: 'The Death of Prompts: How AI Swarms Write Their Own Instructions',
+        viralEase: 'orta',
+        viralEaseLabel: "O'rta (Chuqur tahlil)",
+        category: 'Texnologiya Kelajagi',
+        targetNiche: 'AI Philosophy & Future Tech',
+        targetSubNiches: 'Future AI, AGI, Automation Trends',
+        whyViral: 'Kutilmagan xulosa odamlarni videoni qayta-qayta ko\'rishga undaydi (Retention booster).'
       }
     ];
+  }
+
+  /**
+   * Sets this trending topic/niche as the workspace's primary content niche.
+   * Auto-pilot will immediately start generating videos aligned with this trend!
+   */
+  public async applyTrendAsChannelNiche(workspaceId: string, targetNiche: string, targetSubNiches?: string): Promise<{ success: boolean; settings: any }> {
+    console.log(`🎯 [TrendSpy] Workspace "${workspaceId}" kanal mavzusi yangilandi: "${targetNiche}" (${targetSubNiches})`);
+
+    const updated = saveWorkspaceSettings(workspaceId, {
+      niche: targetNiche,
+      subNiches: targetSubNiches || 'AI Tools, Automation, Coding, Python',
+      analysisMode: 'manual'
+    });
+
+    return { success: true, settings: updated };
   }
 
   public async adoptTrendAsContent(workspaceId: string, trendTitle: string) {

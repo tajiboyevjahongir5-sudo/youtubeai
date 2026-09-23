@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { trendSpyService } from '../services/trend-spy.service';
 
 const router = Router({ mergeParams: true });
@@ -22,6 +22,20 @@ router.post('/adopt', async (req: Request, res: Response, next: NextFunction) =>
     }
     const item = await trendSpyService.adoptTrendAsContent(workspaceId, title);
     res.status(201).json({ success: true, item });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/set-channel-niche', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+    const { targetNiche, targetSubNiches } = req.body;
+    if (!targetNiche) {
+      return res.status(400).json({ error: 'targetNiche is required' });
+    }
+    const result = await trendSpyService.applyTrendAsChannelNiche(workspaceId, targetNiche, targetSubNiches);
+    res.json(result);
   } catch (err) {
     next(err);
   }
