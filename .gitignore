@@ -20,6 +20,7 @@ youtube_token.json
 youtube_tokens.json
 youtube_channel.json
 data/
+apps/server/data/
 storage/
 backup_pre_remediation/
 

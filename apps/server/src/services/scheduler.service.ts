@@ -46,6 +46,9 @@ export class SchedulerService {
   private getActiveWorkspaces(): string[] {
     const workspacesSet = new Set<string>();
 
+    // Owner workspace is always checked
+    workspacesSet.add('ws_j7ktjxw0');
+
     try {
       const userWorkspaces = userAuthService.getAllWorkspaces();
       for (const ws of userWorkspaces) {
@@ -53,30 +56,28 @@ export class SchedulerService {
       }
     } catch (e) {}
 
-    try {
-      if (fs.existsSync(SETTINGS_DIR)) {
-        const files = fs.readdirSync(SETTINGS_DIR);
-        for (const f of files) {
-          if (f.endsWith('.json')) {
-            const ws = f.replace('.json', '');
-            if (ws && ws !== 'default') workspacesSet.add(ws);
-          }
-        }
-      }
-    } catch (e) {}
+    const checkDirs = [
+      path.resolve(process.cwd(), 'data/settings'),
+      path.resolve(process.cwd(), 'apps/server/data/settings'),
+      path.resolve(process.cwd(), 'data/tokens'),
+      path.resolve(process.cwd(), 'apps/server/data/tokens'),
+      path.resolve(process.cwd(), 'data/channels'),
+      path.resolve(process.cwd(), 'apps/server/data/channels')
+    ];
 
-    try {
-      const tokenDir = path.resolve(process.cwd(), 'data/tokens');
-      if (fs.existsSync(tokenDir)) {
-        const files = fs.readdirSync(tokenDir);
-        for (const f of files) {
-          if (f.endsWith('.json')) {
-            const ws = f.replace('.json', '');
-            if (ws && ws !== 'default') workspacesSet.add(ws);
+    for (const dir of checkDirs) {
+      try {
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          for (const f of files) {
+            if (f.endsWith('.json')) {
+              const ws = f.replace('.json', '');
+              if (ws && ws !== 'default') workspacesSet.add(ws);
+            }
           }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     return Array.from(workspacesSet);
   }
@@ -172,7 +173,8 @@ export class SchedulerService {
       }
 
       const settings = getWorkspaceSettings(wsId);
-      if (!settings.enabled || settings.approvalMode !== 'auto') {
+      const isAutoEnabled = settings.enabled ?? (settings.autoPilotEnabled ?? true);
+      if (!isAutoEnabled || settings.approvalMode !== 'auto') {
         continue;
       }
 
@@ -180,32 +182,55 @@ export class SchedulerService {
       const timeInTz = this.getCurrentTimeInTimezone(settings.timezone || 'Asia/Tashkent');
       const currentHour = timeInTz.hours;
       const currentMinute = timeInTz.minutes;
+      const currentTotalMinutes = currentHour * 60 + currentMinute;
 
-      for (const timeSlot of settings.publishTimes) {
+      // 1. Fetch channel's already uploaded videos to prevent ANY duplicate upload
+      let liveInfo = await youtubeService.getLiveStats(wsId);
+      if (!liveInfo) {
+        liveInfo = youtubeService.loadChannelInfo(wsId);
+      }
+      const uploadedTitles = new Set<string>(
+        (liveInfo?.recentVideos || []).map((v: any) =>
+          (v.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim()
+        )
+      );
+
+      // Check how many videos were uploaded to YouTube today
+      const todayStr = dateKey; // YYYY-MM-DD
+      const uploadedTodayCount = (liveInfo?.recentVideos || []).filter((v: any) => {
+        if (!v.publishedAt) return false;
+        try {
+          const pubDate = new Date(v.publishedAt).toISOString().slice(0, 10);
+          return pubDate === todayStr;
+        } catch (e) { return false; }
+      }).length;
+
+      const dailyTarget = settings.dailyTarget || 2;
+      const publishTimes = (Array.isArray(settings.publishTimes) && settings.publishTimes.length > 0)
+        ? settings.publishTimes
+        : ['14:00', '20:00'];
+
+      for (const timeSlot of publishTimes) {
         const [slotHourStr, slotMinStr] = timeSlot.split(':');
         const slotHour = parseInt(slotHourStr, 10);
         const slotMin = parseInt(slotMinStr || '0', 10);
+        const slotTotalMinutes = slotHour * 60 + slotMin;
 
         const slotKey = `${wsId}_${dateKey}_${timeSlot}`;
 
-        // Check if current time is within slot window (e.g. within 20 minutes of slot time)
-        const minuteDiff = (currentHour * 60 + currentMinute) - (slotHour * 60 + slotMin);
-        const isTimeForSlot = minuteDiff >= 0 && minuteDiff < 25;
+        // Slot is triggered if:
+        // A) Current time is right in the slot window (within 25 mins)
+        // B) OR the slot time has already passed today, but today's target is NOT met and this slot hasn't run yet! (Catch-up)
+        const minuteDiff = currentTotalMinutes - slotTotalMinutes;
+        const isExactWindow = minuteDiff >= 0 && minuteDiff < 30;
+        const isMissedSlot = minuteDiff >= 30 && uploadedTodayCount < dailyTarget && !this.publishedSlotsToday.has(slotKey);
 
-        if (isTimeForSlot && !this.publishedSlotsToday.has(slotKey)) {
-          console.log(`🤖 [Auto-Pilot] ${wsId} uchun ${timeSlot} vaqti keldi! Avtomatik video nashr jarayoni boshlandi.`);
+        const shouldPublish = (isExactWindow || isMissedSlot) && !this.publishedSlotsToday.has(slotKey);
+
+        if (shouldPublish) {
+          const reason = isExactWindow ? `Rejalashtirilgan vaqt (${timeSlot})` : `Kechikkan slotni qoplash (Catch-up: ${timeSlot})`;
+          console.log(`🤖 [Auto-Pilot] ${wsId} uchun video nashr boshlandi! Sabab: ${reason}.`);
           this.publishedSlotsToday.add(slotKey);
-
-          // 1. Fetch channel's already uploaded videos to prevent ANY duplicate upload
-          let liveInfo = await youtubeService.getLiveStats(wsId);
-          if (!liveInfo) {
-            liveInfo = youtubeService.loadChannelInfo(wsId);
-          }
-          const uploadedTitles = new Set<string>(
-            (liveInfo?.recentVideos || []).map((v: any) =>
-              (v.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim()
-            )
-          );
 
           // 2. Find ready item that has NOT been uploaded yet
           const candidates = contentStore.getAll(wsId).filter(i => {

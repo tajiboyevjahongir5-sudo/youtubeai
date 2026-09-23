@@ -83,7 +83,21 @@ export class YouTubeService implements IYouTubeService {
         }
       }
 
-      // Strict workspace isolation: only load tokens belonging to this workspace
+      // Owner-specific fallback for ws_j7ktjxw0 in case of ephemeral filesystem reset
+      if (id === 'ws_j7ktjxw0') {
+        if (process.env.YOUTUBE_TOKEN_JSON) {
+          try {
+            return JSON.parse(process.env.YOUTUBE_TOKEN_JSON);
+          } catch (pe) {}
+        }
+        if (process.env.YOUTUBE_REFRESH_TOKEN) {
+          return {
+            refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
+            token_type: 'Bearer',
+            workspaceId: 'ws_j7ktjxw0'
+          };
+        }
+      }
     } catch (e) {
       console.error(`❌ [${workspaceId}] Token o'qishda xatolik:`, e);
     }
@@ -114,6 +128,12 @@ export class YouTubeService implements IYouTubeService {
         if (fs.existsSync(p)) {
           return JSON.parse(fs.readFileSync(p, 'utf-8'));
         }
+      }
+
+      if (id === 'ws_j7ktjxw0' && process.env.YOUTUBE_CHANNEL_JSON) {
+        try {
+          return JSON.parse(process.env.YOUTUBE_CHANNEL_JSON);
+        } catch (pe) {}
       }
     } catch (e) {}
     return null;

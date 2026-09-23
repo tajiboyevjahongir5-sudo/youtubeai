@@ -101,7 +101,9 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
     autoTitleAbTest: true,
     hostAvatar: 'alex',
     backgroundMusicMood: 'neon_pulse',
-    voiceEmotionPreset: 'energetic'
+    voiceEmotionPreset: 'energetic',
+    sourceChannelUrl: workspaceId === 'ws_j7ktjxw0' ? '@NeuralPulseAI-m3e' : undefined,
+    analysisMode: 'channel'
   };
 }
 
