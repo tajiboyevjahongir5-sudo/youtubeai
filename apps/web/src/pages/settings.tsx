@@ -74,10 +74,6 @@ const SettingsPage = () => {
   const [backgroundMusicMood, setBackgroundMusicMood] = useState('neon_pulse');
   const [voiceEmotionPreset, setVoiceEmotionPreset] = useState('energetic');
 
-  // Video B-Roll Pexels State
-  const [pexelsApiKey, setPexelsApiKey] = useState('');
-  const [isTestingPexels, setIsTestingPexels] = useState(false);
-  const [pexelsTestResult, setPexelsTestResult] = useState<{ success: boolean; message: string; sampleVideos?: any[] } | null>(null);
 
   // Password Change State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -87,22 +83,6 @@ const SettingsPage = () => {
   const [pwdSuccess, setPwdSuccess] = useState('');
   const [isChangingPwd, setIsChangingPwd] = useState(false);
 
-  const handleTestPexelsKey = async () => {
-    if (!pexelsApiKey.trim()) return;
-    setIsTestingPexels(true);
-    setPexelsTestResult(null);
-    try {
-      const res = await fetchApi('/broll/test-key', {
-        method: 'POST',
-        body: JSON.stringify({ apiKey: pexelsApiKey.trim() })
-      }, async () => 'mock_token');
-      setPexelsTestResult(res);
-    } catch (err: any) {
-      setPexelsTestResult({ success: false, message: err?.message || 'Tarmoq xatosi' });
-    } finally {
-      setIsTestingPexels(false);
-    }
-  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +181,6 @@ const SettingsPage = () => {
           if (s.customHostImage) setCustomHostImage(s.customHostImage);
           if (s.backgroundMusicMood) setBackgroundMusicMood(s.backgroundMusicMood);
           if (s.voiceEmotionPreset) setVoiceEmotionPreset(s.voiceEmotionPreset);
-          if (s.pexelsApiKey) setPexelsApiKey(s.pexelsApiKey);
           if (Array.isArray(s.publishTimes)) {
             if (s.publishTimes[0]) setPublishTime1(s.publishTimes[0]);
             if (s.publishTimes[1]) setPublishTime2(s.publishTimes[1]);
@@ -240,7 +219,6 @@ const SettingsPage = () => {
             customHostImage,
             backgroundMusicMood,
             voiceEmotionPreset,
-            pexelsApiKey: pexelsApiKey.trim() || undefined,
             publishTimes: [publishTime1, publishTime2].filter(Boolean)
           }
         })
@@ -1002,7 +980,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Video B-Roll Engine (Pexels & Pixabay HD Footage) */}
+        {/* Video B-Roll Engine — Avtomatik */}
         <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-3">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-3">
@@ -1011,106 +989,48 @@ const SettingsPage = () => {
               </div>
               <div>
                 <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  Video B-Roll Dvigateli (Pexels 4K/HD Jonli Kadrlar)
+                  Video B-Roll Dvigateli (HD Jonli Kadrlar)
                   <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    100% Bepul
+                    Avtomatik
                   </span>
                 </h3>
                 <p className="text-xs text-gray-400">
-                  Shorts videolarining har bir sahnasi uchun mavzuga mos professional vertikal HD video kadrlarni yuklash
+                  Har bir sahna uchun mavzuga mos professional HD video kadrlar avtomatik yuklanadi
                 </p>
               </div>
             </div>
-            <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
-              pexelsApiKey ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-            }`}>
-              {pexelsApiKey ? 'Pexels HD: Ulangan' : 'Zaxira B-Roll Faol'}
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full border bg-emerald-500/15 border-emerald-500/30 text-emerald-400">
+              Faol
             </span>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">
-                  Pexels API Kaliti
-                </label>
-                <a
-                  href="https://www.pexels.com/api/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 underline underline-offset-2"
-                >
-                  Tekin API kalit olish (karta shart emas)
-                  <ExternalLink size={11} />
-                </a>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Input
-                  type="password"
-                  placeholder="Pexels API kalitini shu yerga kiriting..."
-                  value={pexelsApiKey}
-                  onChange={(e) => setPexelsApiKey(e.target.value)}
-                  className="bg-black/50 border-white/20 text-xs font-mono flex-1"
-                />
-                <Button
-                  type="button"
-                  onClick={handleTestPexelsKey}
-                  disabled={isTestingPexels || !pexelsApiKey.trim()}
-                  className="bg-white/10 hover:bg-white/15 text-white border border-white/20 text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap disabled:opacity-50"
-                >
-                  {isTestingPexels ? (
-                    <>
-                      <RefreshCw size={13} className="animate-spin mr-1.5" />
-                      Tekshirilmoqda...
-                    </>
-                  ) : (
-                    'Kalitni Tekshirish'
-                  )}
-                </Button>
-              </div>
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="space-y-1">
+              <strong className="text-white block font-semibold flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-400" />
+                5 Sahnali Montaj
+              </strong>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Har bir sahna (Hook, Muammo, Yechim, Natija, Outro) o'ziga mos video kadr oladi.
+              </p>
             </div>
-
-            {/* Test result alert */}
-            {pexelsTestResult && (
-              <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                pexelsTestResult.success
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-red-500/10 border-red-500/30 text-red-400'
-              }`}>
-                {pexelsTestResult.success ? <CheckCircle2 size={16} className="flex-shrink-0" /> : <AlertTriangle size={16} className="flex-shrink-0" />}
-                <span>{pexelsTestResult.message}</span>
-              </div>
-            )}
-
-            {/* Explanatory benefit callout */}
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 grid sm:grid-cols-3 gap-3 text-xs">
-              <div className="space-y-1">
-                <strong className="text-white block font-semibold flex items-center gap-1.5">
-                  <Check size={14} className="text-emerald-400" />
-                  5 Sahnali Montaj
-                </strong>
-                <p className="text-gray-400 text-[11px] leading-relaxed">
-                  Har bir sahna (Hook, Muammo, Yechim, Natija, Outro) o'ziga mos video kadr oladi.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <strong className="text-white block font-semibold flex items-center gap-1.5">
-                  <Check size={14} className="text-emerald-400" />
-                  GPU Talab Qilmaydi
-                </strong>
-                <p className="text-gray-400 text-[11px] leading-relaxed">
-                  Railway CPU va GTX 1660 Super NVENC orqali 20 soniyada to'liq HD render bo'ladi.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <strong className="text-white block font-semibold flex items-center gap-1.5">
-                  <Check size={14} className="text-emerald-400" />
-                  Litsenziyali & Xavfsiz
-                </strong>
-                <p className="text-gray-400 text-[11px] leading-relaxed">
-                  Barcha videolar YouTube monetization va Copyright qoidalariga 100% toza.
-                </p>
-              </div>
+            <div className="space-y-1">
+              <strong className="text-white block font-semibold flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-400" />
+                GPU Talab Qilmaydi
+              </strong>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Railway CPU orqali 20 soniyada to'liq HD render bo'ladi.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <strong className="text-white block font-semibold flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-400" />
+                Litsenziyali & Xavfsiz
+              </strong>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Barcha videolar YouTube monetization va Copyright qoidalariga 100% toza.
+              </p>
             </div>
           </div>
         </div>

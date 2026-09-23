@@ -73,18 +73,13 @@ export class PexelsBrollService {
     return candidates[0];
   }
 
-  public getEffectiveApiKey(workspaceId?: string): string | undefined {
-    if (workspaceId) {
-      const wsSettings = getWorkspaceSettings(workspaceId);
-      if (wsSettings.pexelsApiKey && wsSettings.pexelsApiKey.trim().length > 10) {
-        return wsSettings.pexelsApiKey.trim();
-      }
-    }
+  public getEffectiveApiKey(_workspaceId?: string): string | undefined {
+    // Server-side only — foydalanuvchi hech qanday kalit kiritmaydi
     return process.env.PEXELS_API_KEY || undefined;
   }
 
-  public isConfigured(workspaceId?: string): boolean {
-    const key = this.getEffectiveApiKey(workspaceId);
+  public isConfigured(_workspaceId?: string): boolean {
+    const key = this.getEffectiveApiKey();
     return !!(key && key.length > 10);
   }
 
