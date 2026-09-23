@@ -229,17 +229,17 @@ export class PexelsBrollService {
   }
 
   /**
-   * Main pipeline helper: fetches and downloads 1-2 authentic topic-tailored clips for an item
+   * Main pipeline helper: fetches and downloads up to 5 authentic topic-tailored clips for an item
    */
   public async getOrFetchTopicClips(
     item: ContentItemRecord,
-    maxClips: number = 2
+    maxClips: number = 5
   ): Promise<string[]> {
     const cacheDir = this.getCacheDir();
     const isLong = item.videoFormat === 'long_form';
     const orientation = isLong ? 'landscape' : 'portrait';
 
-    const query = item.title + ' ' + (item.tags && Array.isArray(item.tags) ? item.tags.join(' ') : '');
+    const defaultQuery = item.title + ' ' + (item.tags && Array.isArray(item.tags) ? item.tags.join(' ') : '');
     const downloadedClips: string[] = [];
 
     // Check if we already have downloaded clips for this item
@@ -250,31 +250,47 @@ export class PexelsBrollService {
       }
     }
 
-    if (downloadedClips.length > 0) {
+    if (downloadedClips.length >= 3) {
       return downloadedClips;
     }
 
     // Attempt Pexels fetch if configured
     if (this.isConfigured(item.workspaceId)) {
       try {
-        console.log(`🎥 [Pexels B-Roll] "${item.title}" uchun mavzuga mos 9:16 vertikal video qidirilmoqda...`);
-        const videos = await this.searchPortraitVideos(query, item.workspaceId, maxClips * 2, orientation);
+        console.log(`🎥 [Pexels B-Roll] "${item.title}" uchun 5 ta sahna uchun 9:16 vertikal HD videolar qidirilmoqda...`);
 
-        for (let i = 0; i < Math.min(videos.length, maxClips); i++) {
-          const v = videos[i];
-          // Find optimal HD portrait file
-          const files = v.video_files || [];
-          const bestFile = files.find(f => f.width === 1080 && f.height === 1920) ||
-                           files.find(f => f.width === 720 && f.height === 1280) ||
-                           files.find(f => f.quality === 'hd') ||
-                           files[0];
+        // Generate per-scene targeted queries
+        const sceneQueries = [
+          item.title,
+          (item.scenes && item.scenes[1] && item.scenes[1].title) || 'coding developer software',
+          (item.scenes && item.scenes[2] && item.scenes[2].title) || 'futuristic technology algorithm matrix',
+          (item.scenes && item.scenes[3] && item.scenes[3].title) || 'digital analytics charts success',
+          (item.scenes && item.scenes[4] && item.scenes[4].title) || 'modern technology subscribe community'
+        ];
 
-          if (bestFile && bestFile.link) {
-            const outClipPath = path.join(cacheDir, `${item.id}_scene_${i + 1}.mp4`);
-            console.log(`⬇️ [Pexels B-Roll] Klip ${i + 1} yuklab olinmoqda (ID: ${v.id}, ${bestFile.width}x${bestFile.height})...`);
-            const ok = await this.downloadClip(bestFile.link, outClipPath);
-            if (ok) {
-              downloadedClips.push(outClipPath);
+        for (let i = 0; i < maxClips; i++) {
+          const outClipPath = path.join(cacheDir, `${item.id}_scene_${i + 1}.mp4`);
+          if (fs.existsSync(outClipPath) && fs.statSync(outClipPath).size > 100000) {
+            downloadedClips.push(outClipPath);
+            continue;
+          }
+
+          const q = sceneQueries[i] || defaultQuery;
+          const videos = await this.searchPortraitVideos(q, item.workspaceId, 3, orientation);
+          if (videos && videos.length > 0) {
+            const v = videos[0];
+            const files = v.video_files || [];
+            const bestFile = files.find(f => f.width === 1080 && f.height === 1920) ||
+                             files.find(f => f.width === 720 && f.height === 1280) ||
+                             files.find(f => f.quality === 'hd') ||
+                             files[0];
+
+            if (bestFile && bestFile.link) {
+              console.log(`⬇️ [Pexels B-Roll] Sahna ${i + 1}/5 klipi yuklab olinmoqda ("${q.slice(0, 30)}")...`);
+              const ok = await this.downloadClip(bestFile.link, outClipPath);
+              if (ok) {
+                downloadedClips.push(outClipPath);
+              }
             }
           }
         }
@@ -286,7 +302,7 @@ export class PexelsBrollService {
     // If no Pexels clips were acquired, return high quality local fallback candidates based on topic
     if (downloadedClips.length === 0) {
       const publicAssets = path.resolve(process.cwd(), 'apps/server/public/assets');
-      const tLower = query.toLowerCase();
+      const tLower = defaultQuery.toLowerCase();
       let fallbackCandidate = path.join(publicAssets, 'clip_ai.webm');
 
       if (tLower.includes('server') || tLower.includes('cloud') || tLower.includes('datacenter') || tLower.includes('infra')) {

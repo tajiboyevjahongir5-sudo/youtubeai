@@ -1178,20 +1178,21 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     ])
     cap_storm = cv2.VideoCapture(storm_path) if storm_path else None
 
-    # Dynamic Topic B-Roll footage (Pexels HD 9:16 or custom topic scenes)
-    broll_scene1_path = find_file([
-        os.path.join(os.path.dirname(__file__), f'../public/assets/broll/{item_id}_scene_1.mp4'),
-        os.path.join(os.getcwd(), f'apps/server/public/assets/broll/{item_id}_scene_1.mp4'),
-        os.path.join(os.getcwd(), f'public/assets/broll/{item_id}_scene_1.mp4')
-    ])
-    cap_broll_1 = cv2.VideoCapture(broll_scene1_path) if broll_scene1_path else None
+    # Dynamic Topic B-Roll footage (Pexels HD 9:16 or custom topic scenes for up to 5 scenes)
+    broll_caps = []
+    for sc_i in range(1, 6):
+        sc_path = find_file([
+            os.path.join(os.path.dirname(__file__), f'../public/assets/broll/{item_id}_scene_{sc_i}.mp4'),
+            os.path.join(os.getcwd(), f'apps/server/public/assets/broll/{item_id}_scene_{sc_i}.mp4'),
+            os.path.join(os.getcwd(), f'public/assets/broll/{item_id}_scene_{sc_i}.mp4')
+        ])
+        cap = cv2.VideoCapture(sc_path) if sc_path else None
+        broll_caps.append(cap)
+        if cap:
+            print(f"🎬 [B-Roll Loaded] Scene {sc_i}: {sc_path}", flush=True)
 
-    broll_scene2_path = find_file([
-        os.path.join(os.path.dirname(__file__), f'../public/assets/broll/{item_id}_scene_2.mp4'),
-        os.path.join(os.getcwd(), f'apps/server/public/assets/broll/{item_id}_scene_2.mp4'),
-        os.path.join(os.getcwd(), f'public/assets/broll/{item_id}_scene_2.mp4')
-    ])
-    cap_broll_2 = cv2.VideoCapture(broll_scene2_path) if broll_scene2_path else None
+    cap_broll_1 = broll_caps[0] if len(broll_caps) > 0 else None
+    cap_broll_2 = broll_caps[1] if len(broll_caps) > 1 else None
 
     def read_looped_frame(cap, target_w, target_h):
         if cap is None:
@@ -1300,16 +1301,12 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     topic_cat = classify_topic_category(item_id, clean_title, data.get('tags', []), high_cpm_keywords, script)
     print(f"🎯 Dynamic B-Roll Orchestration: Category [{topic_cat.upper()}] for [{item_id}]", flush=True)
 
-    if cap_broll_1 or cap_broll_2:
-        print(f"🎬 [Pexels Dynamic Footage] Topic video clips loaded for all scenes of [{item_id}]!", flush=True)
-        b1 = cap_broll_1 or cap_broll_2
-        b2 = cap_broll_2 or cap_broll_1
+    active_brolls = [c for c in broll_caps if c is not None]
+    if active_brolls:
+        print(f"🎬 [Pexels Dynamic Footage] {len(active_brolls)} topic video clips loaded for [{item_id}] scenes!", flush=True)
         scene_caps = [
-            b1,
-            b2,
-            b1,
-            b2,
-            b1
+            broll_caps[i] if (i < len(broll_caps) and broll_caps[i] is not None) else active_brolls[i % len(active_brolls)]
+            for i in range(5)
         ]
     elif topic_cat == 'coding_prompts':
         # Pure computational, high-tech AI & datacenter vibe (NO umbrella rain guy!)

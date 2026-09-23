@@ -167,8 +167,8 @@ export class VideoRenderService {
         updateRenderProgress(item.id, 18, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
       }
       await Promise.race([
-        pexelsBrollService.getOrFetchTopicClips(item, 2),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 3.5s')), 3500))
+        pexelsBrollService.getOrFetchTopicClips(item, 5),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 4.5s')), 4500))
       ]);
     } catch (brollErr: any) {
       console.warn('[B-Roll Notice]:', brollErr?.message || brollErr);
