@@ -23,7 +23,20 @@ import {
   Lock,
   KeyRound,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  ExternalLink,
+  TrendingUp,
+  Target,
+  Layers,
+  Zap,
+  RefreshCw,
+  Eye,
+  Users,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -32,6 +45,15 @@ const SettingsPage = () => {
   const wsId = getWorkspaceId();
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // YouTube Channel Analysis State
+  const [analysisMode, setAnalysisMode] = useState<'channel' | 'manual'>('channel');
+  const [channelUrl, setChannelUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [channelAnalysis, setChannelAnalysis] = useState<any>(null);
+  const [analysisError, setAnalysisError] = useState('');
+  const [analysisSuccess, setAnalysisSuccess] = useState('');
+  const [showManualTuning, setShowManualTuning] = useState(false);
 
   const [niche, setNiche] = useState("Texnologiya & AI Avtomatlashtirish");
   const [subNiches, setSubNiches] = useState("Coding, SaaS, Productivity, Python");
@@ -102,11 +124,45 @@ const SettingsPage = () => {
     }
   };
 
+  const handleAnalyzeChannel = async () => {
+    if (!channelUrl.trim()) {
+      setAnalysisError("Iltimos, YouTube kanal havolasi yoki @handle'ni kiriting (masalan: @NeuralPulseAI-m3e)");
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisError('');
+    setAnalysisSuccess('');
+    try {
+      const res = await fetchApi(`/workspaces/${wsId}/analyze-channel`, {
+        method: 'POST',
+        body: JSON.stringify({ channelUrl: channelUrl.trim() })
+      }, async () => 'mock_token');
+
+      if (res && res.success && res.analysis) {
+        setChannelAnalysis(res.analysis);
+        if (res.analysis.niche) setNiche(res.analysis.niche);
+        if (res.analysis.subNiches) setSubNiches(res.analysis.subNiches);
+        if (res.analysis.audience) setAudience(res.analysis.audience);
+        if (res.analysis.tone) setTone(res.analysis.tone);
+        setAnalysisSuccess(`✅ "${res.analysis.channelTitle || channelUrl}" kanali muvaffaqiyatli tahlil qilindi! Barcha parametrlar avtomatik sozlandi.`);
+      } else {
+        setAnalysisError(res?.error || "Kanalni tahlil qilishda xatolik yuz berdi");
+      }
+    } catch (err: any) {
+      setAnalysisError(err?.message || "Kanalni tahlil qilishda tarmoq xatosi yuz berdi");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     fetchApi(`/workspaces/${wsId}`, {}, async () => 'mock_token')
       .then((data: any) => {
         if (data?.settings) {
           const s = data.settings;
+          if (s.analysisMode) setAnalysisMode(s.analysisMode);
+          if (s.sourceChannelUrl) setChannelUrl(s.sourceChannelUrl);
+          if (s.channelAnalysis) setChannelAnalysis(s.channelAnalysis);
           if (s.niche) setNiche(s.niche);
           if (s.subNiches) setSubNiches(s.subNiches);
           if (s.audience) setAudience(s.audience);
@@ -142,6 +198,9 @@ const SettingsPage = () => {
         method: 'PUT',
         body: JSON.stringify({
           settings: {
+            analysisMode,
+            sourceChannelUrl: channelUrl,
+            channelAnalysis,
             niche,
             subNiches,
             audience,
@@ -190,58 +249,370 @@ const SettingsPage = () => {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* Channel Strategy Settings */}
-        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-5 shadow-xl animate-fade-in-up stagger-1">
-          <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-            <div className="p-2 rounded-xl bg-red-600/20 text-red-500">
-              <Youtube size={20} />
+        {/* Channel Strategy & AI Analysis Settings */}
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6 shadow-xl animate-fade-in-up stagger-1">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
+                <Youtube size={22} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                  Kanal Profil Parametrlari
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    AI Auto-Pilot
+                  </span>
+                </h3>
+                <p className="text-xs text-gray-400">
+                  YouTube kanalingizni AI tahlil qiladi va barcha videolarni shu tahlil asosida yuritadi
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-white text-base">Kanal Profil Parametrlari</h3>
-              <p className="text-xs text-gray-400">AI kontentni moslashtirishi uchun asosiy nisha</p>
+
+            {/* Mode Selector Toggle */}
+            <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setAnalysisMode('channel')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  analysisMode === 'channel'
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-500/25'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Sparkles size={14} />
+                YouTube Kanal Tahlili
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnalysisMode('manual')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  analysisMode === 'manual'
+                    ? 'bg-white/15 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Sliders size={14} />
+                Qo'lda Sozlash
+              </button>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input 
-              label="Asosiy Nisha (Niche)" 
-              value={niche} 
-              onChange={(e) => setNiche(e.target.value)} 
-            />
-            <Input 
-              label="Sub-nishalar (vergul bilan)" 
-              value={subNiches} 
-              onChange={(e) => setSubNiches(e.target.value)} 
-            />
-          </div>
+          {/* Mode 1: YouTube Channel AI Analysis */}
+          {analysisMode === 'channel' && (
+            <div className="space-y-5">
+              {/* Channel URL Input Bar */}
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <Search size={14} className="text-red-400" />
+                    YouTube Kanal Nomi, @Handle yoki Havolasi
+                  </label>
+                  <span className="text-[11px] text-gray-400">Masalan: @NeuralPulseAI-m3e</span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="@KanalNomi yoki https://youtube.com/@handle"
+                      value={channelUrl}
+                      onChange={(e) => setChannelUrl(e.target.value)}
+                      className="w-full bg-black/50 border-white/20 pl-3.5"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleAnalyzeChannel}
+                    disabled={isAnalyzing || !channelUrl.trim()}
+                    className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw size={15} className="animate-spin" />
+                        AI Tahlil Qilmoqda...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={15} />
+                        Kanalni Tahlil Qilish
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Maqsadli Auditoriya (Target Audience)</label>
-            <Textarea 
-              value={audience} 
-              onChange={(e) => setAudience(e.target.value)} 
-            />
-          </div>
+                {/* Notifications */}
+                {analysisError && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                    <AlertTriangle size={16} className="flex-shrink-0" />
+                    <span>{analysisError}</span>
+                  </div>
+                )}
+                {analysisSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+                    <CheckCircle2 size={16} className="flex-shrink-0" />
+                    <span>{analysisSuccess}</span>
+                  </div>
+                )}
+              </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Kontent Ingliz Tili Uslubi</label>
-              <Select value={englishVariant} onChange={(e) => setEnglishVariant(e.target.value)}>
-                <option value="us">American English (AQSH - Eng yuqori hajm)</option>
-                <option value="uk">British English (Buyuk Britaniya)</option>
-                <option value="international">Xalqaro soddalashtirilgan Ingliz tili</option>
-              </Select>
+              {/* Analyzed Channel Profile Card */}
+              {channelAnalysis ? (
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-cyan-500/30 space-y-4">
+                  {/* Channel Header Banner */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      {channelAnalysis.channelThumbnail ? (
+                        <img
+                          src={channelAnalysis.channelThumbnail}
+                          alt={channelAnalysis.channelTitle}
+                          className="w-12 h-12 rounded-full border-2 border-cyan-500/40 object-cover shadow-md"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold">
+                          {channelAnalysis.channelTitle ? channelAnalysis.channelTitle.charAt(0).toUpperCase() : 'YT'}
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-bold text-white text-base flex items-center gap-2">
+                          {channelAnalysis.channelTitle || 'Tahlil Qilingan Kanal'}
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Faol Tahlil
+                          </span>
+                        </h4>
+                        <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
+                          {channelAnalysis.subscriberCount && channelAnalysis.subscriberCount !== '0' && (
+                            <span className="flex items-center gap-1">
+                              <Users size={12} className="text-cyan-400" />
+                              {channelAnalysis.subscriberCount} obunachi
+                            </span>
+                          )}
+                          {channelAnalysis.videoCount && channelAnalysis.videoCount !== '0' && (
+                            <span className="flex items-center gap-1">
+                              <Eye size={12} className="text-purple-400" />
+                              {channelAnalysis.videoCount} video
+                            </span>
+                          )}
+                          {channelAnalysis.analyzedAt && (
+                            <span className="text-[11px] text-gray-500">
+                              Tahlil: {new Date(channelAnalysis.analyzedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono">
+                        Nisha: {channelAnalysis.niche}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* AI Extracted Parameters Grid */}
+                  <div className="grid sm:grid-cols-2 gap-3.5 text-xs">
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                      <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider block">
+                        Asosiy Nisha & Sub-nishalar
+                      </span>
+                      <p className="text-white font-medium">{channelAnalysis.niche}</p>
+                      {channelAnalysis.subNiches && (
+                        <p className="text-gray-400 text-[11px] leading-relaxed mt-0.5">
+                          {channelAnalysis.subNiches}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                      <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider block">
+                        Maqsadli Auditoriya
+                      </span>
+                      <p className="text-gray-200 leading-relaxed text-[11px]">
+                        {channelAnalysis.audience || "Avtomatik aniqlangan"}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                      <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider block">
+                        Kontent Uslubi & Ovoz Toni
+                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-semibold capitalize">
+                          {channelAnalysis.tone || tone}
+                        </span>
+                        <span className="text-gray-300 text-[11px]">
+                          {channelAnalysis.contentStyle || "Yuqori retentionli Shorts"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                      <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider block">
+                        O'rtacha Ko'rishlar / Chastota
+                      </span>
+                      <p className="text-gray-200 text-[11px]">
+                        {channelAnalysis.avgViewsPerVideo > 0 ? `${channelAnalysis.avgViewsPerVideo.toLocaleString()} ko'rish / video` : channelAnalysis.postingFrequency || "Har kuni 1-2 ta"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Top Performing Topics */}
+                  {Array.isArray(channelAnalysis.topPerformingTopics) && channelAnalysis.topPerformingTopics.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                        <TrendingUp size={13} className="text-emerald-400" />
+                        AI Aniqlagan Viral Mavzular & Yo'nalishlar:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {channelAnalysis.topPerformingTopics.slice(0, 6).map((topic: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-medium"
+                          >
+                            🔥 {topic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommended Strategy Callout */}
+                  {channelAnalysis.recommendedStrategy && (
+                    <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200 leading-relaxed flex items-start gap-2.5">
+                      <Sparkles size={16} className="text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <strong className="text-cyan-300 block mb-0.5">AI Tavsiya Qilgan Strategiya:</strong>
+                        <span>{channelAnalysis.recommendedStrategy}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Success Guarantee Notice */}
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 pt-1">
+                    <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
+                    <span>
+                      Ushbu kanal profili saqlangan. Barcha yangi video ssenariylari, g'oyalari va avtopilot ushbu tahlilga qarab kanalni yuritadi.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Empty state when no channel analyzed yet */
+                <div className="p-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/15 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mx-auto">
+                    <Youtube size={20} />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-200">
+                    Hali kanal tahlil qilinmagan
+                  </p>
+                  <p className="text-xs text-gray-400 max-w-md mx-auto">
+                    Yuqoridagi maydonga YouTube kanalingiz nomini yoki havolasini kiriting (masalan: <code className="text-cyan-300 font-mono">@NeuralPulseAI-m3e</code>) va <strong>"Kanalni Tahlil Qilish"</strong> tugmasini bosing.
+                  </p>
+                </div>
+              )}
+
+              {/* Optional Fine-Tuning Accordion */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowManualTuning(!showManualTuning)}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  {showManualTuning ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <span>{showManualTuning ? "Qo'shimcha parametrlarni yashirish" : "Tahlil parametrlarini qo'lda ko'rish va sozlash (ixtiyoriy)"}</span>
+                </button>
+
+                {showManualTuning && (
+                  <div className="mt-4 p-4 rounded-2xl bg-black/40 border border-white/10 space-y-4 animate-fade-in">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Input 
+                        label="Asosiy Nisha (Niche)" 
+                        value={niche} 
+                        onChange={(e) => setNiche(e.target.value)} 
+                      />
+                      <Input 
+                        label="Sub-nishalar (vergul bilan)" 
+                        value={subNiches} 
+                        onChange={(e) => setSubNiches(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Maqsadli Auditoriya (Target Audience)</label>
+                      <Textarea 
+                        value={audience} 
+                        onChange={(e) => setAudience(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Kontent Ingliz Tili Uslubi</label>
+                        <Select value={englishVariant} onChange={(e) => setEnglishVariant(e.target.value)}>
+                          <option value="us">American English (AQSH - Eng yuqori hajm)</option>
+                          <option value="uk">British English (Buyuk Britaniya)</option>
+                          <option value="international">Xalqaro soddalashtirilgan Ingliz tili</option>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Ovoz Toni</label>
+                        <Select value={tone} onChange={(e) => setTone(e.target.value)}>
+                          <option value="professional">Professional, jiddiy va ta'sirchan</option>
+                          <option value="friendly">Samimiy, tushunarli va do'stona</option>
+                          <option value="dynamic">Tezkor, dinamik va qiziqarli</option>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Ovoz Toni</label>
-              <Select value={tone} onChange={(e) => setTone(e.target.value)}>
-                <option value="professional">Professional, jiddiy va ta'sirchan</option>
-                <option value="friendly">Samimiy, tushunarli va do'stona</option>
-                <option value="dynamic">Tezkor, dinamik va qiziqarli</option>
-              </Select>
+          {/* Mode 2: Manual Tuning Form */}
+          {analysisMode === 'manual' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Input 
+                  label="Asosiy Nisha (Niche)" 
+                  value={niche} 
+                  onChange={(e) => setNiche(e.target.value)} 
+                />
+                <Input 
+                  label="Sub-nishalar (vergul bilan)" 
+                  value={subNiches} 
+                  onChange={(e) => setSubNiches(e.target.value)} 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Maqsadli Auditoriya (Target Audience)</label>
+                <Textarea 
+                  value={audience} 
+                  onChange={(e) => setAudience(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Kontent Ingliz Tili Uslubi</label>
+                  <Select value={englishVariant} onChange={(e) => setEnglishVariant(e.target.value)}>
+                    <option value="us">American English (AQSH - Eng yuqori hajm)</option>
+                    <option value="uk">British English (Buyuk Britaniya)</option>
+                    <option value="international">Xalqaro soddalashtirilgan Ingliz tili</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-wide text-gray-300 uppercase">Ovoz Toni</label>
+                  <Select value={tone} onChange={(e) => setTone(e.target.value)}>
+                    <option value="professional">Professional, jiddiy va ta'sirchan</option>
+                    <option value="friendly">Samimiy, tushunarli va do'stona</option>
+                    <option value="dynamic">Tezkor, dinamik va qiziqarli</option>
+                  </Select>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Multi-Voice Studio & Sound Architecture */}

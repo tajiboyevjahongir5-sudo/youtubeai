@@ -87,13 +87,26 @@ Generate content in ENGLISH. Return JSON format with fields: title, contentPilla
 
     const pastList = uploadedTitles ? Array.from(uploadedTitles).slice(0, 20).join('\n- ') : '';
 
+    // Channel analysis context for better topic generation
+    const ca = settings.channelAnalysis;
+    const channelContext = ca ? `
+CHANNEL ANALYSIS INTELLIGENCE (from analyzed source channel "${ca.channelTitle || ''}"):
+- Content Style: ${ca.contentStyle || 'N/A'}
+- Top Performing Topics: ${Array.isArray(ca.topPerformingTopics) ? ca.topPerformingTopics.join(', ') : 'N/A'}
+- Channel Strengths: ${Array.isArray(ca.channelStrengths) ? ca.channelStrengths.join(', ') : 'N/A'}
+- Content Gaps & Opportunities: ${Array.isArray(ca.contentGaps) ? ca.contentGaps.join(', ') : 'N/A'}
+- Recommended Strategy: ${ca.recommendedStrategy || 'N/A'}
+- Recent Video Titles from Source Channel: ${Array.isArray(ca.recentVideoTitles) ? ca.recentVideoTitles.slice(0, 8).join(' | ') : 'N/A'}
+USE this intelligence to generate topics that align with the source channel's proven content patterns and fill identified gaps.
+` : '';
+
     const prompt = `You are an elite YouTube Shorts viral strategist.
 The user has configured their YouTube channel with the following EXACT settings:
 - Channel Niche: ${niche}
 - Focus Sub-Niches: ${subNiches}
 - Target Audience: ${audience}
 - Voice / Delivery Tone: ${tone}
-
+${channelContext}
 PAST VIDEOS ALREADY PUBLISHED (DO NOT REPEAT OR DUPLICATE THESE):
 ${pastList ? `- ${pastList}` : '- None yet'}
 
@@ -177,6 +190,14 @@ ${learnedDirectives.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 Make sure to include a clear mid-video Bookmark/Like Trigger ("Save this so you don't lose it") and a compelling Outro Subscribe Callout with an active community question in the pinned comment!\n`
       : '';
 
+    const ca = settings.channelAnalysis;
+    const channelAnalysisSection = ca ? `
+=== ANALYZED SOURCE CHANNEL BENCHMARKS ("${ca.channelTitle || ''}") ===
+- Proven Content Style: ${ca.contentStyle || 'High-retention'}
+- Channel Strengths: ${Array.isArray(ca.channelStrengths) ? ca.channelStrengths.join(', ') : 'N/A'}
+- Proven Top Formats: ${Array.isArray(ca.topPerformingTopics) ? ca.topPerformingTopics.slice(0, 5).join(', ') : 'N/A'}
+- Audience Expectation: Align script structure and vocabulary strictly with this channel's audience.\n` : '';
+
     const prompt = isLong ? `You are the lead executive producer for an elite YouTube documentary channel.
 USER CHANNEL SETTINGS & STRATEGY:
 - Core Niche: ${channelNiche}
@@ -184,7 +205,7 @@ USER CHANNEL SETTINGS & STRATEGY:
 - Target Audience Persona: ${targetAudience}
 - Tone of Voice: ${toneDescription}
 - Language Dialect: ${langDescription}
-
+${channelAnalysisSection}
 Write a MASTER-GRADE 16:9 Long-Form Documentary Script for: "${cleanTitle}".
 Language: Strictly ENGLISH (${langDescription}).
 
@@ -226,7 +247,7 @@ USER CHANNEL SETTINGS & STRATEGY:
 - Target Audience Persona: ${targetAudience}
 - Tone of Voice: ${toneDescription}
 - Language Dialect: ${langDescription}
-
+${channelAnalysisSection}
 Write a VIRAL, MASTER-GRADE 9:16 YouTube Shorts Script for: "${cleanTitle}".
 Language: Strictly ENGLISH (${langDescription}, +14% pacing, crisp enunciation).
 

@@ -28,6 +28,11 @@ export interface AutoPublishSettings {
   deepseekApiKey?: string;
   openrouterApiKey?: string;
   videoGenerationModel?: string;
+  // YouTube Channel Analysis
+  sourceChannelUrl?: string;
+  sourceChannelId?: string;
+  channelAnalysis?: any;
+  analysisMode?: 'manual' | 'channel';
 }
 
 const getSettingsDirs = () => [
@@ -68,7 +73,11 @@ export function getWorkspaceSettings(workspaceId: string): AutoPublishSettings {
           groqApiKey: parsed.groqApiKey || undefined,
           deepseekApiKey: parsed.deepseekApiKey || undefined,
           openrouterApiKey: parsed.openrouterApiKey || undefined,
-          videoGenerationModel: parsed.videoGenerationModel || 'veo-3.1-generate-preview'
+          videoGenerationModel: parsed.videoGenerationModel || 'veo-3.1-generate-preview',
+          sourceChannelUrl: parsed.sourceChannelUrl || undefined,
+          sourceChannelId: parsed.sourceChannelId || undefined,
+          channelAnalysis: parsed.channelAnalysis || undefined,
+          analysisMode: parsed.analysisMode || 'manual'
         };
       } catch (e) {}
     }

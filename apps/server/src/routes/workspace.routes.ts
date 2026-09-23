@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getWorkspaceSettings, saveWorkspaceSettings } from '../services/scheduler.service';
 import { requireWorkspace } from '../middleware/workspace';
+import { analyzeAndSaveChannel } from '../services/channel-analysis.service';
 
 const router = Router();
 
@@ -119,4 +120,48 @@ router.post('/:id/onboarding', requireWorkspace, async (req: Request, res: Respo
   }
 });
 
+// YouTube Channel Analysis endpoint
+const analyzeChannelSchema = z.object({
+  channelUrl: z.string().min(1, 'YouTube kanal URL yoki @ handle kiritilishi kerak'),
+});
+
+router.post('/:id/analyze-channel', requireWorkspace, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { channelUrl } = analyzeChannelSchema.parse(req.body);
+    const workspaceId = req.params.id;
+
+    console.log(`[API] Channel analysis boshlandi: "${channelUrl}" [${workspaceId}]`);
+
+    // Run analysis with a 60-second timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Tahlil vaqti tugadi (60s). Qayta urinib ko\'ring.')), 60000)
+    );
+
+    const analysisPromise = analyzeAndSaveChannel(channelUrl, workspaceId);
+    const result = await Promise.race([analysisPromise, timeoutPromise]) as any;
+
+    // Also try to persist to DB
+    try {
+      await db.update(workspaces)
+        .set({ settings: result.settings, updatedAt: new Date() })
+        .where(eq(workspaces.id, workspaceId));
+    } catch (e) {
+      // Dev mode fallback — settings already saved to JSON file
+    }
+
+    res.json({
+      success: true,
+      analysis: result.analysis,
+      settings: result.settings
+    });
+  } catch (error: any) {
+    console.error(`[API] Channel analysis xatolik:`, error?.message || error);
+    res.status(error?.message?.includes('API kaliti') ? 400 : 500).json({
+      success: false,
+      error: error?.message || 'Kanal tahlilida xatolik yuz berdi'
+    });
+  }
+});
+
 export default router;
+
