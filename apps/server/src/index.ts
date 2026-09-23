@@ -86,22 +86,59 @@ app.use('/api', routes);
 
 // Static frontend serving: serves the React web app on GET / when dist exists
 const webDistCandidates = [
-  path.resolve(__dirname, '../../web/dist'),
+  path.resolve(__dirname, '../public/dist'),
+  path.resolve(process.cwd(), 'apps/server/public/dist'),
   path.resolve(process.cwd(), 'apps/web/dist'),
-  path.resolve(__dirname, '../public/dist')
+  path.resolve(__dirname, '../../web/dist'),
+  path.resolve(__dirname, '../../../apps/web/dist'),
+  path.resolve(process.cwd(), 'public/dist')
 ];
+
+let servedStatic = false;
 for (const distPath of webDistCandidates) {
   if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
     console.log(`🌐 [Static Web] Web frontend ulangan dist papkasi topildi: ${distPath}`);
     app.use(express.static(distPath));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/media') || req.path.startsWith('/health') || req.path.startsWith('/ready')) {
+      if (
+        req.path.startsWith('/api') ||
+        req.path.startsWith('/media') ||
+        req.path.startsWith('/health') ||
+        req.path.startsWith('/ready')
+      ) {
         return next();
       }
       res.sendFile(path.join(distPath, 'index.html'));
     });
+    servedStatic = true;
     break;
   }
+}
+
+// Seamless Proxy Fallback: If local frontend dist is ever missing, proxy non-API web traffic to jpilotweb.up.railway.app
+if (!servedStatic) {
+  console.log('🌐 [Static Web] Lokal dist topilmadi, jpilotweb.up.railway.app frontend proxy zaxirasi faollashtirildi');
+  app.get('*', async (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/media') ||
+      req.path.startsWith('/health') ||
+      req.path.startsWith('/ready')
+    ) {
+      return next();
+    }
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://jpilotweb.up.railway.app';
+      const targetUrl = `${frontendUrl}${req.originalUrl || req.url}`;
+      const resp = await fetch(targetUrl);
+      const contentType = resp.headers.get('content-type') || 'text/html';
+      res.setHeader('content-type', contentType);
+      const buffer = await resp.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    } catch (proxyErr) {
+      res.status(502).send('Frontend yuklanmoqda, iltimos sahifani yangilang...');
+    }
+  });
 }
 
 app.use(errorHandler);

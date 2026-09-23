@@ -8,6 +8,8 @@ build/
 .output/
 .turbo/
 *.tsbuildinfo
+!apps/server/public/dist/
+!apps/server/public/dist/**
 
 # Environment & Secrets
 .env
