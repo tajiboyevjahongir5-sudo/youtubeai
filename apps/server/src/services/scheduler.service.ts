@@ -10,6 +10,8 @@ import { publishingJobs, workspaces } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+import { userAuthService } from './user-auth.service';
+
 const videoRenderService = new VideoRenderService();
 
 import {
@@ -31,18 +33,56 @@ if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true }
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
 
 export class SchedulerService {
-  private timer: NodeJS.Timeout | null = null;
-  private isTicking: boolean = false;
+  private intervalId: NodeJS.Timeout | null = null;
+  private isProcessing = false;
   private publishedSlotsToday = new Set<string>();
-  private lastDateKey: string = '';
+  private lastDateKey = '';
 
   constructor() {
     // Automatically start the background scheduler loop
     this.start();
   }
 
+  private getActiveWorkspaces(): string[] {
+    const workspacesSet = new Set<string>();
+
+    try {
+      const userWorkspaces = userAuthService.getAllWorkspaces();
+      for (const ws of userWorkspaces) {
+        if (ws && ws !== 'default') workspacesSet.add(ws);
+      }
+    } catch (e) {}
+
+    try {
+      if (fs.existsSync(SETTINGS_DIR)) {
+        const files = fs.readdirSync(SETTINGS_DIR);
+        for (const f of files) {
+          if (f.endsWith('.json')) {
+            const ws = f.replace('.json', '');
+            if (ws && ws !== 'default') workspacesSet.add(ws);
+          }
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const tokenDir = path.resolve(process.cwd(), 'data/tokens');
+      if (fs.existsSync(tokenDir)) {
+        const files = fs.readdirSync(tokenDir);
+        for (const f of files) {
+          if (f.endsWith('.json')) {
+            const ws = f.replace('.json', '');
+            if (ws && ws !== 'default') workspacesSet.add(ws);
+          }
+        }
+      }
+    } catch (e) {}
+
+    return Array.from(workspacesSet);
+  }
+
   public start() {
-    if (this.timer) return;
+    if (this.intervalId) return;
     console.log('⏰ [Auto-Scheduler] Jpilot kunlik avtomatlashtirilgan video nashr qilish xizmati ishga tushdi.');
     
     // Initial check after 4 seconds
@@ -51,21 +91,21 @@ export class SchedulerService {
     }, 4000);
 
     // Check every 25 seconds for precise on-time publishing
-    this.timer = setInterval(() => {
+    this.intervalId = setInterval(() => {
       this.tick().catch(err => console.error('Scheduler interval tick error:', err));
     }, 25000);
   }
 
   public stop() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
     }
   }
 
   public async tick() {
-    if (this.isTicking) return;
-    this.isTicking = true;
+    if (this.isProcessing) return;
+    this.isProcessing = true;
 
     try {
       // 1. Process specifically scheduled items (scheduledAt <= now)
@@ -79,7 +119,7 @@ export class SchedulerService {
     } catch (err) {
       console.error('❌ [Auto-Scheduler] Xatolik yuz berdi:', err);
     } finally {
-      this.isTicking = false;
+      this.isProcessing = false;
     }
   }
 
@@ -88,18 +128,7 @@ export class SchedulerService {
    */
   private async processScheduledItems() {
     const now = new Date();
-    // Get all items across known workspaces
-    const candidateWorkspaces = ['ws_j7ktjxw0', 'default'];
-    // Also discover workspaces from settings directory
-    try {
-      const files = fs.readdirSync(SETTINGS_DIR);
-      for (const f of files) {
-        if (f.endsWith('.json')) {
-          const ws = f.replace('.json', '');
-          if (!candidateWorkspaces.includes(ws)) candidateWorkspaces.push(ws);
-        }
-      }
-    } catch (e) {}
+    const candidateWorkspaces = this.getActiveWorkspaces();
 
     for (const wsId of candidateWorkspaces) {
       const items = contentStore.getAll(wsId);
@@ -127,16 +156,7 @@ export class SchedulerService {
       this.lastDateKey = dateKey;
     }
 
-    const candidateWorkspaces = ['ws_j7ktjxw0', 'default'];
-    try {
-      const files = fs.readdirSync(SETTINGS_DIR);
-      for (const f of files) {
-        if (f.endsWith('.json')) {
-          const ws = f.replace('.json', '');
-          if (!candidateWorkspaces.includes(ws)) candidateWorkspaces.push(ws);
-        }
-      }
-    } catch (e) {}
+    const candidateWorkspaces = this.getActiveWorkspaces();
 
     for (const wsId of candidateWorkspaces) {
       // Check if YouTube is authenticated for this workspace
@@ -270,7 +290,10 @@ export class SchedulerService {
    * 6. Updates status to 'published'
    */
   public async publishItem(item: ContentItemRecord): Promise<{ success: boolean; youtubeUrl?: string; error?: string }> {
-    const workspaceId = item.workspaceId || 'ws_j7ktjxw0';
+    const workspaceId = item.workspaceId;
+    if (!workspaceId) {
+      return { success: false, error: 'Item workspaceId mavjud emas' };
+    }
     console.log(`🚀 [Auto-Scheduler] "${item.title}" (${item.id}) YouTube'ga yuklash boshlandi...`);
 
     if (!youtubeService.isAuthenticated(workspaceId)) {
@@ -447,16 +470,7 @@ export class SchedulerService {
    * automatically rotates the video title to Variant 2 via YouTube API videos.update.
    */
   private async processTitleAbTesting() {
-    const candidateWorkspaces = ['ws_j7ktjxw0', 'default'];
-    try {
-      const files = fs.readdirSync(SETTINGS_DIR);
-      for (const f of files) {
-        if (f.endsWith('.json')) {
-          const ws = f.replace('.json', '');
-          if (!candidateWorkspaces.includes(ws)) candidateWorkspaces.push(ws);
-        }
-      }
-    } catch (e) {}
+    const candidateWorkspaces = this.getActiveWorkspaces();
 
     const now = Date.now();
 
