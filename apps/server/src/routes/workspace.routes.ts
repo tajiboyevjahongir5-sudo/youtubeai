@@ -4,9 +4,10 @@ import { workspaces, workspaceMembers, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
-import { getWorkspaceSettings, saveWorkspaceSettings } from '../services/scheduler.service';
+import { getWorkspaceSettings, saveWorkspaceSettings, schedulerService } from '../services/scheduler.service';
 import { requireWorkspace } from '../middleware/workspace';
 import { analyzeAndSaveChannel } from '../services/channel-analysis.service';
+import { youtubeService } from '../services/youtube.service';
 
 const router = Router();
 
@@ -159,6 +160,62 @@ router.post('/:id/analyze-channel', requireWorkspace, async (req: Request, res: 
     res.status(error?.message?.includes('API kaliti') ? 400 : 500).json({
       success: false,
       error: error?.message || 'Kanal tahlilida xatolik yuz berdi'
+    });
+  }
+});
+
+// Auto-Pilot Status endpoint
+router.get('/:id/auto-pilot-status', requireWorkspace, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.params.id;
+    const settings = getWorkspaceSettings(workspaceId);
+    const isAutoEnabled = settings.enabled ?? (settings.autoPilotEnabled ?? true);
+
+    let channelInfo: any = null;
+    let isConnected = false;
+    try {
+      channelInfo = await youtubeService.getLiveStats(workspaceId) || youtubeService.loadChannelInfo(workspaceId);
+      isConnected = youtubeService.isAuthenticated(workspaceId);
+    } catch (e) {}
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayVideos = (channelInfo?.recentVideos || []).filter((v: any) => {
+      if (!v.publishedAt) return false;
+      try {
+        return new Date(v.publishedAt).toISOString().slice(0, 10) === todayStr;
+      } catch (e) { return false; }
+    });
+
+    res.json({
+      success: true,
+      workspaceId,
+      autoPilotEnabled: isAutoEnabled,
+      approvalMode: settings.approvalMode,
+      publishTimes: settings.publishTimes || ['14:00', '20:00'],
+      dailyTarget: settings.dailyTarget || 2,
+      todayPublishedCount: todayVideos.length,
+      isConnected,
+      channelTitle: channelInfo?.title || channelInfo?.channelTitle || 'Ulanmagan',
+      subscriberCount: channelInfo?.subscriberCount || '0',
+      viewCount: channelInfo?.viewCount || '0',
+      niche: settings.niche,
+      activeAiModel: 'Pollinations GPT-4o / Gemini Flash + FLUX.1 + Azure Neural Voice'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Manual 1-Click Publish Now endpoint
+router.post('/:id/trigger-publish', requireWorkspace, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.params.id;
+    const result = await schedulerService.triggerImmediatePublish(workspaceId);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error?.message || 'Video chiqarishda xatolik yuz berdi'
     });
   }
 });

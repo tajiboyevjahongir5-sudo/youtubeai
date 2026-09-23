@@ -306,6 +306,92 @@ export class SchedulerService {
   }
 
   /**
+   * Manually triggers an immediate video generation & YouTube publish cycle
+   * Can be invoked from the dashboard "Hozir Video Chiqarish" button.
+   */
+  public async triggerImmediatePublish(workspaceId: string): Promise<{ success: boolean; title?: string; youtubeUrl?: string; error?: string }> {
+    console.log(`⚡ [Auto-Pilot Manual Trigger] ${workspaceId} uchun darhol video chiqarish boshlandi...`);
+
+    if (!youtubeService.isAuthenticated(workspaceId)) {
+      return { success: false, error: "YouTube kanal ulanmagan. Avval Integrations bo'limidan kanalni ulang." };
+    }
+
+    const settings = getWorkspaceSettings(workspaceId);
+
+    // 1. Fetch channel's already uploaded videos to prevent ANY duplicate upload
+    let liveInfo = await youtubeService.getLiveStats(workspaceId);
+    if (!liveInfo) {
+      liveInfo = youtubeService.loadChannelInfo(workspaceId);
+    }
+    const uploadedTitles = new Set<string>(
+      (liveInfo?.recentVideos || []).map((v: any) =>
+        (v.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim()
+      )
+    );
+
+    // 2. Find ready item that has NOT been uploaded yet
+    const candidates = contentStore.getAll(workspaceId).filter(i => {
+      if (i.status === 'published' || i.status === 'failed') return false;
+      const normTitle = (i.title || '').toLowerCase().replace(/#shorts/gi, '').replace(/[^a-z0-9]/g, '').trim();
+      return !uploadedTitles.has(normTitle) && (i.status === 'approved' || i.status === 'review');
+    });
+
+    let readyItem: ContentItemRecord | null = candidates[0] || null;
+
+    if (!readyItem) {
+      console.log(`✨ [Auto-Pilot Manual] Yangi mavzu va ssenariy generatsiya qilinmoqda...`);
+      let selectedTitle = '';
+      try {
+        selectedTitle = await aiService.generateDailyTopic(workspaceId, uploadedTitles);
+      } catch (topicErr) {
+        console.warn('AI generateDailyTopic error:', topicErr);
+      }
+      if (!selectedTitle) {
+        selectedTitle = `${settings.niche || 'AI Automation'}: 2026 Breakthrough Secrets`;
+      }
+
+      const freshItem = contentStore.generateTailoredItem({
+        id: `item_manual_${Date.now()}`,
+        workspaceId,
+        title: `${selectedTitle} #Shorts`,
+        videoFormat: settings.videoFormat || 'shorts',
+        contentPillar: 'educational',
+        status: 'review'
+      });
+
+      try {
+        const aiGen = await aiService.generateScript({
+          workspaceId,
+          title: selectedTitle,
+          videoFormat: settings.videoFormat || 'shorts',
+          contentPillar: 'educational'
+        });
+        if (aiGen) {
+          freshItem.script = aiGen.script || freshItem.script;
+          freshItem.scenes = (aiGen.scenes && aiGen.scenes.length > 0) ? aiGen.scenes : freshItem.scenes;
+          freshItem.description = aiGen.description || freshItem.description;
+          freshItem.tags = aiGen.tags || freshItem.tags;
+          freshItem.pinnedComment = aiGen.pinnedComment || freshItem.pinnedComment;
+          freshItem.titleVariants = aiGen.titleVariants || freshItem.titleVariants;
+        }
+      } catch (aiErr) {
+        console.warn('AI script generation warning in manual trigger:', aiErr);
+      }
+
+      contentStore.setItem(freshItem);
+      readyItem = freshItem;
+    }
+
+    const pubRes = await this.publishItem(readyItem);
+    return {
+      success: pubRes.success,
+      title: readyItem.title,
+      youtubeUrl: pubRes.youtubeUrl,
+      error: pubRes.error
+    };
+  }
+
+  /**
    * Publishes a content item to YouTube automatically:
    * 1. Checks YouTube Anti-Duplicate Shield
    * 2. Checks/renders video MP4 specifically for this item

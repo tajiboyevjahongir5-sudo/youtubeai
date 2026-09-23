@@ -79,3 +79,6 @@ apps/web/public/neural_pulse_*.mp4
 !apps/server/public/media/thumbnails/*
 !apps/server/public/assets/sfx/*
 !apps/web/public/assets/sfx/*
+
+# Graphify Local Outputs
+graphify-out/

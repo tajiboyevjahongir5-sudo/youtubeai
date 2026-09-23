@@ -46,6 +46,9 @@ const DashboardPage = () => {
   const [isTriggeringHandsfree, setIsTriggeringHandsfree] = React.useState(false);
   const [competitorOutliers, setCompetitorOutliers] = React.useState<any[]>([]);
   const [dashboardToast, setDashboardToast] = React.useState<string | null>(null);
+  const [isPublishingNow, setIsPublishingNow] = React.useState(false);
+  const [publishNowMessage, setPublishNowMessage] = React.useState<{ type: 'success' | 'error'; text: string; url?: string } | null>(null);
+  const [autoPilotStatus, setAutoPilotStatus] = React.useState<any>(null);
 
   const fetchHandsfreeConfig = () => {
     fetch(`/api/workspaces/${workspaceId}/growth-suite/handsfree/config`, {
@@ -83,7 +86,47 @@ const DashboardPage = () => {
 
     fetchHandsfreeConfig();
     fetchCompetitorRadar();
+
+    // Fetch live auto-pilot status
+    fetch(`/api/workspaces/${workspaceId}/auto-pilot-status`, {
+      headers: { 'x-workspace-id': workspaceId }
+    })
+      .then(r => r.json())
+      .then(d => { if (d.success) setAutoPilotStatus(d); })
+      .catch(() => {});
   }, [workspaceId]);
+
+  const handleTriggerPublishNow = async () => {
+    setIsPublishingNow(true);
+    setPublishNowMessage(null);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/trigger-publish`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId, 'Content-Type': 'application/json' }
+      });
+      const d = await res.json();
+      if (d.success) {
+        setPublishNowMessage({
+          type: 'success',
+          text: `Muvaffaqiyatli yuklandi: "${d.title}"`,
+          url: d.youtubeUrl
+        });
+        refetch();
+      } else {
+        setPublishNowMessage({
+          type: 'error',
+          text: d.error || 'Video chiqarishda xatolik yuz berdi'
+        });
+      }
+    } catch (e: any) {
+      setPublishNowMessage({
+        type: 'error',
+        text: e?.message || 'Tarmoq xatosi yuz berdi'
+      });
+    } finally {
+      setIsPublishingNow(false);
+    }
+  };
 
   const handleTriggerHandsfreeNow = async () => {
     setIsTriggeringHandsfree(true);
@@ -206,9 +249,27 @@ const DashboardPage = () => {
           <div className="flex flex-wrap items-center gap-3">
             {isChannelConnected ? (
               <>
+                <Button
+                  onClick={handleTriggerPublishNow}
+                  disabled={isPublishingNow}
+                  className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 border border-red-400/30 transition-all disabled:opacity-60"
+                >
+                  {isPublishingNow ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      AI Video Yaratmoqda & Yuklamoqda...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse" />
+                      ⚡ Hozir Video Chiqarish
+                    </>
+                  )}
+                </Button>
+
                 <Link to="/content/new">
-                  <Button variant="primary" className="flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,50,0.35)] px-5 py-2.5 rounded-xl font-bold">
-                    <Sparkles size={16} /> AI bilan g'oya yaratish
+                  <Button variant="secondary" className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold border-white/15 hover:border-white/30">
+                    <Sparkles size={16} /> Qo'lda G'oya
                   </Button>
                 </Link>
                 <Link to="/analytics">
@@ -226,6 +287,35 @@ const DashboardPage = () => {
             )}
           </div>
         </div>
+
+        {/* ⚡ Hozir Video Chiqarish Natijasi Bannersi */}
+        {publishNowMessage && (
+          <div className={`mt-4 p-4 rounded-2xl border text-sm flex items-center justify-between gap-3 animate-fade-in ${
+            publishNowMessage.type === 'success' 
+              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200' 
+              : 'bg-red-950/40 border-red-500/40 text-red-200'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {publishNowMessage.type === 'success' ? (
+                <CheckCircle size={18} className="text-emerald-400 flex-shrink-0" />
+              ) : (
+                <span className="text-red-400 text-lg">⚠️</span>
+              )}
+              <span>{publishNowMessage.text}</span>
+            </div>
+            {publishNowMessage.url && (
+              <a
+                href={publishNowMessage.url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs underline underline-offset-2 flex items-center gap-1"
+              >
+                YouTube'da ko'rish
+                <ArrowUpRight size={13} />
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 🤖 Bosh AI Direktor Nazorat Paneli Vidjeti */}
@@ -256,6 +346,45 @@ const DashboardPage = () => {
           </div>
         </div>
       </Link>
+
+      {/* 🚀 Avtopilot Jonli Ish Holati & Kunlik Reja */}
+      {autoPilotStatus && (
+        <div className="p-4 sm:p-5 rounded-2xl liquid-glass border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-black/40 to-teal-950/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in-up">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Clock size={20} className="animate-spin-slow" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">
+                  YouTube Avtopilot Dvigateli
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {autoPilotStatus.autoPilotEnabled ? 'FAOL VA ISHLAMOQDA' : 'PAUZA'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-300 mt-0.5">
+                Reja: Har kuni <strong className="text-white">{autoPilotStatus.publishTimes?.join(' va ')}</strong> da avtomatik 9:16 Shorts chiqariladi.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
+              <span className="text-gray-400">Bugungi norma:</span>
+              <span className="font-extrabold text-emerald-400 text-sm">
+                {autoPilotStatus.todayPublishedCount} / {autoPilotStatus.dailyTarget} ta
+              </span>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
+              <span className="text-gray-400">Ishlatilayotgan AI:</span>
+              <span className="font-semibold text-cyan-300">
+                GPT-4o & FLUX.1 (Bepul)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ⚡ Studiya Tezkor Amallar Qatori (Studio Action Cockpit) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 animate-fade-in-up">
