@@ -20,16 +20,19 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
       '/media': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
       '/videos': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
     },
   },
@@ -39,16 +42,19 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
       '/media': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
       '/videos': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://jpilot.up.railway.app' : 'http://localhost:3000'),
         changeOrigin: true,
+        secure: false,
       },
     },
   },
