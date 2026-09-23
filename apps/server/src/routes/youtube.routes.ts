@@ -1,35 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { db } from '../db';
-import { youtubeChannels } from '../db/schema';
-import { eq } from 'drizzle-orm';
 import { youtubeService } from '../services/youtube.service';
 import { env } from '../env';
 
-const router = Router({ mergeParams: true });
+// Public OAuth callback router
+export const youtubeCallbackRouter = Router();
 
-router.get('/connect', (req: Request, res: Response) => {
-  const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
-  const state = Buffer.from(JSON.stringify({ workspaceId })).toString('base64url');
-  const url = youtubeService.getAuthUrl(state);
-  res.json({ url });
-});
-
-router.get('/status', (req: Request, res: Response) => {
-  const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
-  const isAuth = youtubeService.isAuthenticated(workspaceId);
-  const channel = isAuth ? youtubeService.loadChannelInfo(workspaceId) : null;
-  res.json({
-    workspaceId,
-    connected: isAuth,
-    channel: (isAuth && channel) ? {
-      title: channel.snippet?.title || channel.title || 'YouTube Kanal',
-      id: channel.id,
-      subscribers: channel.statistics?.subscriberCount || channel.subscriberCount || 0
-    } : null
-  });
-});
-
-router.get('/callback', async (req: Request, res: Response) => {
+youtubeCallbackRouter.get('/callback', async (req: Request, res: Response) => {
   const code = req.query.code as string;
   const rawState = req.query.state as string;
   let workspaceId = 'default';
@@ -62,12 +38,50 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
   }
 
-  res.send('<html><body style="background:#09090d;color:#fff;font-family:sans-serif;text-align:center;padding:50px;"><h2>YouTube OAuth ulanishi bajarildi!</h2><p><a href="https://jpilotweb.up.railway.app/integrations" style="color:#ff0000;">Integratsiyalar sahifasiga qaytish</a></p></body></html>');
+  res.send('<html><body style="background:#09090d;color:#fff;font-family:sans-serif;text-align:center;padding:50px;"><h2>YouTube OAuth ulanishi bajarildi!</h2></body></html>');
+});
+
+// Workspace-protected YouTube routes
+const router = Router({ mergeParams: true });
+
+router.get('/connect', (req: Request, res: Response) => {
+  const workspaceId = req.workspaceId || req.params.id;
+  if (!workspaceId) {
+    return res.status(400).json({ success: false, error: 'Workspace ID talab qilinadi' });
+  }
+  const state = Buffer.from(JSON.stringify({ workspaceId, timestamp: Date.now() })).toString('base64url');
+  try {
+    const url = youtubeService.getAuthUrl(state);
+    res.json({ url });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || 'YouTube integratsiyasi sozlanmagan' });
+  }
+});
+
+router.get('/status', (req: Request, res: Response) => {
+  const workspaceId = req.workspaceId || req.params.id;
+  if (!workspaceId) {
+    return res.status(400).json({ success: false, error: 'Workspace ID talab qilinadi' });
+  }
+  const isAuth = youtubeService.isAuthenticated(workspaceId);
+  const channel = isAuth ? youtubeService.loadChannelInfo(workspaceId) : null;
+  res.json({
+    workspaceId,
+    connected: isAuth,
+    channel: (isAuth && channel) ? {
+      title: channel.snippet?.title || channel.title || 'YouTube Kanal',
+      id: channel.id,
+      subscribers: channel.statistics?.subscriberCount || channel.subscriberCount || 0,
+    } : null,
+  });
 });
 
 router.post('/disconnect', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const workspaceId = req.workspaceId || req.params.id || (req.body?.workspaceId as string) || 'default';
+    const workspaceId = req.workspaceId || req.params.id;
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, error: 'Workspace ID talab qilinadi' });
+    }
     youtubeService.clearTokens(workspaceId);
     res.json({ success: true, message: `YouTube kanal uzildi (${workspaceId})` });
   } catch (error) {
@@ -76,7 +90,10 @@ router.post('/disconnect', async (req: Request, res: Response, next: NextFunctio
 });
 
 router.get('/channel', async (req: Request, res: Response, next: NextFunction) => {
-  const workspaceId = req.workspaceId || req.params.id || (req.query.workspaceId as string) || 'default';
+  const workspaceId = req.workspaceId || req.params.id;
+  if (!workspaceId) {
+    return res.status(400).json({ success: false, error: 'Workspace ID talab qilinadi' });
+  }
   const isAuth = youtubeService.isAuthenticated(workspaceId);
 
   if (isAuth) {
@@ -98,7 +115,7 @@ router.get('/channel', async (req: Request, res: Response, next: NextFunction) =
         totalLikes: parseInt(savedChannel.statistics?.totalLikes || '0', 10),
         recentVideos: savedChannel.recentVideos || [],
         connectionStatus: 'connected',
-        lastSyncAt: savedChannel.lastLiveSyncAt || new Date().toISOString()
+        lastSyncAt: savedChannel.lastLiveSyncAt || new Date().toISOString(),
       });
     }
   }
@@ -114,14 +131,14 @@ router.get('/channel', async (req: Request, res: Response, next: NextFunction) =
     totalLikes: 0,
     recentVideos: [],
     connectionStatus: 'disconnected',
-    lastSyncAt: null
+    lastSyncAt: null,
   });
 });
 
 router.post('/sync', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const workspaceId = req.workspaceId || req.params.id || (req.body?.workspaceId as string) || 'default';
-    if (!youtubeService.isAuthenticated(workspaceId)) {
+    const workspaceId = req.workspaceId || req.params.id;
+    if (!workspaceId || !youtubeService.isAuthenticated(workspaceId)) {
       return res.status(400).json({ success: false, error: 'YouTube kanal ulanmagan' });
     }
 
@@ -129,7 +146,7 @@ router.post('/sync', async (req: Request, res: Response, next: NextFunction) => 
     res.json({
       success: true,
       channel: liveChannel,
-      message: 'YouTube ma\'lumotlari jonli sinxronlashtirildi!'
+      message: 'YouTube ma\'lumotlari jonli sinxronlashtirildi!',
     });
   } catch (error: any) {
     next(error);
@@ -137,4 +154,3 @@ router.post('/sync', async (req: Request, res: Response, next: NextFunction) => 
 });
 
 export default router;
-

@@ -21,8 +21,6 @@ export interface IYouTubeService {
   setThumbnail(workspaceId: string, videoId: string, imagePath: string): Promise<{ success: boolean; error?: string }>;
 }
 
-const OWNER_WORKSPACE_ID = 'ws_j7ktjxw0';
-
 export class YouTubeService implements IYouTubeService {
   private tokensDir: string;
   private channelsDir: string;
@@ -85,34 +83,7 @@ export class YouTubeService implements IYouTubeService {
         }
       }
 
-      // STRICT WORKSPACE ISOLATION:
-      // Only the verified owner workspace ('ws_j7ktjxw0') may use fallback files or env vars.
-      // Other workspaces MUST NEVER access owner tokens or environment fallbacks.
-      if (workspaceId === OWNER_WORKSPACE_ID) {
-        if (fs.existsSync(this.legacyTokenPath)) {
-          const legacy = JSON.parse(fs.readFileSync(this.legacyTokenPath, 'utf-8'));
-          this.saveTokens(OWNER_WORKSPACE_ID, legacy);
-          return legacy;
-        }
-
-        if (process.env.YOUTUBE_TOKEN_JSON) {
-          try {
-            const parsed = JSON.parse(process.env.YOUTUBE_TOKEN_JSON);
-            this.saveTokens(OWNER_WORKSPACE_ID, parsed);
-            return parsed;
-          } catch (e) {}
-        }
-
-        if (process.env.YOUTUBE_REFRESH_TOKEN) {
-          const fallback = {
-            refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
-            scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/yt-analytics.readonly',
-            token_type: 'Bearer',
-          };
-          this.saveTokens(OWNER_WORKSPACE_ID, fallback);
-          return fallback;
-        }
-      }
+      // Strict workspace isolation: only load tokens belonging to this workspace
     } catch (e) {
       console.error(`❌ [${workspaceId}] Token o'qishda xatolik:`, e);
     }
@@ -142,25 +113,6 @@ export class YouTubeService implements IYouTubeService {
       for (const p of candidates) {
         if (fs.existsSync(p)) {
           return JSON.parse(fs.readFileSync(p, 'utf-8'));
-        }
-      }
-
-      // STRICT WORKSPACE ISOLATION:
-      // Only the verified owner workspace ('ws_j7ktjxw0') may use fallback files or env vars.
-      // Other workspaces MUST NEVER access owner channel info or environment fallbacks.
-      if (workspaceId === OWNER_WORKSPACE_ID) {
-        if (fs.existsSync(this.legacyChannelPath)) {
-          const legacy = JSON.parse(fs.readFileSync(this.legacyChannelPath, 'utf-8'));
-          this.saveChannelInfo(OWNER_WORKSPACE_ID, legacy);
-          return legacy;
-        }
-
-        if (process.env.YOUTUBE_CHANNEL_JSON) {
-          try {
-            const parsed = JSON.parse(process.env.YOUTUBE_CHANNEL_JSON);
-            this.saveChannelInfo(OWNER_WORKSPACE_ID, parsed);
-            return parsed;
-          } catch (e) {}
         }
       }
     } catch (e) {}
@@ -548,7 +500,7 @@ export class YouTubeService implements IYouTubeService {
 }
 
 export class MockYouTubeService implements IYouTubeService {
-  private connectedWorkspaces = new Set<string>([OWNER_WORKSPACE_ID]);
+  private connectedWorkspaces = new Set<string>();
   getAuthUrl(state?: string) { return 'https://mock.auth.url?state=' + (state || ''); }
   async getToken(code: string) { return { access_token: 'mock_access', refresh_token: 'mock_refresh', expiry_date: 1234567890 }; }
   async getChannelInfo(workspaceId: string) { 
@@ -586,12 +538,44 @@ export class MockYouTubeService implements IYouTubeService {
   }
 }
 
+export class UnconfiguredYouTubeService implements IYouTubeService {
+  getAuthUrl(state?: string): string {
+    throw new Error('YouTube integratsiyasi sozlanmagan: YOUTUBE_CLIENT_ID va YOUTUBE_CLIENT_SECRET talab qilinadi');
+  }
+  async getToken(code: string): Promise<any> {
+    throw new Error('YouTube integratsiyasi sozlanmagan');
+  }
+  async getChannelInfo(workspaceId: string): Promise<any> { return null; }
+  async getLiveStats(workspaceId: string): Promise<any> { return null; }
+  async uploadVideo(workspaceId: string, videoPath: string, metadata: any): Promise<any> {
+    throw new Error(`YouTube integratsiyasi sozlanmagan (${workspaceId}): Video yuklash uchun YouTube API sozlanishi shart`);
+  }
+  async getAnalytics(workspaceId: string): Promise<any> { return { rows: [] }; }
+  saveTokens(workspaceId: string, tokens: any) {}
+  loadTokens(workspaceId: string): any { return null; }
+  saveChannelInfo(workspaceId: string, info: any) {}
+  loadChannelInfo(workspaceId: string): any { return null; }
+  isAuthenticated(workspaceId: string): boolean { return false; }
+  clearTokens(workspaceId: string): void {}
+  async updateVideoTitle(workspaceId: string, videoId: string, newTitle: string): Promise<boolean> { return false; }
+  async postComment(workspaceId: string, videoId: string, commentText: string): Promise<{ success: boolean; error?: string }> {
+    return { success: false, error: 'YouTube integratsiyasi sozlanmagan' };
+  }
+  async setThumbnail(workspaceId: string, videoId: string, imagePath: string): Promise<{ success: boolean; error?: string }> {
+    return { success: false, error: 'YouTube integratsiyasi sozlanmagan' };
+  }
+}
+
 export function createYouTubeService(): IYouTubeService {
   if (env.YOUTUBE_CLIENT_ID && env.YOUTUBE_CLIENT_SECRET) {
     return new YouTubeService();
   }
-  console.warn('⚠️ No YOUTUBE_CLIENT_ID provided. Using MockYouTubeService.');
-  return new MockYouTubeService();
+  if (env.NODE_ENV !== 'production' && env.YOUTUBE_MOCK_MODE === 'true') {
+    console.warn('⚠️ [Testing] Using MockYouTubeService because YOUTUBE_MOCK_MODE=true');
+    return new MockYouTubeService();
+  }
+  console.warn('⚠️ YouTube API credentials not configured. Using UnconfiguredYouTubeService (real errors on upload).');
+  return new UnconfiguredYouTubeService();
 }
 
 export const youtubeService = createYouTubeService();

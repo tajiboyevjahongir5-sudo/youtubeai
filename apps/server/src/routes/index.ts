@@ -3,7 +3,7 @@ import authRoutes from './auth.routes';
 import userAuthRoutes from './user-auth.routes';
 import workspaceRoutes from './workspace.routes';
 import dashboardRoutes from './dashboard.routes';
-import youtubeRoutes from './youtube.routes';
+import youtubeRoutes, { youtubeCallbackRouter } from './youtube.routes';
 import contentRoutes from './content.routes';
 import generationRoutes from './generation.routes';
 import approvalRoutes from './approval.routes';
@@ -33,7 +33,7 @@ const router = Router();
 
 // Public routes & Admin routes (Admin has PIN-based auth)
 router.use('/auth', userAuthRoutes);
-router.use('/youtube', youtubeRoutes);
+router.use('/youtube', youtubeCallbackRouter); // Only /callback is public!
 router.use('/admin', adminRoutes);
 router.use('/billing', billingRoutes);
 
