@@ -503,12 +503,10 @@ export class MockYouTubeService implements IYouTubeService {
   private connectedWorkspaces = new Set<string>();
   getAuthUrl(state?: string) { return 'https://mock.auth.url?state=' + (state || ''); }
   async getToken(code: string) { return { access_token: 'mock_access', refresh_token: 'mock_refresh', expiry_date: 1234567890 }; }
-  async getChannelInfo(workspaceId: string) { 
-    if (!this.isAuthenticated(workspaceId)) return null;
+  async getChannelInfo(workspaceId: string = 'mock_ws') { 
     return { id: 'mock_channel_' + workspaceId, snippet: { title: 'Mock Channel ' + workspaceId }, statistics: { subscriberCount: 100 } }; 
   }
-  async getLiveStats(workspaceId: string) {
-    if (!this.isAuthenticated(workspaceId)) return null;
+  async getLiveStats(workspaceId: string = 'mock_ws') {
     return {
       id: 'mock_channel_' + workspaceId,
       snippet: { title: 'Mock Channel ' + workspaceId },
@@ -516,8 +514,11 @@ export class MockYouTubeService implements IYouTubeService {
       recentVideos: []
     };
   }
-  async uploadVideo(workspaceId: string, videoPath: string, metadata: any) { return { id: 'mock_video_id', snippet: { title: metadata?.title } }; }
-  async getAnalytics(workspaceId: string) { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
+  async uploadVideo(workspaceId: string, videoPath: string, metadata: any, ...rest: any[]) { 
+    const meta = typeof metadata === 'object' && metadata !== null ? metadata : (rest[0] || {});
+    return { id: 'mock_video_id', snippet: { title: meta?.title || 'Mock Title' } }; 
+  }
+  async getAnalytics(workspaceId: string, ...rest: any[]) { return { rows: [['2026-01-01', 100, 200, 120, 50, 10]] }; }
   saveTokens(workspaceId: string, tokens: any) { this.connectedWorkspaces.add(workspaceId); }
   loadTokens(workspaceId: string) { return this.isAuthenticated(workspaceId) ? { access_token: 'mock_access' } : null; }
   saveChannelInfo(workspaceId: string, info: any) {}

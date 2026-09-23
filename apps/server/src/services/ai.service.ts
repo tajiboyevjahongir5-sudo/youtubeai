@@ -615,4 +615,20 @@ export function createAiService(): IAiService {
   return new AdaptiveMasterAiService();
 }
 
+export class MockAiService implements IAiService {
+  async generateIdea(context: any) {
+    return { title: 'How to Learn TypeScript in 2026', hook: 'Learn TS fast', confidenceLevel: 'high', evidence: 'High trend' };
+  }
+  async generateDailyTopic(workspaceId: string) { return 'Topic #Shorts'; }
+  async generateScript(context: any) {
+    return { hook: 'Learn TS fast', fullScript: 'Here is the script...', scenes: [{ sceneNumber: 1 }], closingCta: 'Subscribe', factCheckNotes: [] };
+  }
+  async generateMetadata(context: any) {
+    return { titleVariations: ['Title 1', 'Title 2', 'Title 3'], selectedTitle: 'Title 1', description: 'Desc', tags: ['typescript'], hashtags: ['#ts'], chapters: [], pinnedComment: 'Hi', metadataQualityScore: 90 };
+  }
+  async generateStoryboard(context: any) { return { scenes: [] }; }
+  async qualityReview(context: any) { return { score: 95, originality: 'High', policyRisk: 'Low', hookStrength: 'Strong', feedback: 'Great' }; }
+  async localizeContent(item: any, targetLanguage: 'es' | 'uz'): Promise<any> { return { title: 'Localized' }; }
+}
+
 export const aiService = createAiService();

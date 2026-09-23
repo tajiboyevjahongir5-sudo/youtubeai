@@ -67,10 +67,8 @@ apps/server/public/assets/*.mp4
 apps/server/public/assets/*.webm
 apps/web/public/assets/*.mp4
 apps/web/public/assets/*.webm
-apps/server/public/audio/bg_music.wav
-apps/server/public/audio/pure_beat.wav
-apps/web/public/audio/bg_music.wav
-apps/web/public/audio/pure_beat.wav
+apps/server/public/audio/
+apps/web/public/audio/
 apps/server/public/neural_pulse_*.mp4
 apps/web/public/neural_pulse_*.mp4
 

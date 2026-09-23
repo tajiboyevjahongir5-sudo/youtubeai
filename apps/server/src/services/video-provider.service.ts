@@ -46,3 +46,4 @@ export class HybridVideoProvider implements IVideoProvider {
 
 export const videoProviderService = new HybridVideoProvider();
 export const GoogleFlowVeoVideoProvider = HybridVideoProvider;
+export { HybridVideoProvider as MockVideoProvider };
