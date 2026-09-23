@@ -7,19 +7,20 @@ export class ApiError extends Error {
     super(message);
   }
 }
+
 export const fetchApi = async (url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>) => {
   const token = getToken ? await getToken() : null;
   const headers = new Headers(options.headers);
-  let finalToken = token;
-  if (!finalToken && typeof window !== 'undefined') {
-    finalToken = localStorage.getItem('jpilot_auth_token');
-  }
-  if (finalToken) {
-    headers.set('Authorization', `Bearer ${finalToken}`);
+
+  // If explicit Bearer token is provided (e.g. mobile or tests), set Authorization header
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const workspaceId = getWorkspaceId();
-  headers.set('x-workspace-id', workspaceId);
+  if (workspaceId) {
+    headers.set('x-workspace-id', workspaceId);
+  }
   
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -27,6 +28,7 @@ export const fetchApi = async (url: string, options: RequestInit = {}, getToken?
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
+    credentials: 'include', // Automatically send httpOnly secure cookies
     headers,
   });
 

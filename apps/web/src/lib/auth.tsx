@@ -9,52 +9,51 @@ export interface AuthUser {
 
 export interface AuthContextType {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('jpilot_auth_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Initialize auth via httpOnly cookie
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('jpilot_auth_token');
-      if (storedToken) {
-        try {
-          const res = await fetch('/api/auth/me', {
-            headers: { Authorization: `Bearer ${storedToken}` }
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.user) {
-              setUser(data.user);
-              if (data.user.workspaceId) {
-                localStorage.setItem('jpilot_workspace_id', data.user.workspaceId);
-              }
-            } else {
-              localStorage.removeItem('jpilot_auth_token');
-              setToken(null);
-              setUser(null);
+      // Clean up legacy insecure localStorage token if present
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('jpilot_auth_token');
+      }
+
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include',
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+            if (data.user.workspaceId && typeof window !== 'undefined') {
+              localStorage.setItem('jpilot_workspace_id', data.user.workspaceId);
             }
           } else {
-            localStorage.removeItem('jpilot_auth_token');
-            setToken(null);
             setUser(null);
           }
-        } catch (error) {
-          console.warn('Tarmoq aloqasi xatosi:', error);
+        } else {
+          setUser(null);
         }
+      } catch (error) {
+        console.warn('Tarmoq aloqasi xatosi:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
@@ -64,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -72,11 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: data.error || 'Kirishda xatolik yuz berdi' };
       }
       
-      localStorage.setItem('jpilot_auth_token', data.token);
-      if (data.user?.workspaceId) {
+      if (data.user?.workspaceId && typeof window !== 'undefined') {
         localStorage.setItem('jpilot_workspace_id', data.user.workspaceId);
       }
-      setToken(data.token);
       setUser(data.user);
       return { success: true };
     } catch (error: any) {
@@ -88,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
@@ -96,11 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: data.error || "Ro'yxatdan o'tishda xatolik yuz berdi" };
       }
       
-      localStorage.setItem('jpilot_auth_token', data.token);
-      if (data.user?.workspaceId) {
+      if (data.user?.workspaceId && typeof window !== 'undefined') {
         localStorage.setItem('jpilot_workspace_id', data.user.workspaceId);
       }
-      setToken(data.token);
       setUser(data.user);
       return { success: true };
     } catch (error: any) {
@@ -108,17 +105,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('jpilot_auth_token');
-    localStorage.removeItem('jpilot_workspace_id');
-    setToken(null);
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) {
+      // ignore
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('jpilot_auth_token');
+      localStorage.removeItem('jpilot_workspace_id');
+    }
     setUser(null);
   };
 
   return (
     <AuthContext.Provider value={{
       user,
-      token,
       isAuthenticated: !!user,
       isLoading,
       login,

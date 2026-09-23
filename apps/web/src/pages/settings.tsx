@@ -77,12 +77,11 @@ const SettingsPage = () => {
 
     setIsChangingPwd(true);
     try {
-      const token = localStorage.getItem('jpilot_auth_token');
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
