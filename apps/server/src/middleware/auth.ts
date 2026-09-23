@@ -1,39 +1,51 @@
-import { clerkMiddleware, getAuth } from '@clerk/express';
 import { Request, Response, NextFunction } from 'express';
-import { env } from '../env';
+import { userAuthService } from '../services/user-auth.service';
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  // If Clerk is configured with valid credentials, verify auth
-  if (env.CLERK_SECRET_KEY && !env.CLERK_SECRET_KEY.includes('placeholder')) {
-    try {
-      const auth = getAuth(req);
-      if (!auth.userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-    } catch (e) {
-      return res.status(401).json({ error: 'Unauthorized' });
+  let token: string | undefined = undefined;
+
+  // 1. First check httpOnly cookie
+  if (req.cookies && req.cookies.jpilot_token) {
+    token = req.cookies.jpilot_token;
+  }
+
+  // 2. Fallback to Authorization: Bearer <token> header for mobile or external clients
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
     }
   }
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Autentifikatsiyadan o‘tish talab qilinadi',
+    });
+  }
+
+  const payload = userAuthService.verifyToken(token);
+  if (!payload || (!payload.id && !payload.sub)) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Yaroqsiz yoki muddati o‘tgan sessiya',
+    });
+  }
+
+  const userId = payload.sub || payload.id;
+  req.userId = userId;
+  req.workspaceId = payload.workspaceId;
+
   next();
 };
 
 export const requireUser = (req: Request, res: Response, next: NextFunction) => {
-  let userId: string | undefined = undefined;
-  if (env.CLERK_SECRET_KEY && !env.CLERK_SECRET_KEY.includes('placeholder')) {
-    try {
-      const auth = getAuth(req);
-      userId = auth.userId || undefined;
-    } catch (e) {
-      // ignore
-    }
+  if (!req.userId) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Foydalanuvchi aniqlanmadi',
+    });
   }
-
-  // Fallback to dev user
-  if (!userId) {
-    userId = (req as any).auth?.userId || 'user_dev_workspace';
-  }
-
-  req.userId = userId;
   next();
 };
 

@@ -2,10 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import path from 'path';
+import fs from 'fs';
 import { env } from './env';
 import routes from './routes';
 import { errorHandler } from './middleware/error-handler';
-import { clerkMiddleware } from '@clerk/express';
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 import './jobs/worker';
@@ -15,11 +17,36 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+// Security Headers
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: true, credentials: true }));
-app.use(morgan('dev'));
-import path from 'path';
 
+// Whitelist-based CORS with credentials support
+const allowedOrigins = [
+  env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://jpilot.uz',
+  'https://www.jpilot.uz',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (mobile, server-to-server, curl)
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.railway.app') ||
+      origin.endsWith('jpilot.uz')
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS xavfsizlik cheklovi: Ushbu origin taqiqlangan (${origin})`));
+  },
+  credentials: true,
+}));
+
+app.use(morgan('dev'));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -28,14 +55,14 @@ const publicDir = path.resolve(__dirname, '../public');
 app.use('/media', express.static(publicDir));
 app.use(express.static(publicDir));
 
-// Health check endpoint (available without auth)
+// Health check endpoints
 app.get('/health', async (req, res) => {
   let dbStatus = 'disconnected';
   try {
     await db.execute(sql`SELECT 1`);
     dbStatus = 'connected';
   } catch (error) {
-    dbStatus = 'mock/local';
+    dbStatus = 'disconnected';
   }
   res.json({
     status: 'ok',
@@ -45,20 +72,19 @@ app.get('/health', async (req, res) => {
   });
 });
 
-// Auth middleware - use Clerk if keys configured, otherwise mock dev user
-if (env.CLERK_SECRET_KEY && !env.CLERK_SECRET_KEY.includes('placeholder')) {
-  app.use(clerkMiddleware());
-} else {
-  app.use((req, res, next) => {
-    (req as any).auth = { userId: 'user_dev_workspace', sessionId: 'sess_dev' };
-    next();
-  });
-}
+app.get('/ready', async (req, res) => {
+  try {
+    await db.execute(sql`SELECT 1`);
+    res.json({ status: 'ready', database: 'connected' });
+  } catch (err: any) {
+    res.status(503).json({ status: 'unready', database: 'disconnected', error: err?.message || 'Database unavailable' });
+  }
+});
 
+// Primary API Routes
 app.use('/api', routes);
 
 // Static frontend serving: serves the React web app on GET / when dist exists
-import fs from 'fs';
 const webDistCandidates = [
   path.resolve(__dirname, '../../web/dist'),
   path.resolve(process.cwd(), 'apps/web/dist'),
@@ -69,7 +95,7 @@ for (const distPath of webDistCandidates) {
     console.log(`🌐 [Static Web] Web frontend ulangan dist papkasi topildi: ${distPath}`);
     app.use(express.static(distPath));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/media') || req.path.startsWith('/health')) {
+      if (req.path.startsWith('/api') || req.path.startsWith('/media') || req.path.startsWith('/health') || req.path.startsWith('/ready')) {
         return next();
       }
       res.sendFile(path.join(distPath, 'index.html'));

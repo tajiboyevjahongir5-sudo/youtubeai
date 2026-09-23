@@ -12,6 +12,8 @@ const envSchema = z.object({
   DATABASE_URL: z.preprocess(emptyToUndefined, z.string().optional()),
   CLERK_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   JWT_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+  JWT_ENCRYPTION_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  YOUTUBE_MOCK_MODE: z.preprocess(emptyToUndefined, z.string().optional()),
   REDIS_URL: z.preprocess(emptyToUndefined, z.string().optional()),
   TELEGRAM_BOT_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
   GEMINI_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -36,6 +38,8 @@ export const env = _env.success ? _env.data : {
   DATABASE_URL: process.env.DATABASE_URL || undefined,
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || undefined,
   JWT_SECRET: process.env.JWT_SECRET || undefined,
+  JWT_ENCRYPTION_KEY: process.env.JWT_ENCRYPTION_KEY || undefined,
+  YOUTUBE_MOCK_MODE: process.env.YOUTUBE_MOCK_MODE || undefined,
   REDIS_URL: process.env.REDIS_URL || undefined,
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || undefined,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || undefined,
@@ -47,3 +51,17 @@ export const env = _env.success ? _env.data : {
   YOUTUBE_REDIRECT_URI: process.env.YOUTUBE_REDIRECT_URI || undefined,
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
+
+// Production Hardening Validations
+if (env.NODE_ENV === 'production') {
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+    throw new Error('FATAL: In production, JWT_SECRET must be set and contain at least 32 characters!');
+  }
+  if (env.YOUTUBE_MOCK_MODE === 'true') {
+    throw new Error('FATAL: YOUTUBE_MOCK_MODE cannot be enabled in production environment!');
+  }
+} else {
+  if (!env.JWT_SECRET) {
+    console.warn('⚠️ [Security] JWT_SECRET is not set in development. Using development fallback secret.');
+  }
+}
