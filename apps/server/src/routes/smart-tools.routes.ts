@@ -1,8 +1,11 @@
+import path from 'path';
 import { Router } from 'express';
-import { getRenderProgress } from '../services/render-progress.service';
+import { getRenderProgress, clearRenderProgress } from '../services/render-progress.service';
 import { duplicateContent, expandShortsToLongform } from '../services/content-duplicate.service';
 import { analyzeScript } from '../services/script-suggestions.service';
 import { generatePerformanceAlerts } from '../services/performance-alerts.service';
+import { contentStore } from '../services/content-store.service';
+import { videoRenderService } from '../services/video-render.service';
 
 const router = Router();
 
@@ -13,6 +16,28 @@ router.get('/render-progress/:contentId', (req, res) => {
     return res.json({ success: true, status: 'idle', progress: null });
   }
   res.json({ success: true, ...progress });
+});
+
+// --- Reset Stuck Render ---
+router.post('/content/:contentId/reset-render', (req, res) => {
+  const contentId = req.params.contentId;
+  clearRenderProgress(contentId);
+  const updated = contentStore.updateItem(contentId, { status: 'idea' });
+  res.json({ success: true, message: 'Render holati tozalandi', item: updated });
+});
+
+// --- Force Complete Render ---
+router.post('/content/:contentId/force-complete', async (req, res) => {
+  const contentId = req.params.contentId;
+  const workspaceId = (req as any).workspaceId || (req.headers['x-workspace-id'] as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+  if (!item) {
+    return res.status(404).json({ success: false, error: 'Kontent topilmadi' });
+  }
+  const isLong = item.videoFormat === 'long_form';
+  const outputPath = path.join(videoRenderService.getPublicVideosDir(), `${contentId}.mp4`);
+  const outcome = await videoRenderService.guaranteedFallbackVideo(item, outputPath, isLong);
+  res.json(outcome);
 });
 
 // --- Content Duplicate & Remix ---

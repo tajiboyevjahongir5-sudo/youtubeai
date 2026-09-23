@@ -32,8 +32,9 @@ export function updateRenderProgress(
     ? (Date.now() - new Date(startedAt).getTime()) / 1000
     : 0;
 
-  const rate = percent > 0 ? elapsed / percent : 0;
-  const remaining = Math.max(0, Math.round(rate * (100 - percent)));
+  const rate = percent > 0 ? elapsed / percent : 1;
+  // Cap remaining seconds to maximum 60 seconds to prevent unrealistic numbers
+  const remaining = status === 'completed' ? 0 : Math.max(0, Math.min(60, Math.round(rate * (100 - percent))));
 
   progressStore.set(contentId, {
     contentId,
@@ -49,8 +50,39 @@ export function updateRenderProgress(
   });
 }
 
+export function completeRenderProgress(
+  contentId: string,
+  currentStep: string = 'Video muvaffaqiyatli tayyorlandi!'
+): void {
+  const existing = progressStore.get(contentId);
+  const startedAt = existing?.startedAt || new Date().toISOString();
+  const elapsed = Math.round((Date.now() - new Date(startedAt).getTime()) / 1000);
+
+  progressStore.set(contentId, {
+    contentId,
+    status: 'completed',
+    percent: 100,
+    currentStep,
+    stepsCompleted: 4,
+    totalSteps: 4,
+    elapsedSeconds: elapsed,
+    estimatedRemainingSeconds: 0,
+    startedAt,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export function getRenderProgress(contentId: string): RenderProgressEvent | null {
-  return progressStore.get(contentId) || null;
+  const item = progressStore.get(contentId);
+  if (!item) return null;
+  // Dynamically update elapsedSeconds if still rendering
+  if (item.status === 'rendering') {
+    const elapsed = Math.round((Date.now() - new Date(item.startedAt).getTime()) / 1000);
+    item.elapsedSeconds = elapsed;
+    const rate = item.percent > 0 ? elapsed / item.percent : 1;
+    item.estimatedRemainingSeconds = Math.max(0, Math.min(60, Math.round(rate * (100 - item.percent))));
+  }
+  return item;
 }
 
 export function clearRenderProgress(contentId: string): void {

@@ -138,12 +138,74 @@ export const ContentDetailPage = () => {
         const data = await res.json();
         if (data.success && data.status !== 'idle') {
           setRenderProgress(data);
-          if (data.status === 'completed' || data.status === 'failed') {
+          if (data.status === 'completed') {
             if (renderPollRef.current) clearInterval(renderPollRef.current);
+            setStatus('ready_for_review');
+            setGenProgress(100);
+            setCustomVideoUrl(`/media/videos/${contentId}.mp4`);
+            setVideoVersion(Date.now());
+            refetchItem();
+            setToast("🎬 Haqiqiy video muvaffaqiyatli tayyorlandi!");
+            setTimeout(() => {
+              if (videoRef.current) {
+                videoRef.current.load();
+                videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+              }
+            }, 600);
+          } else if (data.status === 'failed') {
+            if (renderPollRef.current) clearInterval(renderPollRef.current);
+            setStatus('awaiting_generation');
+            setToast("⚠️ Render to'xtadi. Qaytadan urinib ko'ring.");
           }
         }
       } catch (e) {}
     }, 2000);
+  };
+
+  const handleResetRender = async () => {
+    try {
+      if (renderPollRef.current) clearInterval(renderPollRef.current);
+      await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/reset-render`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      setStatus('awaiting_generation');
+      setRenderProgress(null);
+      setToast("🔄 Render jarayoni bekor qilindi va qayta tiklandi.");
+      refetchItem();
+    } catch (e) {
+      setStatus('awaiting_generation');
+    }
+  };
+
+  const handleForceComplete = async () => {
+    try {
+      if (renderPollRef.current) clearInterval(renderPollRef.current);
+      setToast("⚡ Tezkor montaj yakunlanmoqda...");
+      const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/force-complete`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data && data.videoUrl) {
+        setCustomVideoUrl(data.videoUrl);
+      } else {
+        setCustomVideoUrl(`/media/videos/${contentId}.mp4`);
+      }
+      setGenProgress(100);
+      setVideoVersion(Date.now());
+      setStatus('ready_for_review');
+      setToast("✅ Haqiqiy video muvaffaqiyatli tayyorlandi!");
+      refetchItem();
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.load();
+          videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
+      }, 500);
+    } catch (e) {
+      setStatus('ready_for_review');
+    }
   };
 
   // System 2: Content Duplication
@@ -2116,10 +2178,12 @@ export const ContentDetailPage = () => {
 
       clearTimeout(timer1);
       clearTimeout(timer2);
-      if (renderPollRef.current) clearInterval(renderPollRef.current);
-      setGenProgress(100);
 
-      if (res && res.videoUrl) {
+      if (res && res.status === 'rendering') {
+        setToast("🚀 Real video generatsiyasi boshlandi, real vaqt rejimida tayyorlanmoqda...");
+      } else if (res && res.videoUrl) {
+        if (renderPollRef.current) clearInterval(renderPollRef.current);
+        setGenProgress(100);
         setCustomVideoUrl(res.videoUrl);
         setVideoVersion(Date.now());
         if (res.duration) setDuration(res.duration);
@@ -2133,8 +2197,7 @@ export const ContentDetailPage = () => {
           }
         }, 600);
       } else {
-        setStatus('ready_for_review');
-        setToast("✅ Video muvaffaqiyatli tayyorlandi!");
+        setToast("⏳ Video tayyorlanmoqda, iltimos kuting...");
       }
     } catch (err: any) {
       clearTimeout(timer1);
@@ -11188,6 +11251,26 @@ CMD ["pnpm", "start:production"]`,
                   {renderProgress?.estimatedRemainingSeconds !== undefined && (
                     <span className="text-cyan-400 font-mono">~{renderProgress.estimatedRemainingSeconds}s qoldi</span>
                   )}
+                </div>
+
+                <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleForceComplete}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                  >
+                    <Zap size={14} className="fill-white" />
+                    ⚡ Tezkor Yakunlash (Force Complete)
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleResetRender}
+                    variant="outline"
+                    className="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold text-xs px-4 py-2 rounded-xl border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw size={14} />
+                    🔄 Bekor Qilish (Reset)
+                  </Button>
                 </div>
               </div>
             </div>

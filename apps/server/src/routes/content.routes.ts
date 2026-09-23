@@ -190,8 +190,25 @@ router.post('/:contentId/generate-video', async (req: Request, res: Response, ne
     }
   } catch (e) {}
 
+  // Start rendering process in background
+  const renderPromise = videoRenderService.renderVideo(item);
+
+  // Railway Proxy Guard: If render takes more than 9s, respond 200 with status: 'rendering'
+  // so the edge proxy never times out (502/504), while background render continues smoothly.
+  const proxyGuardPromise = new Promise<any>((resolve) => {
+    setTimeout(() => {
+      resolve({
+        success: true,
+        status: 'rendering',
+        message: 'Video generatsiyasi davom etmoqda...',
+        videoUrl: `/media/videos/${item.id}.mp4`,
+        duration: item.durationSeconds || (item.videoFormat === 'long_form' ? 615 : 55)
+      });
+    }, 9000);
+  });
+
   try {
-    const result = await videoRenderService.renderVideo(item);
+    const result = await Promise.race([renderPromise, proxyGuardPromise]);
     res.json(result);
   } catch (error: any) {
     console.error('Video generation error:', error);

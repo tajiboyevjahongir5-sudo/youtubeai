@@ -979,6 +979,7 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
     
     title = data.get('title', 'Neural Pulse AI')
     clean_title = sanitize_text(title)
+    item_id = str(data.get('id', '') or 'item_render')
     script = data.get('script', '')
     binge_teaser = sanitize_text(data.get('bingeTeaser') or data.get('seriesNextTeaser') or '')
 
@@ -1359,6 +1360,9 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
 
     for frame_idx in range(total_frames):
         t_sec = frame_idx / FPS
+        if frame_idx % 120 == 0 or frame_idx == total_frames - 1:
+            pct = int(50 + (frame_idx / max(1, total_frames)) * 35)
+            print(f"Step 3/3: Frame {frame_idx}/{total_frames} ({pct}%) tayyorlanmoqda...", flush=True)
 
         if has_topic_scenes:
             if t_sec < sc1_end:
