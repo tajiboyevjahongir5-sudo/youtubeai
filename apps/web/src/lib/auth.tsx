@@ -67,9 +67,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || 'Kirishda xatolik yuz berdi' };
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        // response might be HTML error from proxy/server
+      }
+
+      if (!res.ok || !data?.success) {
+        const errorMsg = data?.error || data?.message || (res.status === 504 ? 'Server javob berish vaqti tugadi (504 Gateway Timeout)' : res.status === 502 ? 'Backend serveri ishlamayapti (502 Bad Gateway)' : res.status === 404 ? 'API manzili topilmadi (404 Not Found)' : `Kirishda xatolik (${res.status})`);
+        return { success: false, error: errorMsg };
       }
       
       if (data.user?.workspaceId && typeof window !== 'undefined') {
@@ -78,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       return { success: true };
     } catch (error: any) {
-      return { success: false, error: error.message || 'Tarmoq xatosi' };
+      return { success: false, error: 'Backend server bilan bog‘lanib bo‘lmadi. Tarmoq yoki server holatini tekshiring.' };
     }
   };
 
@@ -90,9 +97,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || "Ro'yxatdan o'tishda xatolik yuz berdi" };
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        // response might be HTML error
+      }
+
+      if (!res.ok || !data?.success) {
+        const errorMsg = data?.error || data?.message || (res.status === 504 ? 'Server javob berish vaqti tugadi (504 Gateway Timeout)' : res.status === 502 ? 'Backend serveri ishlamayapti (502 Bad Gateway)' : res.status === 404 ? 'API manzili topilmadi (404 Not Found)' : `Ro'yxatdan o'tishda xatolik (${res.status})`);
+        return { success: false, error: errorMsg };
       }
       
       if (data.user?.workspaceId && typeof window !== 'undefined') {
@@ -101,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       return { success: true };
     } catch (error: any) {
-      return { success: false, error: error.message || 'Tarmoq xatosi' };
+      return { success: false, error: 'Backend server bilan bog‘lanib bo‘lmadi. Tarmoq yoki server holatini tekshiring.' };
     }
   };
 
