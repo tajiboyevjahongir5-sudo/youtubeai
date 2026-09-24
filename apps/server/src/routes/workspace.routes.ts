@@ -244,7 +244,7 @@ router.post('/:id/clone-channel-content', requireWorkspace, async (req: Request,
         title,
         videoFormat: 'shorts',
         contentPillar: 'educational',
-        status: 'review'
+        status: 'idea'
       });
 
       // Enrich with script and high CPM tags from cloned blueprint
@@ -252,7 +252,8 @@ router.post('/:id/clone-channel-content', requireWorkspace, async (req: Request,
       contentStore.updateItem(item.id, {
         script: itemScript,
         highCpmKeywords,
-        tags: Array.from(new Set([...item.tags, ...highCpmKeywords])).slice(0, 12)
+        tags: Array.from(new Set([...item.tags, ...highCpmKeywords])).slice(0, 12),
+        videoUrl: ''
       });
       createdItems.push(item);
     }

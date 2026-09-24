@@ -215,15 +215,15 @@ export async function analyzeChannel(channelInput: string, workspaceId: string):
       const handleClean = identifier.value.startsWith('@')
         ? identifier.value
         : `@${identifier.value.replace(/^https?:\/\/(www\.)?youtube\.com\//, '').replace(/^@/, '')}`;
-      const targetUrl = `https://www.youtube.com/${handleClean}`;
-      console.log(`🔍 [Channel Scraper] Public YouTube sahifasi tahlil qilinmoqda: ${targetUrl}`);
+      const targetUrl = `https://www.youtube.com/${handleClean}/videos`;
+      console.log(`🔍 [Channel Scraper] Public YouTube videolari tahlil qilinmoqda: ${targetUrl}`);
 
       const res = await fetch(targetUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9'
         },
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(12000)
       });
 
       if (res.ok) {
@@ -250,10 +250,14 @@ export async function analyzeChannel(channelInput: string, workspaceId: string):
                          html.match(/"simpleText":"([\d\.]+[KMBkmb]?\s*(subscribers|obunachi))"/i);
         const subscriberCount = subMatch ? (subMatch[2] || subMatch[1] || 'Mashhur Kanal') : '100K+';
 
-        // Extract Video Titles from ytInitialData
-        const titleMatches = Array.from(html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)"\}\]/g));
-        const foundTitles = titleMatches.map(m => m[1]).filter(t => t.length > 5 && !t.includes('Shorts') && !t.includes('YouTube') && !t.includes('Home'));
-        const uniqueTitles = Array.from(new Set(foundTitles)).slice(0, 15);
+        // Extract Video Titles (supports modern lockupMetadataViewModel + legacy runs)
+        const lockupMatches = Array.from(html.matchAll(/"lockupMetadataViewModel":\{"title":\{"content":"([^"]+)"/g)).map(m => m[1]);
+        const runsMatches = Array.from(html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)"/g)).map(m => m[1]);
+        const simpleMatches = Array.from(html.matchAll(/"title":\{"simpleText":"([^"]+)"/g)).map(m => m[1]);
+
+        const rawFound = [...lockupMatches, ...runsMatches, ...simpleMatches];
+        const foundTitles = rawFound.filter(t => t.length > 4 && !t.includes('YouTube') && !t.includes('Home') && !t.includes('Subscriptions') && !t.includes('Trending') && !t.includes('Explore') && !t.includes('Want to subscribe'));
+        const uniqueTitles = Array.from(new Set(foundTitles)).slice(0, 25);
 
         channelData = {
           id: channelId,
@@ -264,7 +268,7 @@ export async function analyzeChannel(channelInput: string, workspaceId: string):
           },
           statistics: {
             subscriberCount,
-            videoCount: `${uniqueTitles.length > 0 ? '100+' : '50+'}`,
+            videoCount: `${uniqueTitles.length > 0 ? uniqueTitles.length + '+' : '50+'}`,
             viewCount: '5M+'
           }
         };
@@ -280,7 +284,7 @@ export async function analyzeChannel(channelInput: string, workspaceId: string):
           duration: 'Shorts'
         }));
 
-        console.log(`✅ [Channel Scraper] "${title}" kanali muvaffaqiyatli aniqlandi! Topilgan videolar: ${uniqueTitles.length} ta.`);
+        console.log(`✅ [Channel Scraper] "${title}" kanali aniqlandi! Topilgan real videolar: ${uniqueTitles.length} ta.`);
       }
     } catch (scrapeErr: any) {
       console.warn(`⚠️ [Channel Scraper Notice]:`, scrapeErr?.message || scrapeErr);

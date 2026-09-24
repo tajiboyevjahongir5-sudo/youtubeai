@@ -63,11 +63,25 @@ export class GeminiAiService implements IAiService {
     const audience = (typeof context === 'object' && context.audience) ? context.audience : settings.audience;
     const tone = (typeof context === 'object' && context.tone) ? context.tone : settings.tone;
 
+    const ca = settings.channelAnalysis;
+    const competitorSection = ca ? `
+=== CLONED COMPETITOR CHANNEL INTELLIGENCE ("${ca.channelTitle || ''}") ===
+- Niche: ${ca.niche || niche}
+- Sub-niches: ${ca.subNiches || subNiches}
+- Channel Proven Topics (Top Real Videos):
+${(ca.topPerformingTopics || []).slice(0, 10).map((t: string, i: number) => `  ${i + 1}. "${t}"`).join('\n')}
+- Viral Hook Pattern: ${ca.monetizationRoadmap?.viralHookPattern || '0-2s punch zoom'}
+- High-CPM Target Keywords: ${(ca.monetizationRoadmap?.highCpmKeywords || []).join(', ')}
+
+MANDATORY INSTRUCTION: You MUST generate a brand new viral video idea inspired by these proven topics and formats from this exact channel! The title must be crafted in this channel's high-retention style.
+` : '';
+
     const prompt = `You are a YouTube content strategist. Generate a video idea based on:
 Niche: ${niche}
 Sub-niches: ${subNiches}
 Audience: ${audience}
 Tone: ${tone}
+${competitorSection}
 Strategy Memory: ${typeof context === 'object' ? (context.strategyMemory || '') : ''}
 
 Disclaimer: We do not guarantee recommendations.

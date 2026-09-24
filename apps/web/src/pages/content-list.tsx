@@ -32,6 +32,8 @@ interface VideoItem {
   format: 'shorts' | 'long_form';
   duration: string;
   status: 'awaiting_approval' | 'scheduled' | 'published';
+  rawStatus?: string;
+  hasVideo?: boolean;
   scheduledAt: string;
   contentPillar: string;
   viewsPrediction: string;
@@ -207,6 +209,7 @@ const ContentListPage = () => {
   if (contentData && Array.isArray(contentData) && contentData.length > 0) {
     const pipelineVideos: VideoItem[] = contentData.map((item: any) => {
       const isShort = (item.videoFormat || 'shorts') === 'shorts';
+      const hasVideo = Boolean(item.videoUrl && item.videoUrl.trim() !== '' && item.status !== 'idea');
       let mappedStatus: 'awaiting_approval' | 'scheduled' | 'published' = 'awaiting_approval';
       if (item.status === 'scheduled' || item.status === 'approved') mappedStatus = 'scheduled';
       else if (item.status === 'published') mappedStatus = 'published';
@@ -217,11 +220,14 @@ const ContentListPage = () => {
         format: isShort ? 'shorts' : 'long_form',
         duration: isShort ? '0:58' : '10:15',
         status: mappedStatus,
+        rawStatus: item.status,
+        hasVideo,
+        thumbnailUrl: item.thumbnailUrl,
         scheduledAt: item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Rejalashtirilgan',
         contentPillar: item.contentPillar === 'educational' ? "Ta'limiy" : (item.contentPillar === 'entertaining' ? 'Qiziqarli' : 'Tahliliy'),
         viewsPrediction: mappedStatus === 'published' ? '12.4K ko\'rildi' : '20K - 50K kutilmoqda',
         seoScore: 95,
-        tags: ['ai', 'automation', 'productivity'],
+        tags: Array.isArray(item.tags) ? item.tags : ['ai', 'automation', 'productivity'],
       };
     });
 
@@ -417,7 +423,7 @@ const ContentListPage = () => {
 
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={video.status} />
+                  <StatusBadge status={video.rawStatus === 'idea' ? 'idea' : (video.hasVideo ? 'ready_for_review' : video.status)} />
                   {video.isRealYoutube && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30">
                       <Youtube size={12} className="text-red-500 fill-red-500" /> Jonli YouTube
@@ -504,10 +510,17 @@ const ContentListPage = () => {
                 )}
               </div>
 
-              {video.status === 'awaiting_approval' && (
-                <Link to={`/content/${video.id}`}>
-                  <Button variant="primary" size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,0,0,0.4)]">
-                    <CheckCircle2 size={13} /> Tasdiqlash
+              {video.status === 'awaiting_approval' && !video.hasVideo && (
+                <Link to={`/content/${video.id}?tab=tasdiqlash`}>
+                  <Button variant="primary" size="sm" className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)] cursor-pointer">
+                    <Sparkles size={13} /> 🎬 Video Generatsiya Qilish
+                  </Button>
+                </Link>
+              )}
+              {video.status === 'awaiting_approval' && video.hasVideo && (
+                <Link to={`/content/${video.id}?tab=tasdiqlash`}>
+                  <Button variant="primary" size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.4)] cursor-pointer">
+                    <CheckCircle2 size={13} /> 👁️ Ko'rish & Nashr Qilish
                   </Button>
                 </Link>
               )}

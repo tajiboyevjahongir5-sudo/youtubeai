@@ -55,7 +55,7 @@ import {
   Radio,
   Eye
 } from 'lucide-react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { getWorkspaceId } from '../lib/workspace';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
@@ -64,6 +64,8 @@ type FlowStatus = 'awaiting_generation' | 'generating' | 'ready_for_review' | 'u
 
 export const ContentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
   const contentId = id || 'item_1';
   const workspaceId = getWorkspaceId();
 
@@ -91,9 +93,9 @@ export const ContentDetailPage = () => {
     }
   }, [contentId, itemData]);
 
-  const [activeTab, setActiveTab] = useState('tasdiqlash');
+  const [activeTab, setActiveTab] = useState(urlTab || 'tasdiqlash');
   const [status, setStatus] = useState<FlowStatus>(
-    (contentId === 'item_1' || contentId === 'item_2' || contentId === 'item_3' || contentId === 'item_coding_agents' || contentId === 'item_illegal_websites' || contentId === 'item_prompt_secrets') 
+    (contentId === 'item_1') 
       ? 'ready_for_review' 
       : 'awaiting_generation'
   );
@@ -1954,13 +1956,14 @@ export const ContentDetailPage = () => {
         setStatus('published');
       } else if (itemData.status === 'scheduled') {
         setStatus('ready_for_review');
-      } else if (itemData.status === 'review' || itemData.status === 'ready_for_review' || (itemData.videoUrl && itemData.videoUrl.trim() !== '')) {
+      } else if ((itemData.status === 'review' || itemData.status === 'ready_for_review') && itemData.videoUrl && itemData.videoUrl.trim() !== '') {
         setStatus('ready_for_review');
-        if (itemData.videoUrl) setCustomVideoUrl(itemData.videoUrl);
+        setCustomVideoUrl(itemData.videoUrl);
       } else if (itemData.status === 'rendering' || itemData.status === 'generating') {
         setStatus('generating');
       } else {
         setStatus('awaiting_generation');
+        setCustomVideoUrl(null);
       }
       fetchMatchedAffiliates();
       fetchABTest();
@@ -2009,24 +2012,14 @@ export const ContentDetailPage = () => {
 
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
-  // Strict topic-isolated video source: NEVER fallback to static/unrelated videos for different topics!
+  // Strict topic-isolated video source: only set if actual video exists for this item
   const activeVideoSrc: string | undefined = customVideoUrl 
     ? (customVideoUrl.startsWith('http') ? customVideoUrl : `${customVideoUrl}?v=${videoVersion}`)
-    : (itemData?.videoUrl 
+    : (itemData?.videoUrl && itemData.videoUrl.trim() !== '' && itemData.status !== 'idea'
       ? `${itemData.videoUrl}?v=${videoVersion}`
-      : (contentId === 'item_1' 
+      : (contentId === 'item_1' && itemData?.status === 'published'
           ? `/neural_pulse_short.mp4?v=${videoVersion}` 
-          : (contentId === 'item_2' 
-              ? `/media/videos/item_2.mp4?v=${videoVersion}` 
-              : (contentId === 'item_3' 
-                  ? `/media/videos/item_3.mp4?v=${videoVersion}` 
-                  : (contentId === 'item_coding_agents'
-                      ? `/media/videos/item_coding_agents.mp4?v=${videoVersion}`
-                      : (contentId === 'item_illegal_websites'
-                          ? `/media/videos/item_illegal_websites.mp4?v=${videoVersion}`
-                          : (contentId === 'item_prompt_secrets'
-                              ? `/media/videos/item_prompt_secrets.mp4?v=${videoVersion}`
-                              : undefined)))))));
+          : undefined));
 
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
@@ -11520,44 +11513,67 @@ CMD ["pnpm", "start:production"]`,
                       {renderSchedulingControls()}
 
                       {/* Buttons */}
-                      <div className="pt-2 flex flex-wrap items-center gap-3">
-                        <a 
-                          href={activeVideoSrc} 
-                          download={`${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}_1080p.mp4`}
-                          className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/15 transition-all flex items-center gap-1.5"
-                        >
-                          📥 16:9 Videoni yuklab olish (MP4)
-                        </a>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          setVideoVersion(Date.now());
-                          handleStartGeneration();
-                        }}>
-                          <RefreshCw size={14} className="mr-1.5" /> Qayta render (16:9)
-                        </Button>
-                        {!scheduledAtTime && (
+                      {!activeVideoSrc ? (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-indigo-950/20 to-black border border-blue-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 w-full shadow-lg">
+                          <div className="space-y-1 text-center sm:text-left">
+                            <span className="text-sm font-bold text-blue-300 flex items-center gap-2 justify-center sm:justify-start">
+                              <Sparkles size={16} className="text-blue-400" /> 16:9 Masterclass video hali generatsiya qilinmagan (0-dan)
+                            </span>
+                            <p className="text-xs text-gray-400">
+                              YouTube'ga yuklashdan oldin, Azure Neural ovoz va 1080p kadrlarni montaj qilib video yarating.
+                            </p>
+                          </div>
                           <Button 
-                            variant="outline" 
+                            variant="primary" 
                             size="lg" 
-                            onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
-                            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                            disabled={isGeneratingVideo}
+                            onClick={handleGenerateVideo}
+                            className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold shadow-xl shadow-blue-600/30 flex-shrink-0 cursor-pointer"
                           >
-                            <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                            <Sparkles size={18} className={`mr-2 ${isGeneratingVideo ? 'animate-spin' : ''}`} />
+                            {isGeneratingVideo ? 'Video Yaratilmoqda...' : '🚀 AI Video Generatsiya Qilish (0-dan)'}
                           </Button>
-                        )}
-                        {isAuthNeeded && authUrl && (
-                          <a
-                            href={authUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all flex items-center gap-1.5 animate-pulse"
+                        </div>
+                      ) : (
+                        <div className="pt-2 flex flex-wrap items-center gap-3">
+                          <a 
+                            href={activeVideoSrc} 
+                            download={`${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}_1080p.mp4`}
+                            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/15 transition-all flex items-center gap-1.5"
                           >
-                            <Youtube size={16} /> 1. YouTube OAuth Ruxsat Berish
+                            📥 16:9 Videoni yuklab olish (MP4)
                           </a>
-                        )}
-                        <Button variant="primary" size="lg" className="shadow-2xl bg-blue-600 hover:bg-blue-500 border-blue-500" onClick={handlePublishToYouTube}>
-                          <Youtube size={20} className="mr-2 fill-white" /> 2. YouTube'ga Yuklash (16:9 Katta Video)
-                        </Button>
-                      </div>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setVideoVersion(Date.now());
+                            handleStartGeneration();
+                          }}>
+                            <RefreshCw size={14} className="mr-1.5" /> Qayta render (16:9)
+                          </Button>
+                          {!scheduledAtTime && (
+                            <Button 
+                              variant="outline" 
+                              size="lg" 
+                              onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
+                              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                            >
+                              <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                            </Button>
+                          )}
+                          {isAuthNeeded && authUrl && (
+                            <a
+                              href={authUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all flex items-center gap-1.5 animate-pulse"
+                            >
+                              <Youtube size={16} /> 1. YouTube OAuth Ruxsat Berish
+                            </a>
+                          )}
+                          <Button variant="primary" size="lg" className="shadow-2xl bg-blue-600 hover:bg-blue-500 border-blue-500" onClick={handlePublishToYouTube}>
+                            <Youtube size={20} className="mr-2 fill-white" /> 2. YouTube'ga Yuklash (16:9 Katta Video)
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -11992,44 +12008,67 @@ CMD ["pnpm", "start:production"]`,
                       {renderSchedulingControls()}
 
                       {/* Final Action Buttons */}
-                      <div className="pt-2 flex flex-wrap items-center gap-3">
-                        <a 
-                          href={activeVideoSrc} 
-                          download={`${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}_shorts.mp4`}
-                          className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/15 transition-all flex items-center gap-1.5"
-                        >
-                          📥 Videoni yuklab olish (MP4)
-                        </a>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          setVideoVersion(Date.now());
-                          handleStartGeneration();
-                        }}>
-                          <RefreshCw size={14} className="mr-1.5" /> Qayta render
-                        </Button>
-                        {!scheduledAtTime && (
+                      {!activeVideoSrc ? (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-amber-950/20 to-black border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 w-full shadow-lg">
+                          <div className="space-y-1 text-center sm:text-left">
+                            <span className="text-sm font-bold text-amber-300 flex items-center gap-2 justify-center sm:justify-start">
+                              <Sparkles size={16} className="text-amber-400" /> Shorts video hali generatsiya qilinmagan (0-dan)
+                            </span>
+                            <p className="text-xs text-gray-400">
+                              YouTube'ga yuklashdan oldin, Azure Neural ovoz, kadrlar va kinetik subtitrlarni montaj qiling.
+                            </p>
+                          </div>
                           <Button 
-                            variant="outline" 
+                            variant="primary" 
                             size="lg" 
-                            onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
-                            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                            disabled={isGeneratingVideo}
+                            onClick={handleGenerateVideo}
+                            className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold shadow-xl shadow-red-600/30 flex-shrink-0 cursor-pointer"
                           >
-                            <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                            <Sparkles size={18} className={`mr-2 ${isGeneratingVideo ? 'animate-spin' : ''}`} />
+                            {isGeneratingVideo ? 'Video Yaratilmoqda...' : '🚀 AI Video Generatsiya Qilish (0-dan)'}
                           </Button>
-                        )}
-                        {isAuthNeeded && authUrl && (
-                          <a
-                            href={authUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all flex items-center gap-1.5 animate-pulse"
+                        </div>
+                      ) : (
+                        <div className="pt-2 flex flex-wrap items-center gap-3">
+                          <a 
+                            href={activeVideoSrc} 
+                            download={`${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}_shorts.mp4`}
+                            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/15 transition-all flex items-center gap-1.5"
                           >
-                            <Youtube size={16} /> 1. YouTube OAuth Ruxsat Berish
+                            📥 Videoni yuklab olish (MP4)
                           </a>
-                        )}
-                        <Button variant="primary" size="lg" className="shadow-2xl" onClick={handlePublishToYouTube}>
-                          <Youtube size={20} className="mr-2 fill-white" /> 2. YouTube'ga Yuklash va Nashr Qilish
-                        </Button>
-                      </div>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setVideoVersion(Date.now());
+                            handleStartGeneration();
+                          }}>
+                            <RefreshCw size={14} className="mr-1.5" /> Qayta render
+                          </Button>
+                          {!scheduledAtTime && (
+                            <Button 
+                              variant="outline" 
+                              size="lg" 
+                              onClick={() => setScheduleModalOpen(!scheduleModalOpen)}
+                              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-bold text-xs"
+                            >
+                              <Clock size={16} className="mr-1.5" /> ⏰ O'z Vaqtida Avtomatik Yuklash
+                            </Button>
+                          )}
+                          {isAuthNeeded && authUrl && (
+                            <a
+                              href={authUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all flex items-center gap-1.5 animate-pulse"
+                            >
+                              <Youtube size={16} /> 1. YouTube OAuth Ruxsat Berish
+                            </a>
+                          )}
+                          <Button variant="primary" size="lg" className="shadow-2xl" onClick={handlePublishToYouTube}>
+                            <Youtube size={20} className="mr-2 fill-white" /> 2. YouTube'ga Yuklash va Nashr Qilish
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
