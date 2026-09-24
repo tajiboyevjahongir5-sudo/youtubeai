@@ -8,8 +8,48 @@ import { youtubeService } from '../services/youtube.service';
 import { contentStore } from '../services/content-store.service';
 import { videoRenderService } from '../services/video-render.service';
 import { videoInspectorService } from '../services/video-inspector.service';
+import { getWorkspaceSettings } from '../services/workspace-settings.service';
 
 const router = Router({ mergeParams: true });
+
+router.post('/refresh-channel-ideas', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+    const settings = getWorkspaceSettings(workspaceId);
+    const analysis = settings.channelAnalysis || {
+      channelTitle: settings.sourceChannelUrl || settings.niche || 'Kanal Mavzusi',
+      niche: settings.niche || 'AI Tools & Tech 2026',
+      subNiches: settings.subNiches || '',
+      topPerformingTopics: [
+        `${settings.niche || 'Trend'}: 3 Secrets Top Creators Use in 2026 #Shorts`,
+        `The Shocking Truth About ${settings.niche || 'This Trend'} #Shorts`,
+        `How to 10x Your Results With ${settings.niche || 'AI'} #Shorts`
+      ]
+    };
+
+    const newItems = contentStore.refreshIdeasForChannel(workspaceId, analysis, true);
+    res.json({
+      success: true,
+      count: newItems.length,
+      items: newItems,
+      channelTitle: analysis.channelTitle,
+      niche: analysis.niche,
+      message: `"${analysis.channelTitle || analysis.niche}" mavzusi asosida 3 ta yangi loyiha yaratildi!`
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/clear-old-drafts', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+    contentStore.clearDrafts(workspaceId);
+    res.json({ success: true, message: 'Barcha eski qoralamalar tozalandi' });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post('/ideas/generate', async (req: Request, res: Response, next: NextFunction) => {
   try {

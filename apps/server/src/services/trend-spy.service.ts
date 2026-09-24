@@ -254,6 +254,21 @@ Return strictly a JSON array of objects:
       analysisMode: 'manual'
     });
 
+    try {
+      contentStore.refreshIdeasForChannel(workspaceId, {
+        channelTitle: targetNiche,
+        niche: targetNiche,
+        subNiches: targetSubNiches,
+        topPerformingTopics: [
+          `${targetNiche}: Top Secret Breakthrough #Shorts`,
+          `Why Everyone Is Talking About ${targetNiche} #Shorts`,
+          `How to Master ${targetNiche} in 24 Hours #Shorts`
+        ]
+      }, true);
+    } catch (e) {
+      console.warn('Error refreshing ideas for trend niche:', e);
+    }
+
     return { success: true, settings: updated };
   }
 

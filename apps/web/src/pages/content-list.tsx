@@ -20,7 +20,10 @@ import {
   RefreshCw,
   ExternalLink,
   Globe,
-  Languages
+  Languages,
+  Target,
+  Trash2,
+  Check
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getWorkspaceId } from '../lib/workspace';
@@ -171,9 +174,92 @@ const ContentListPage = () => {
     staleTime: 30000,
   });
 
+  // 3. Fetch workspace settings to know active source channel & niche
+  const { data: settingsData, refetch: refetchSettings } = useQuery({
+    queryKey: ['workspace-settings', workspaceId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}`, {
+          headers: { 'x-workspace-id': workspaceId }
+        });
+        const data = await res.json();
+        return data?.settings || null;
+      } catch (e) {
+        return null;
+      }
+    },
+    staleTime: 30000,
+  });
+
+  const [quickChannelInput, setQuickChannelInput] = useState('');
+  const [isAnalyzingQuickChannel, setIsAnalyzingQuickChannel] = useState(false);
+  const [isRefreshingIdeas, setIsRefreshingIdeas] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const activeChannelTitle = settingsData?.channelAnalysis?.channelTitle || settingsData?.sourceChannelUrl;
+  const activeNiche = settingsData?.channelAnalysis?.niche || settingsData?.niche || 'AI Tools & Tech 2026';
+
+  const handleQuickChannelClone = async () => {
+    if (!quickChannelInput.trim()) return;
+    setIsAnalyzingQuickChannel(true);
+    setToastMessage(`🔍 "${quickChannelInput}" kanali tahlil qilinmoqda va 0-dan yangi g'oyalar olinmoqda...`);
+    try {
+      const res = await fetchApi(`/workspaces/${workspaceId}/analyze-channel`, {
+        method: 'POST',
+        body: JSON.stringify({ channelUrl: quickChannelInput.trim() })
+      }, async () => 'mock_token');
+
+      if (res && res.success) {
+        setToastMessage(`✅ "${res.analysis?.channelTitle || quickChannelInput}" kanali asosida 3 ta yangi viral g'oya yaratildi!`);
+        setQuickChannelInput('');
+        await Promise.all([refetchContent(), refetchSettings()]);
+      } else {
+        setToastMessage(`❌ Xatolik: ${res?.error || 'Kanal tahlil qilinmadi'}`);
+      }
+    } catch (e: any) {
+      setToastMessage(`❌ Xatolik: ${e?.message || 'Tarmoq xatosi'}`);
+    } finally {
+      setIsAnalyzingQuickChannel(false);
+      setTimeout(() => setToastMessage(null), 5000);
+    }
+  };
+
+  const handleRefreshChannelIdeas = async () => {
+    setIsRefreshingIdeas(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/content/refresh-channel-ideas`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setToastMessage(`✨ ${data.message}`);
+        await refetchContent();
+      }
+    } catch (e) {}
+    finally {
+      setIsRefreshingIdeas(false);
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+
+  const handleClearOldDrafts = async () => {
+    try {
+      await fetch(`/api/workspaces/${workspaceId}/content/clear-old-drafts`, {
+        method: 'POST',
+        headers: { 'x-workspace-id': workspaceId }
+      });
+      setToastMessage("🗑️ Eski qoralama g'oyalar tozalandi");
+      await refetchContent();
+    } catch (e) {}
+    finally {
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetchChannel(), refetchContent()]);
+    await Promise.all([refetchChannel(), refetchContent(), refetchSettings()]);
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
@@ -243,15 +329,6 @@ const ContentListPage = () => {
     });
   }
 
-  // If list is still minimal and channel is connected, supplement with fallback items
-  if (isChannelConnected && allVideos.length < fallbackVideos.length) {
-    fallbackVideos.forEach(fv => {
-      if (!allVideos.some(v => v.id === fv.id || v.title.toLowerCase() === fv.title.toLowerCase())) {
-        allVideos.push(fv);
-      }
-    });
-  }
-
   // Filter logic: Default 'pipeline' tab hides published videos to focus on NEW content
   const countPipeline = allVideos.filter(v => v.status !== 'published').length;
   const countApproval = allVideos.filter(v => v.status === 'awaiting_approval').length;
@@ -317,6 +394,99 @@ const ContentListPage = () => {
           </Link>
         </div>
       )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/80 to-slate-900 border border-cyan-500/40 text-cyan-200 text-xs font-semibold flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-cyan-400 flex-shrink-0 animate-pulse" />
+            <span>{toastMessage}</span>
+          </div>
+          <button onClick={() => setToastMessage(null)} className="text-gray-400 hover:text-white cursor-pointer ml-3 text-xs">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Active Channel & Niche Bar */}
+      <div className="liquid-glass rounded-2xl p-4 sm:p-5 border border-cyan-500/30 bg-gradient-to-r from-[#0d1424] via-[#0b101c] to-[#0a0d18] shadow-2xl space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold flex-shrink-0">
+              <Target size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-400">Faol Kanal & Mavzu:</span>
+                <strong className="text-white text-sm font-bold">{activeChannelTitle || activeNiche}</strong>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                  Avtopilot Faol
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono">
+                  {activeNiche}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Barcha yangi video g'oyalari va avtopilot aynan ushbu kanal formati va auditoriyasi bo'yicha shakllanadi.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap self-end md:self-auto">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefreshChannelIdeas}
+              disabled={isRefreshingIdeas}
+              className="text-xs text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/10 flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Aktiv mavzu bo'yicha 3 ta yangi video g'oyasi yaratish"
+            >
+              <Sparkles size={13} className={isRefreshingIdeas ? 'animate-spin' : ''} />
+              {isRefreshingIdeas ? "G'oyalar olinmoqda..." : "⚡ Mavzuga Mos Yangi G'oyalar (+3)"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearOldDrafts}
+              className="text-xs border-white/10 hover:bg-red-500/10 hover:text-red-300 text-gray-400 flex items-center gap-1 cursor-pointer"
+              title="Eski mavzudagi qoralama g'oyalarni tozalash"
+            >
+              <Trash2 size={12} /> Tozalash
+            </Button>
+            <Link to="/settings">
+              <Button variant="outline" size="sm" className="text-xs border-white/15 hover:bg-white/5 text-gray-300">
+                Kanalni O'zgartirish
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Quick Channel Input Bar */}
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+          <div className="relative flex-1 w-full">
+            <input
+              type="text"
+              placeholder="Boshqa kanalni tahlil qilib, darhol g'oyalar olish: masalan @Fireship, @GOODENOUGHANIMATION..."
+              value={quickChannelInput}
+              onChange={(e) => setQuickChannelInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleQuickChannelClone();
+              }}
+              className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/60 transition-all"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={isAnalyzingQuickChannel || !quickChannelInput.trim()}
+            onClick={handleQuickChannelClone}
+            className="w-full sm:w-auto text-xs font-bold bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:from-cyan-500 hover:to-teal-500 text-white flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-600/20 whitespace-nowrap cursor-pointer disabled:opacity-50"
+          >
+            <Sparkles size={13} className={isAnalyzingQuickChannel ? 'animate-spin' : ''} />
+            {isAnalyzingQuickChannel ? "Kanal tahlil qilinmoqda..." : "🎯 Ushbu Kanal G'oyalarini Olish"}
+          </Button>
+        </div>
+      </div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

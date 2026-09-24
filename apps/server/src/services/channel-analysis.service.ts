@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getWorkspaceSettings, saveWorkspaceSettings } from './workspace-settings.service';
 import { freeAiService } from './free-ai.service';
+import { contentStore } from './content-store.service';
 
 export interface ClonedVideoBlueprint {
   title: string;
@@ -536,7 +537,13 @@ export async function analyzeAndSaveChannel(channelInput: string, workspaceId: s
     }
   });
 
-  console.log(`[Channel Analysis] Kanal "${analysis.channelTitle}" tahlili va klonlash blueprinte saqlandi [${workspaceId}]`);
+  // Automatically refresh content pipeline with fresh ideas from this channel!
+  try {
+    contentStore.refreshIdeasForChannel(workspaceId, analysis, true);
+    console.log(`[Channel Analysis] Kanal "${analysis.channelTitle}" tahlili saqlandi va kontent quvuri yangi g'oyalar bilan to'ldirildi [${workspaceId}]`);
+  } catch (refreshErr) {
+    console.warn(`[Channel Analysis] Kontent g'oyalarini to'ldirishda xatolik:`, refreshErr);
+  }
 
   return { analysis, settings: updatedSettings };
 }
