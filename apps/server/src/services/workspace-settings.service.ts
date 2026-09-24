@@ -33,6 +33,7 @@ export interface AutoPublishSettings {
   sourceChannelId?: string;
   channelAnalysis?: any;
   analysisMode?: 'manual' | 'channel';
+  clonedChannelBlueprint?: any;
 }
 
 const getSettingsDirs = () => [

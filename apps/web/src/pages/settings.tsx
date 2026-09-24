@@ -36,7 +36,8 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  Rocket
 } from 'lucide-react';
 import { getWorkspaceId } from '../lib/workspace';
 import { fetchApi } from '../lib/api';
@@ -54,6 +55,10 @@ const SettingsPage = () => {
   const [analysisError, setAnalysisError] = useState('');
   const [analysisSuccess, setAnalysisSuccess] = useState('');
   const [showManualTuning, setShowManualTuning] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneSuccess, setCloneSuccess] = useState('');
+  const [cloneError, setCloneError] = useState('');
+  const [generatingTopic, setGeneratingTopic] = useState<string | null>(null);
 
   const [niche, setNiche] = useState("Texnologiya & AI Avtomatlashtirish");
   const [subNiches, setSubNiches] = useState("Coding, SaaS, Productivity, Python");
@@ -154,6 +159,56 @@ const SettingsPage = () => {
       setAnalysisError(err?.message || "Kanalni tahlil qilishda tarmoq xatosi yuz berdi");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleCloneChannelContent = async () => {
+    if (!channelAnalysis) {
+      setCloneError("Avval biror mashhur YouTube kanalni tahlil qiling");
+      return;
+    }
+    setIsCloning(true);
+    setCloneError('');
+    setCloneSuccess('');
+    try {
+      const res = await fetchApi(`/workspaces/${wsId}/clone-channel-content`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      }, async () => 'mock_token');
+
+      if (res && res.success) {
+        setCloneSuccess(res.message || `"${res.channelTitle || 'Kanal'}" uslubida 3 ta viral video muvaffaqiyatli tayyorlandi!`);
+        setAutoPilotEnabled(true);
+      } else {
+        setCloneError(res?.error || "Kanal kontentini klonlashda xatolik yuz berdi");
+      }
+    } catch (err: any) {
+      setCloneError(err?.message || "Tarmoq xatosi yuz berdi");
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
+  const handleGenerateSpecificTopic = async (topicTitle: string) => {
+    setGeneratingTopic(topicTitle);
+    try {
+      const res = await fetchApi(`/content/items`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: topicTitle.includes('#Shorts') ? topicTitle : `${topicTitle} #Shorts`,
+          videoFormat: 'shorts',
+          contentPillar: 'educational',
+          status: 'review'
+        })
+      }, async () => 'mock_token');
+
+      if (res && (res.item || res.id)) {
+        setCloneSuccess(`"${topicTitle}" mavzusi bo'yicha yangi video qoralamasi muvaffaqiyatli yaratildi!`);
+      }
+    } catch (err: any) {
+      setAnalysisError(err?.message || "Video yaratishda xatolik");
+    } finally {
+      setGeneratingTopic(null);
     }
   };
 
@@ -309,14 +364,14 @@ const SettingsPage = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
                     <Search size={14} className="text-red-400" />
-                    YouTube Kanal Nomi, @Handle yoki Havolasi
+                    Mashhur YouTube Kanal Nomi, @Handle yoki Havolasi
                   </label>
-                  <span className="text-[11px] text-gray-400">Masalan: @NeuralPulseAI-m3e</span>
+                  <span className="text-[11px] text-gray-400">Masalan: @Fireship, @mreflow, @AIAndy, @NeuralPulseAI-m3e</span>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <div className="relative flex-1">
                     <Input
-                      placeholder="@KanalNomi yoki https://youtube.com/@handle"
+                      placeholder="@KanalNomi yoki https://youtube.com/@handle (Masalan: @Fireship)"
                       value={channelUrl}
                       onChange={(e) => setChannelUrl(e.target.value)}
                       className="w-full bg-black/50 border-white/20 pl-3.5"
@@ -326,7 +381,7 @@ const SettingsPage = () => {
                     type="button"
                     onClick={handleAnalyzeChannel}
                     disabled={isAnalyzing || !channelUrl.trim()}
-                    className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 disabled:opacity-50 whitespace-nowrap"
+                    className="bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 disabled:opacity-50 whitespace-nowrap"
                   >
                     {isAnalyzing ? (
                       <>
@@ -336,7 +391,7 @@ const SettingsPage = () => {
                     ) : (
                       <>
                         <Sparkles size={15} />
-                        Kanalni Tahlil Qilish
+                        Kanalni Tahlil Qilish & Klonlash
                       </>
                     )}
                   </Button>
@@ -410,6 +465,93 @@ const SettingsPage = () => {
                     </div>
                   </div>
 
+                  {/* TEZ MONETIZATSIYA & KANALNI KLONLASH PANEL */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/40 via-purple-950/30 to-black/60 border border-red-500/30 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 rounded-lg bg-red-500/20 text-red-400">
+                          <Rocket size={16} />
+                        </span>
+                        <div>
+                          <h5 className="font-bold text-white text-xs sm:text-sm flex items-center gap-1.5">
+                            Tez Monetizatsiyaga Chiqish & Kontent Klonlash
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-mono">
+                              RPM: {channelAnalysis.monetizationRoadmap?.estimatedCpm || '$4.50 - $9.20'}
+                            </span>
+                          </h5>
+                          <p className="text-[11px] text-gray-300">
+                            Ushbu kanalning viral formulasi va montaj ritmi asosida 100% moslashtirilgan kontent ishlab chiqarish.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Metric Badges */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/5">
+                        <span className="text-gray-400 text-[10px] block">Monetizatsiya Maqsadi</span>
+                        <span className="text-emerald-400 font-bold">1,000 Subs & 10M Views</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/5">
+                        <span className="text-gray-400 text-[10px] block">Kutilayotgan CPM / RPM</span>
+                        <span className="text-yellow-400 font-bold">{channelAnalysis.monetizationRoadmap?.estimatedCpm || '$4.50 - $9.20'}</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/5">
+                        <span className="text-gray-400 text-[10px] block">Viral Hook Ritm</span>
+                        <span className="text-cyan-400 font-bold truncate block">{channelAnalysis.monetizationRoadmap?.viralHookPattern || '0-2s Punch Zoom'}</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/5">
+                        <span className="text-gray-400 text-[10px] block">Chastota</span>
+                        <span className="text-purple-400 font-bold">Kuniga 2 ta Shorts</span>
+                      </div>
+                    </div>
+
+                    {/* Big Action Button */}
+                    <div className="pt-1">
+                      <Button
+                        type="button"
+                        onClick={handleCloneChannelContent}
+                        disabled={isCloning}
+                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-red-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] border border-red-400/30"
+                      >
+                        {isCloning ? (
+                          <>
+                            <RefreshCw size={16} className="animate-spin" />
+                            Ushbu Kanal Uslubida Kontent Tayyorlanmoqda...
+                          </>
+                        ) : (
+                          <>
+                            <Rocket size={16} className="text-yellow-300" />
+                            Ushbu Kanal Uslubida Kontent Ishlab Chiqarishni Boshlash (3 ta Video Yaratish)
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {cloneSuccess && (
+                      <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
+                          <span>{cloneSuccess}</span>
+                        </div>
+                        <a
+                          href="/content"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
+                        >
+                          Videolarni Ko'rish
+                          <ArrowRight size={13} />
+                        </a>
+                      </div>
+                    )}
+
+                    {cloneError && (
+                      <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-xs text-red-300 flex items-center gap-2">
+                        <AlertTriangle size={16} className="text-red-400 flex-shrink-0" />
+                        <span>{cloneError}</span>
+                      </div>
+                    )}
+                  </div>
+
                   {/* AI Extracted Parameters Grid */}
                   <div className="grid sm:grid-cols-2 gap-3.5 text-xs">
                     <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-1">
@@ -457,21 +599,39 @@ const SettingsPage = () => {
                     </div>
                   </div>
 
-                  {/* Top Performing Topics */}
+                  {/* Top Performing Topics with 1-Click Generate */}
                   {Array.isArray(channelAnalysis.topPerformingTopics) && channelAnalysis.topPerformingTopics.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-2 pt-1">
                       <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
                         <TrendingUp size={13} className="text-emerald-400" />
-                        AI Aniqlagan Viral Mavzular & Yo'nalishlar:
+                        AI Aniqlagan Viral Mavzular (Bosing va darhol video yarating):
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="grid sm:grid-cols-2 gap-2">
                         {channelAnalysis.topPerformingTopics.slice(0, 6).map((topic: string, i: number) => (
-                          <span
+                          <div
                             key={i}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-medium"
+                            className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-cyan-500/30 flex items-center justify-between gap-2 text-xs transition-all group"
                           >
-                            🔥 {topic}
-                          </span>
+                            <span className="text-gray-200 line-clamp-2 font-medium flex items-center gap-1.5">
+                              <span className="text-amber-400">🔥</span>
+                              {topic}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateSpecificTopic(topic)}
+                              disabled={generatingTopic === topic}
+                              className="px-2.5 py-1 rounded-lg bg-cyan-600/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-300 hover:text-white font-semibold text-[11px] flex items-center gap-1 whitespace-nowrap transition-colors flex-shrink-0"
+                            >
+                              {generatingTopic === topic ? (
+                                <RefreshCw size={12} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <Sparkles size={11} />
+                                  Yaratish
+                                </>
+                              )}
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -505,8 +665,8 @@ const SettingsPage = () => {
                   <p className="text-sm font-semibold text-gray-200">
                     Hali kanal tahlil qilinmagan
                   </p>
-                  <p className="text-xs text-gray-400 max-w-md mx-auto">
-                    Yuqoridagi maydonga YouTube kanalingiz nomini yoki havolasini kiriting (masalan: <code className="text-cyan-300 font-mono">@NeuralPulseAI-m3e</code>) va <strong>"Kanalni Tahlil Qilish"</strong> tugmasini bosing.
+                  <p className="text-xs text-gray-400 max-w-lg mx-auto">
+                    Ixtiyoriy mashhur YouTube kanal nomini yoki @handle kiriting (masalan: <code className="text-cyan-300 font-mono">@Fireship</code>, <code className="text-cyan-300 font-mono">@mreflow</code>, <code className="text-cyan-300 font-mono">@AIAndy</code>, <code className="text-cyan-300 font-mono">@NeuralPulseAI-m3e</code>). AI uning eng ko'p ko'rilgan videolarini, montaj uslubi va hook formulasini o'rganib, uning uslubida tezkor monetizatsiyaga erishish uchun kontent chiqarishni boshlaydi!
                   </p>
                 </div>
               )}

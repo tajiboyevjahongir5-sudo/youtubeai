@@ -8,6 +8,7 @@ import { getWorkspaceSettings, saveWorkspaceSettings, schedulerService } from '.
 import { requireWorkspace } from '../middleware/workspace';
 import { analyzeAndSaveChannel } from '../services/channel-analysis.service';
 import { youtubeService } from '../services/youtube.service';
+import { contentStore } from '../services/content-store.service';
 
 const router = Router();
 
@@ -160,6 +161,84 @@ router.post('/:id/analyze-channel', requireWorkspace, async (req: Request, res: 
     res.status(error?.message?.includes('API kaliti') ? 400 : 500).json({
       success: false,
       error: error?.message || 'Kanal tahlilida xatolik yuz berdi'
+    });
+  }
+});
+
+// Clone Competitor Content & Fast Monetization endpoint
+router.post('/:id/clone-channel-content', requireWorkspace, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const workspaceId = req.params.id;
+    const settings = getWorkspaceSettings(workspaceId);
+    const analysis = settings.channelAnalysis;
+
+    if (!analysis) {
+      return res.status(400).json({
+        success: false,
+        error: "Avval biror mashhur YouTube kanalni tahlil qiling"
+      });
+    }
+
+    const blueprints = analysis.clonedVideoBlueprints || [];
+    const topics = analysis.topPerformingTopics || [];
+
+    const itemsToCreate = blueprints.length > 0
+      ? blueprints.slice(0, 3)
+      : topics.slice(0, 3).map((t: string) => ({
+          title: t.includes('#Shorts') ? t : `${t} #Shorts`,
+          hook: `Stop scrolling! Here is the secret behind ${t}`,
+          viralScore: 98,
+          highCpmTag: analysis.niche || "AI Tools",
+          targetDuration: 55
+        }));
+
+    const createdItems: any[] = [];
+    for (const bp of itemsToCreate) {
+      const title = bp.title.includes('#Shorts') ? bp.title : `${bp.title} #Shorts`;
+      const item = contentStore.createItem({
+        workspaceId,
+        title,
+        videoFormat: 'shorts',
+        contentPillar: 'educational',
+        status: 'review'
+      });
+
+      // Enrich with high CPM tags from cloned blueprint
+      if (analysis.monetizationRoadmap?.highCpmKeywords) {
+        contentStore.updateItem(item.id, {
+          highCpmKeywords: analysis.monetizationRoadmap.highCpmKeywords,
+          tags: Array.from(new Set([...item.tags, ...analysis.monetizationRoadmap.highCpmKeywords])).slice(0, 12)
+        });
+      }
+      createdItems.push(item);
+    }
+
+    // Automatically activate Auto-Pilot tuned to this cloned channel
+    saveWorkspaceSettings(workspaceId, {
+      autoPilotEnabled: true,
+      enabled: true,
+      dailyTarget: 2,
+      publishTimes: ['14:00', '20:00'],
+      niche: analysis.niche,
+      subNiches: analysis.subNiches,
+      audience: analysis.audience,
+      tone: analysis.tone
+    });
+
+    console.log(`🚀 [Clone Engine] "${analysis.channelTitle}" uslubida 3 ta viral video qoralamasi yaratildi [${workspaceId}]`);
+
+    res.json({
+      success: true,
+      count: createdItems.length,
+      createdItems,
+      channelTitle: analysis.channelTitle,
+      message: `"${analysis.channelTitle}" uslubida 3 ta viral video muvaffaqiyatli tayyorlandi va Avtopilot ushbu kanal formulasiga sozlandi!`
+    });
+  } catch (error: any) {
+    console.error(`[API] clone-channel-content xatolik:`, error?.message || error);
+    res.status(500).json({
+      success: false,
+      error: error?.message || "Kanal uslubini klonlashda xatolik yuz berdi"
     });
   }
 });
