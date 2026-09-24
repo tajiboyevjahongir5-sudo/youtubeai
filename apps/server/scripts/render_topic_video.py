@@ -553,25 +553,59 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
     is_landscape = (W > H)
 
     for s_idx in range(1, 6):
-        canvas = np.zeros((H, W, 3), dtype=np.uint8)
-        for y in range(H):
-            ratio = y / float(H)
-            r = int(bg_top[0] * (1 - ratio) + bg_bot[0] * ratio)
-            g = int(bg_top[1] * (1 - ratio) + bg_bot[1] * ratio)
-            b = int(bg_top[2] * (1 - ratio) + bg_bot[2] * ratio)
-            canvas[y, :] = (r, g, b)
+        # 1. Check if pre-generated photorealistic AI scene image exists for this topic
+        pre_img = None
+        for sd in save_dirs:
+            for ext in ['.jpg', '.png', '.jpeg', '.webp']:
+                cand = os.path.join(sd, f"scene_{s_idx}{ext}")
+                if os.path.exists(cand) and os.path.getsize(cand) > 10000:
+                    try:
+                        loaded = cv2.imread(cand)
+                        if loaded is not None and loaded.size > 0:
+                            pre_img = loaded
+                            break
+                    except Exception:
+                        pass
+            if pre_img is not None:
+                break
 
-        grid_start = int(H * 0.45) if is_landscape else 800
-        for gy in range(grid_start, H, 50 if is_landscape else 60):
-            p_val = (gy - grid_start) / float(max(1, H - grid_start))
-            col_grid = (int(secondary[0] * 0.25 * p_val), int(secondary[1] * 0.25 * p_val), int(secondary[2] * 0.25 * p_val))
-            cv2.line(canvas, (0, gy), (W, gy), col_grid, 1)
-        
-        vanish_x = W // 2
-        vanish_y = int(H * 0.40) if is_landscape else 750
-        for gx in range(0, W + 1, 90):
-            col_grid = (int(primary[0] * 0.18), int(primary[1] * 0.18), int(primary[2] * 0.18))
-            cv2.line(canvas, (vanish_x, vanish_y), (gx, H), col_grid, 1)
+        has_ai_photo = (pre_img is not None)
+        card_alpha = 135 if has_ai_photo else 240
+
+        if has_ai_photo:
+            # Scale & center crop to (W, H)
+            ih, iw = pre_img.shape[:2]
+            scale = max(W / iw, H / ih)
+            nw, nh = int(iw * scale), int(ih * scale)
+            resized = cv2.resize(pre_img, (nw, nh), interpolation=cv2.INTER_LANCZOS4)
+            cx, cy = max(0, (nw - W) // 2), max(0, (nh - H) // 2)
+            canvas = resized[cy:cy + H, cx:cx + W]
+            if canvas.shape[0] != H or canvas.shape[1] != W:
+                canvas = cv2.resize(canvas, (W, H))
+
+            # Apply subtle dark tint for crisp UI text legibility
+            tint = np.zeros((H, W, 3), dtype=np.uint8)
+            canvas = cv2.addWeighted(canvas, 0.82, tint, 0.18, 0)
+        else:
+            canvas = np.zeros((H, W, 3), dtype=np.uint8)
+            for y in range(H):
+                ratio = y / float(H)
+                r = int(bg_top[0] * (1 - ratio) + bg_bot[0] * ratio)
+                g = int(bg_top[1] * (1 - ratio) + bg_bot[1] * ratio)
+                b = int(bg_top[2] * (1 - ratio) + bg_bot[2] * ratio)
+                canvas[y, :] = (r, g, b)
+
+            grid_start = int(H * 0.45) if is_landscape else 800
+            for gy in range(grid_start, H, 50 if is_landscape else 60):
+                p_val = (gy - grid_start) / float(max(1, H - grid_start))
+                col_grid = (int(secondary[0] * 0.25 * p_val), int(secondary[1] * 0.25 * p_val), int(secondary[2] * 0.25 * p_val))
+                cv2.line(canvas, (0, gy), (W, gy), col_grid, 1)
+            
+            vanish_x = W // 2
+            vanish_y = int(H * 0.40) if is_landscape else 750
+            for gx in range(0, W + 1, 90):
+                col_grid = (int(primary[0] * 0.18), int(primary[1] * 0.18), int(primary[2] * 0.18))
+                cv2.line(canvas, (vanish_x, vanish_y), (gx, H), col_grid, 1)
 
         img_pil = Image.fromarray(canvas)
         draw = ImageDraw.Draw(img_pil, 'RGBA')
@@ -832,7 +866,8 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
             try:
                 os.makedirs(sd, exist_ok=True)
                 out_path = os.path.join(sd, f"scene_{s_idx}.jpg")
-                cv2.imwrite(out_path, out_bgr, [cv2.IMWRITE_JPEG_QUALITY, 92])
+                if not has_ai_photo:
+                    cv2.imwrite(out_path, out_bgr, [cv2.IMWRITE_JPEG_QUALITY, 92])
             except Exception:
                 pass
 
@@ -1394,9 +1429,8 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
             if s_img is not None:
                 kb_frame = apply_ken_burns(s_img, prog, cur_sc_idx % 4)
                 if motion_frame is not None:
-                    # Seamless blend: 55% real 60fps moving video footage + 45% topic-specific visual
-                    # This guarantees real movement (lights shifting, servers flashing, characters moving) in every frame!
-                    frame = cv2.addWeighted(motion_frame, 0.55, kb_frame, 0.45, 0)
+                    # Seamless blend: 72% topic visual + 28% dynamic motion lighting overlay
+                    frame = cv2.addWeighted(kb_frame, 0.72, motion_frame, 0.28, 0)
                 else:
                     frame = kb_frame
             elif motion_frame is not None:
@@ -1423,7 +1457,7 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
             grad = np.zeros((H, W, 3), dtype=np.uint8)
             cv2.rectangle(grad, (0, 0), (W, int(H * 0.14)), (0, 0, 0), -1)
             cv2.rectangle(grad, (0, int(H * 0.74)), (W, H), (0, 0, 0), -1)
-            cv2.addWeighted(grad, 0.42, frame, 0.58, 0, frame)
+            cv2.addWeighted(grad, 0.26, frame, 0.74, 0, frame)
 
             img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(img_pil, 'RGBA')

@@ -6,6 +6,7 @@ import { videoInspectorService } from './video-inspector.service';
 import { getWorkspaceSettings } from './workspace-settings.service';
 import { googleFlowVeoService } from './google-flow-veo.service';
 import { pexelsBrollService } from './pexels-broll.service';
+import { freeAiService } from './free-ai.service';
 import { updateRenderProgress, completeRenderProgress } from './render-progress.service';
 
 export class VideoRenderService {
@@ -117,6 +118,73 @@ export class VideoRenderService {
     }
   }
 
+  public async prepareTopicSceneVisuals(item: ContentItemRecord): Promise<void> {
+    const isLong = item.videoFormat === 'long_form';
+    const width = isLong ? 1920 : 1080;
+    const height = isLong ? 1080 : 1920;
+
+    const basePublicDir = this.getPublicVideosDir();
+    const serverScenesDir = path.resolve(basePublicDir, '../assets/scenes', item.id);
+    const webScenesDir = path.resolve(process.cwd(), 'apps/web/public/assets/scenes', item.id);
+
+    try {
+      if (!fs.existsSync(serverScenesDir)) fs.mkdirSync(serverScenesDir, { recursive: true });
+      if (!fs.existsSync(webScenesDir)) fs.mkdirSync(webScenesDir, { recursive: true });
+    } catch (e) {}
+
+    // Check if all 5 scenes already exist
+    const allExist = [1, 2, 3, 4, 5].every((idx) => {
+      const p = path.join(serverScenesDir, `scene_${idx}.jpg`);
+      return fs.existsSync(p) && fs.statSync(p).size > 15000;
+    });
+
+    if (allExist) {
+      console.log(`⚡ [SceneVisuals] 5 ta mavzuga mos sahna vizuallari allaqachon tayyor: ${item.id}`);
+      return;
+    }
+
+    console.log(`🎨 [SceneVisuals] Mavzuga mos 5 ta FLUX.1 vizuallari generatsiya qilinmoqda ("${item.title}")...`);
+
+    const cleanTitle = (item.title || 'Artificial Intelligence Breakthrough')
+      .replace(/#\w+/g, '')
+      .replace(/[^\w\s-]/g, ' ')
+      .trim();
+
+    const scenes = item.scenes || [];
+    const scenePrompts = [
+      // Scene 1: Pattern interrupt hook
+      `${cleanTitle}, ${(scenes[0]?.title || 'dramatic high tech discovery hook')}, dynamic cinematic vertical shot, futuristic cyberpunk neon lighting, volumetric atmosphere, hyperrealistic 8k, octane render`,
+      // Scene 2: Core technological revelation
+      `${cleanTitle}, ${(scenes[1]?.title || 'deep tech breakthrough revelation')}, glowing neural network data flow, complex digital interface, cyan and gold cyber illumination, 8k photorealistic`,
+      // Scene 3: Deep benchmark / demonstration
+      `${cleanTitle}, ${(scenes[2]?.title || 'real world demonstration and benchmark')}, ultra modern developer workstation, futuristic telemetry and code analytics graphs, 8k photorealistic`,
+      // Scene 4: Scalable architecture / cluster
+      `${cleanTitle}, ${(scenes[3]?.title || 'massive production cluster and system architecture')}, futuristic datacenter server racks, glowing fiber optics data stream, 8k cinematic`,
+      // Scene 5: Outro / Community question
+      `${cleanTitle}, ${(scenes[4]?.title || 'future artificial intelligence community discussion')}, ultra high-tech glowing holographic display, futuristic studio ambiance, 8k photorealistic`
+    ];
+
+    const generatePromises = scenePrompts.map(async (prompt, idx) => {
+      const sceneNum = idx + 1;
+      const scenePath = path.join(serverScenesDir, `scene_${sceneNum}.jpg`);
+      if (fs.existsSync(scenePath) && fs.statSync(scenePath).size > 15000) {
+        return;
+      }
+      try {
+        await freeAiService.generateFluxImage(prompt, scenePath, { width, height });
+        const webScenePath = path.join(webScenesDir, `scene_${sceneNum}.jpg`);
+        try {
+          fs.copyFileSync(scenePath, webScenePath);
+        } catch (e) {}
+        console.log(`✅ [SceneVisuals] Sahna ${sceneNum}/5 FLUX.1 orqali tayyorlandi!`);
+      } catch (err: any) {
+        console.warn(`⚠️ [SceneVisuals] Sahna ${sceneNum} FLUX generatsiyasida xatolik:`, err.message);
+      }
+    });
+
+    await Promise.allSettled(generatePromises);
+  }
+
   public async renderVideo(item: ContentItemRecord): Promise<{ success: boolean; videoUrl: string; duration: number }> {
     const publicVideosDir = this.getPublicVideosDir();
     const mediaVideosDir = this.getMediaVideosDir();
@@ -158,17 +226,28 @@ export class VideoRenderService {
       fs.writeFileSync(tempInputPath, JSON.stringify(item, null, 2), 'utf-8');
     } catch (e) {}
 
+    // Prepare 5 topic-matched photorealistic visual scenes with 100% keyless FLUX.1
+    try {
+      updateRenderProgress(item.id, 16, '2/4: Mavzuga mos 5 ta 4K kinematik vizual sahnalar tayyorlanmoqda...', 2, 4, 'rendering');
+      await Promise.race([
+        this.prepareTopicSceneVisuals(item),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Scene visuals timeout 25s')), 25000))
+      ]);
+    } catch (sceneErr: any) {
+      console.warn('[Scene Visuals Notice]:', sceneErr?.message || sceneErr);
+    }
+
     // Fetch topic-matched dynamic B-Roll footage (Pexels HD 9:16 or high-res curated pool)
     try {
       const isPexels = pexelsBrollService.isConfigured(item.workspaceId);
       if (isPexels) {
-        updateRenderProgress(item.id, 20, '2/4: Pexels orqali mavzuga mos 4K/HD vertikal kadrlar yuklanmoqda...', 2, 4, 'rendering');
+        updateRenderProgress(item.id, 22, '2/4: Pexels orqali mavzuga mos 4K/HD vertikal kadrlar yuklanmoqda...', 2, 4, 'rendering');
       } else {
-        updateRenderProgress(item.id, 18, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
+        updateRenderProgress(item.id, 20, '2/4: Mavzuga mos 4K/HD dinamik B-Roll kadrlari tayyorlanmoqda...', 2, 4, 'rendering');
       }
       await Promise.race([
         pexelsBrollService.getOrFetchTopicClips(item, 5),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 4.5s')), 4500))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('B-Roll timeout 18s')), 18000))
       ]);
     } catch (brollErr: any) {
       console.warn('[B-Roll Notice]:', brollErr?.message || brollErr);

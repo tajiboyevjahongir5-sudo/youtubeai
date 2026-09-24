@@ -53,7 +53,14 @@ const KEYWORD_MAP: Record<string, string> = {
   'deepseek': 'artificial intelligence neural network data',
   'chatgpt': 'artificial intelligence typing computer futuristic',
   'gemini': 'futuristic artificial intelligence technology glowing',
-  'gadjet': 'futuristic technology smartphone hardware'
+  'gadjet': 'futuristic technology smartphone hardware',
+  'agent': 'autonomous ai agent futuristic technology',
+  'prompt': 'software developer typing command code prompt',
+  'model': 'supercomputer neural network artificial intelligence',
+  'kod': 'software developer programming code matrix',
+  'terminal': 'linux terminal developer matrix coding',
+  'kompyuter': 'high tech computer modern workspace neon',
+  'benchmark': 'supercomputer performance data analytics telemetry'
 };
 
 export class PexelsBrollService {
@@ -96,14 +103,18 @@ export class PexelsBrollService {
       }
     }
 
-    // Strip common non-topic words
+    // Strip hashtags, symbols, and non-topic stop words
     const cleaned = lower
+      .replace(/#\w+/g, '')
+      .replace(/http\S+/g, '')
       .replace(/[^a-z0-9\s]/gi, ' ')
-      .replace(/\b(eng|yangi|top|video|uchun|haqida|bilan|qanday|qilish|sirlari|2026|100|ta)\b/gi, '')
+      .replace(/\b(eng|yangi|top|video|uchun|haqida|bilan|qanday|qilish|sirlari|2026|100|ta|shorts|viral|best|how|to|in|of|and|the|a|an)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
 
-    if (cleaned.length >= 3) {
-      return `${cleaned} technology 4k`;
+    const words = cleaned.split(' ').filter(w => w.length > 2);
+    if (words.length > 0) {
+      return `${words.slice(0, 3).join(' ')} technology`;
     }
 
     return 'futuristic artificial intelligence technology';
