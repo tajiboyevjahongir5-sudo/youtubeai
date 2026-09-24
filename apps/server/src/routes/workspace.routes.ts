@@ -170,31 +170,75 @@ router.post('/:id/clone-channel-content', requireWorkspace, async (req: Request,
   try {
     const workspaceId = req.params.id;
     const settings = getWorkspaceSettings(workspaceId);
-    const analysis = settings.channelAnalysis;
+    let analysis = req.body?.analysis || settings.channelAnalysis;
+
+    // If analysis is not yet cached on server, analyze on the fly
+    const channelInput = req.body?.channelUrl || settings.sourceChannelUrl;
+    if (!analysis && channelInput) {
+      try {
+        console.log(`[Clone Engine] Tahlil mavjud emas, avtomatik tahlil qilinmoqda: ${channelInput}`);
+        const fresh = await analyzeAndSaveChannel(channelInput, workspaceId);
+        analysis = fresh.analysis;
+      } catch (err: any) {
+        console.warn(`[Clone Engine] Avtomatik tahlil xatosi:`, err.message);
+      }
+    }
 
     if (!analysis) {
       return res.status(400).json({
         success: false,
-        error: "Avval biror mashhur YouTube kanalni tahlil qiling"
+        error: "Avval biror mashhur YouTube kanalni tahlil qiling yoki kanal @handle'ni kiriting"
       });
     }
 
     const blueprints = analysis.clonedVideoBlueprints || [];
     const topics = analysis.topPerformingTopics || [];
 
-    const itemsToCreate = blueprints.length > 0
-      ? blueprints.slice(0, 3)
-      : topics.slice(0, 3).map((t: string) => ({
-          title: t.includes('#Shorts') ? t : `${t} #Shorts`,
-          hook: `Stop scrolling! Here is the secret behind ${t}`,
-          viralScore: 98,
-          highCpmTag: analysis.niche || "AI Tools",
+    let itemsToCreate: any[] = [];
+    if (blueprints.length > 0) {
+      itemsToCreate = blueprints.slice(0, 3);
+    } else if (topics.length > 0) {
+      itemsToCreate = topics.slice(0, 3).map((t: string) => ({
+        title: t.includes('#Shorts') ? t : `${t} #Shorts`,
+        hook: `Stop scrolling! Here is the secret behind ${t}`,
+        viralScore: 98,
+        highCpmTag: analysis.niche || "AI Tools",
+        targetDuration: 55
+      }));
+    } else {
+      const channelName = analysis.channelTitle || 'Viral Channel';
+      itemsToCreate = [
+        {
+          title: `${channelName}: 3 Secrets Top Creators Hide in 2026 #Shorts`,
+          hook: `Stop doing this! Here are the 3 secrets from ${channelName} that changed everything.`,
+          viralScore: 99,
+          highCpmTag: analysis.niche || 'Tech',
           targetDuration: 55
-        }));
+        },
+        {
+          title: `How ${channelName} Blew Up: The Viral Blueprint #Shorts`,
+          hook: `Want 10x more reach? This exact technique from ${channelName} guarantees massive retention.`,
+          viralScore: 98,
+          highCpmTag: analysis.niche || 'Tech',
+          targetDuration: 55
+        },
+        {
+          title: `${channelName} Masterclass: Instant Monetization Hack #Shorts`,
+          hook: `Never make content the old way again. Here is the fast monetization framework.`,
+          viralScore: 97,
+          highCpmTag: analysis.niche || 'Tech',
+          targetDuration: 55
+        }
+      ];
+    }
 
     const createdItems: any[] = [];
     for (const bp of itemsToCreate) {
       const title = bp.title.includes('#Shorts') ? bp.title : `${bp.title} #Shorts`;
+      const itemScript = bp.hook
+        ? `[00:00 - 00:05] HOOK: "${bp.hook}"\n[00:05 - 00:20] SCENE 1: "The breakthrough that transformed this entire niche starts right here. Watch every second carefully."\n[00:20 - 00:35] SCENE 2: "Step 1: Automate the workflow. Step 2: Implement high-retention editing. The results speak for themselves."\n[00:35 - 00:50] SCENE 3: "Top creators are already banking on this exact formula. Will you adapt or get left behind?"\n[00:50 - 00:55] OUTRO: "Which tool will you test first? Drop your thoughts below and subscribe for daily breakdowns!"`
+        : `[00:00 - 00:05] HOOK: "Stop scrolling! Here is the blueprint behind ${title.replace('#Shorts', '')}."\n[00:05 - 00:25] SCENE 1: "This exact strategy generated millions of impressions across top channels."\n[00:25 - 00:45] SCENE 2: "Apply this workflow today to skyrocket your channel growth and monetization."\n[00:45 - 00:55] OUTRO: "Subscribe now for daily high-value breakdowns!"`;
+
       const item = contentStore.createItem({
         workspaceId,
         title,
@@ -203,18 +247,22 @@ router.post('/:id/clone-channel-content', requireWorkspace, async (req: Request,
         status: 'review'
       });
 
-      // Enrich with high CPM tags from cloned blueprint
-      if (analysis.monetizationRoadmap?.highCpmKeywords) {
-        contentStore.updateItem(item.id, {
-          highCpmKeywords: analysis.monetizationRoadmap.highCpmKeywords,
-          tags: Array.from(new Set([...item.tags, ...analysis.monetizationRoadmap.highCpmKeywords])).slice(0, 12)
-        });
-      }
+      // Enrich with script and high CPM tags from cloned blueprint
+      const highCpmKeywords = analysis.monetizationRoadmap?.highCpmKeywords || ['AI', 'Productivity', 'Tech', 'Workflow'];
+      contentStore.updateItem(item.id, {
+        script: itemScript,
+        highCpmKeywords,
+        tags: Array.from(new Set([...item.tags, ...highCpmKeywords])).slice(0, 12)
+      });
       createdItems.push(item);
     }
 
     // Automatically activate Auto-Pilot tuned to this cloned channel
     saveWorkspaceSettings(workspaceId, {
+      sourceChannelUrl: channelInput || settings.sourceChannelUrl,
+      sourceChannelId: analysis.channelId || settings.sourceChannelId,
+      channelAnalysis: analysis,
+      clonedChannelBlueprint: analysis.clonedChannelBlueprint || analysis,
       autoPilotEnabled: true,
       enabled: true,
       dailyTarget: 2,

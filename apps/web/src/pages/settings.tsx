@@ -173,7 +173,10 @@ const SettingsPage = () => {
     try {
       const res = await fetchApi(`/workspaces/${wsId}/clone-channel-content`, {
         method: 'POST',
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          analysis: channelAnalysis,
+          channelUrl: channelUrl
+        })
       }, async () => 'mock_token');
 
       if (res && res.success) {
@@ -183,7 +186,12 @@ const SettingsPage = () => {
         setCloneError(res?.error || "Kanal kontentini klonlashda xatolik yuz berdi");
       }
     } catch (err: any) {
-      setCloneError(err?.message || "Tarmoq xatosi yuz berdi");
+      let msg = err?.message || "Tarmoq xatosi yuz berdi";
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed.error) msg = parsed.error;
+      } catch (e) {}
+      setCloneError(msg);
     } finally {
       setIsCloning(false);
     }
@@ -192,7 +200,7 @@ const SettingsPage = () => {
   const handleGenerateSpecificTopic = async (topicTitle: string) => {
     setGeneratingTopic(topicTitle);
     try {
-      const res = await fetchApi(`/content/items`, {
+      const res = await fetchApi(`/workspaces/${wsId}/content`, {
         method: 'POST',
         body: JSON.stringify({
           title: topicTitle.includes('#Shorts') ? topicTitle : `${topicTitle} #Shorts`,
@@ -206,7 +214,12 @@ const SettingsPage = () => {
         setCloneSuccess(`"${topicTitle}" mavzusi bo'yicha yangi video qoralamasi muvaffaqiyatli yaratildi!`);
       }
     } catch (err: any) {
-      setAnalysisError(err?.message || "Video yaratishda xatolik");
+      let msg = err?.message || "Video yaratishda xatolik";
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed.error) msg = parsed.error;
+      } catch (e) {}
+      setAnalysisError(msg);
     } finally {
       setGeneratingTopic(null);
     }
