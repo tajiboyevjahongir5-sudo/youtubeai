@@ -2135,20 +2135,25 @@ export const ContentDetailPage = () => {
     }
   };
 
+  const [videoLoadError, setVideoLoadError] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   // Strict topic-isolated video source: only set if actual video exists for this item
-  const activeVideoSrc: string | undefined = customVideoUrl 
-    ? (customVideoUrl.startsWith('http') ? customVideoUrl : `${customVideoUrl}?v=${videoVersion}`)
-    : (itemData?.videoUrl && itemData.videoUrl.trim() !== '' && itemData.status !== 'idea'
-      ? `${itemData.videoUrl}?v=${videoVersion}`
-      : (contentId === 'item_1' && itemData?.status === 'published'
-          ? `/neural_pulse_short.mp4?v=${videoVersion}` 
-          : undefined));
+  const hasPhysicalVideo = itemData?.videoExists !== false && Boolean(itemData?.videoUrl && itemData.videoUrl.trim() !== '');
+  const activeVideoSrc: string | undefined = videoLoadError
+    ? undefined
+    : (customVideoUrl 
+      ? (customVideoUrl.startsWith('http') ? customVideoUrl : `${customVideoUrl}?v=${videoVersion}`)
+      : (hasPhysicalVideo && itemData?.status !== 'idea'
+        ? `${itemData.videoUrl}?v=${videoVersion}`
+        : undefined));
 
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
-    setToast("🚀 AI Video Engine ishga tushdi: Azure Neural ovoz, kadrlar va kinetik subtitrlar yaratilmoqda...");
+    setVideoLoadError(false);
+    setStatus('generating');
+    startRenderPolling();
+    setToast("🚀 AI Video Engine ishga tushdi: kadrlar, diktor ovozi va montaj boshlandi...");
     try {
       const res = await fetchApi(`/workspaces/${workspaceId}/content/${contentId}/generate-video`, {
         method: 'POST',
@@ -2156,14 +2161,12 @@ export const ContentDetailPage = () => {
           voiceEmotionPreset: selectedVoicePreset
         })
       }, async () => 'mock_token');
-      if (res && res.videoUrl) {
+      if (res && res.status === 'rendering') {
+        setToast("⏳ Video fonda tayyorlanmoqda, progress barni kuzating...");
+      } else if (res && res.videoUrl) {
         setCustomVideoUrl(res.videoUrl);
         setVideoVersion(Date.now());
         refetchItem();
-        setToast("🎉 Ushbu mavzuga mos yangi video muvaffaqiyatli generatsiya qilindi!");
-      } else {
-        refetchItem();
-        setVideoVersion(Date.now());
       }
     } catch (e: any) {
       setToast("❌ Video yaratishda xatolik: " + (e?.message || 'Server xatosi'));
@@ -11772,7 +11775,15 @@ CMD ["pnpm", "start:production"]`,
                                 preload="auto"
                                 loop
                                 onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 615)}
+                                onLoadedMetadata={(e) => {
+                                  setVideoLoadError(false);
+                                  setDuration(e.currentTarget.duration || 615);
+                                }}
+                                onLoadedData={() => setVideoLoadError(false)}
+                                onError={() => {
+                                  console.warn("16:9 video could not be loaded, file not ready");
+                                  setVideoLoadError(true);
+                                }}
                                 onPlay={() => setIsPlaying(true)}
                                 onPause={() => setIsPlaying(false)}
                                 onEnded={() => setIsPlaying(false)}
@@ -12075,7 +12086,15 @@ CMD ["pnpm", "start:production"]`,
                                 preload="auto"
                                 loop
                                 onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 55.63)}
+                                onLoadedMetadata={(e) => {
+                                  setVideoLoadError(false);
+                                  setDuration(e.currentTarget.duration || 55.63);
+                                }}
+                                onLoadedData={() => setVideoLoadError(false)}
+                                onError={() => {
+                                  console.warn("9:16 video could not be loaded, file not ready");
+                                  setVideoLoadError(true);
+                                }}
                                 onPlay={() => setIsPlaying(true)}
                                 onPause={() => setIsPlaying(false)}
                                 onEnded={() => setIsPlaying(false)}

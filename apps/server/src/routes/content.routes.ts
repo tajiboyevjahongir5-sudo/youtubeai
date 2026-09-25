@@ -1,4 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { db } from '../db';
 import { contentItems } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -153,7 +155,19 @@ router.get('/:contentId', async (req: Request, res: Response, next: NextFunction
     return res.status(404).json({ error: 'Content item not found' });
   }
 
-  res.json(item);
+  // Check physical video file existence on disk
+  const pubVideo = path.join(videoRenderService.getPublicVideosDir(), `${item.id}.mp4`);
+  const mediaVideo = path.join(videoRenderService.getMediaVideosDir(), `${item.id}.mp4`);
+  const videoExists = (fs.existsSync(pubVideo) && fs.statSync(pubVideo).size > 50000) ||
+                      (fs.existsSync(mediaVideo) && fs.statSync(mediaVideo).size > 50000);
+
+  const responseItem = {
+    ...item,
+    videoExists,
+    videoUrl: videoExists ? (item.videoUrl || `/media/videos/${item.id}.mp4`) : ''
+  };
+
+  res.json(responseItem);
 });
 
 router.put('/:contentId', async (req: Request, res: Response, next: NextFunction) => {
