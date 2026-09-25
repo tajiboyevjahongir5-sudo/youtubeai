@@ -2176,6 +2176,14 @@ export const ContentDetailPage = () => {
     }
   };
 
+  useEffect(() => {
+    const autostart = searchParams.get('autostart');
+    if (autostart === 'true' && !hasPhysicalVideo && !isGeneratingVideo && status !== 'generating') {
+      console.log('⚡ Autostart video generation triggered from content list!');
+      handleGenerateVideo();
+    }
+  }, [searchParams, hasPhysicalVideo]);
+
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {

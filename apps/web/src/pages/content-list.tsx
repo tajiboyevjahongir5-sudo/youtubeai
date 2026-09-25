@@ -681,7 +681,7 @@ const ContentListPage = () => {
               </div>
 
               {video.status === 'awaiting_approval' && !video.hasVideo && (
-                <Link to={`/content/${video.id}?tab=tasdiqlash`}>
+                <Link to={`/content/${video.id}?tab=tasdiqlash&autostart=true`}>
                   <Button variant="primary" size="sm" className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)] cursor-pointer">
                     <Sparkles size={13} /> 🎬 Video Generatsiya Qilish
                   </Button>
