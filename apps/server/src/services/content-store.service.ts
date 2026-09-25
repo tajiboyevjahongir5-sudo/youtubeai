@@ -641,12 +641,160 @@ class ContentStoreService {
     this.persist();
   }
 
+  public buildTopicAdaptiveBlueprint(rawTitle: string, nicheHint: string = ''): {
+    script: string;
+    scenes: SceneItem[];
+    tags: string[];
+    highCpmKeywords: string[];
+    brief: string;
+  } {
+    const cleanTitle = rawTitle.replace(/#shorts/gi, '').trim();
+    const t = `${cleanTitle} ${nicheHint}`.toLowerCase();
+
+    // 1. ANIMALS / WILDLIFE / BREEDING / DEFORMED
+    if (t.match(/animal|creature|deform|breed|dog|cat|mutat|wild|nature|beast|monster|fish|species/i)) {
+      const script = `[00:00 - 00:05] HOOK: "Humans have created some of the most bizarre and deformed animals on Earth. The last one will truly shock you."
+[00:05 - 00:18] SCENE 1: "Take the Bubble Eye Goldfish, bred with massive fluid sacks beneath their eyes that impair basic swimming."
+[00:18 - 00:30] SCENE 2: "Or the Belgian Blue cattle, genetically forced with double-muscling mutations until their bodies resemble bodybuilders."
+[00:30 - 00:43] SCENE 3: "Even beloved French Bulldogs now suffer chronic respiratory collapse purely due to selective skull deformation."
+[00:43 - 00:55] OUTRO: "Did human breeding go too far? Share your honest thoughts in the comments below and subscribe!"`;
+      const scenes: SceneItem[] = [
+        { id: 'sc1', title: '1. Human Breeding Hook', time: 0, tag: '🐾 Shocking Animals' },
+        { id: 'sc2', title: '2. Bubble Eye Goldfish', time: 5, tag: '🐟 Extreme Breeding' },
+        { id: 'sc3', title: '3. Double-Muscled Cattle', time: 18, tag: '🧬 Genetic Mutations' },
+        { id: 'sc4', title: '4. Skull Deformation Reality', time: 30, tag: '🐶 Anatomical Defects' },
+        { id: 'sc5', title: '5. Ethical Question & CTA', time: 43, tag: '🔔 Subscribe & Debate' }
+      ];
+      return {
+        script,
+        scenes,
+        tags: ['animals', 'wildlife', 'shocking facts', 'genetics', 'nature documentary', 'shorts'],
+        highCpmKeywords: ['Wildlife Documentaries ($18.50 CPM)', 'Animal Science ($16.20 CPM)', 'Educational Nature ($19.10 CPM)'],
+        brief: `Insonlar tomonidan sun'iy chatishtirish va seleksiya oqibatida yaratilgan eng g'alati va o'zgargan hayvonlar haqida viral Shorts.`
+      };
+    }
+
+    // 2. SPACE / UNIVERSE / RAREST / COSMOS
+    if (t.match(/universe|space|planet|star|galaxy|rare|rarest|cosmos|moon|astronomy|void/i)) {
+      const script = `[00:00 - 00:05] HOOK: "What is the single rarest thing in our entire universe? It is NOT gold or diamonds. Watch this."
+[00:05 - 00:18] SCENE 1: "At number one is Antimatter. Creating just one single gram would cost over 62 trillion dollars."
+[00:18 - 00:30] SCENE 2: "Deep in the cosmos, 55 Cancri e is an entire exoplanet made of pure crystal diamond twice the size of Earth."
+[00:30 - 00:43] SCENE 3: "On Earth, Painite was once so scarce that only two crystals were ever known to exist."
+[00:43 - 00:55] OUTRO: "Which of these cosmic rarities shocked you the most? Drop a comment and subscribe for more mind-blowing universe facts!"`;
+      const scenes: SceneItem[] = [
+        { id: 'sc1', title: '1. Shocking Universe Hook', time: 0, tag: '🌌 Space Discovery' },
+        { id: 'sc2', title: '2. $62 Trillion Antimatter', time: 5, tag: '💎 Rarest Matter' },
+        { id: 'sc3', title: '3. Pure Diamond Planet', time: 18, tag: '🪐 Diamond Exoplanet' },
+        { id: 'sc4', title: '4. Rare Earth Painite', time: 30, tag: '✨ Painite Crystal' },
+        { id: 'sc5', title: '5. Community Question & CTA', time: 43, tag: '🔔 Subscribe & Comment' }
+      ];
+      return {
+        script,
+        scenes,
+        tags: ['universe', 'space facts', 'astronomy', 'rarest things', 'science documentary', 'shorts'],
+        highCpmKeywords: ['Space Science ($22.40 CPM)', 'Astrophysics ($24.80 CPM)', 'Science Facts ($20.10 CPM)'],
+        brief: `Koinotdagi eng noyob moddalar, qimmatbaho antimateriya va olmos sayyoralar haqida o'ta qiziqarli ilmiy Shorts.`
+      };
+    }
+
+    // 3. WAR / HISTORY / MILITARY / ENDED
+    if (t.match(/war|ended|history|soldier|battle|message|army|ancient|empire|conquer|treaty/i)) {
+      const script = `[00:00 - 00:05] HOOK: "Imagine fighting a brutal war for 30 years after it officially ended because nobody told you. Here is the true story."
+[00:05 - 00:18] SCENE 1: "In 1945 World War 2 ended, but Japanese intelligence officer Hiroo Onoda remained stationed on Lubang Island."
+[00:18 - 00:30] SCENE 2: "He dismissed surrender leaflets as allied psychological warfare, continuing covert guerrilla operations alone."
+[00:30 - 00:43] SCENE 3: "For 29 agonizing years he survived on coconuts, evading search patrols until his former commander personally relieved him in 1974."
+[00:43 - 00:55] OUTRO: "Could you survive 30 years isolated in a jungle? Tell us below and subscribe for legendary history stories!"`;
+      const scenes: SceneItem[] = [
+        { id: 'sc1', title: '1. The 30-Year War Hook', time: 0, tag: '⚔️ Forgotten Soldier' },
+        { id: 'sc2', title: '2. The Message Never Received', time: 5, tag: '📜 1945 WW2 End' },
+        { id: 'sc3', title: '3. Jungle Guerrilla Survival', time: 18, tag: '🌴 Lubang Island' },
+        { id: 'sc4', title: '4. The 1974 Final Surrender', time: 30, tag: '🎖️ Relieved of Duty' },
+        { id: 'sc5', title: '5. History Question & CTA', time: 43, tag: '🔔 Subscribe & History' }
+      ];
+      return {
+        script,
+        scenes,
+        tags: ['history', 'war stories', 'world war 2', 'hiroo onoda', 'historical facts', 'shorts'],
+        highCpmKeywords: ['Military History ($21.20 CPM)', 'Historical Mysteries ($19.80 CPM)', 'True Stories ($23.50 CPM)'],
+        brief: `Urush tugaganini bilmay 30 yil davomida tropik o'rmonda yashirinib jang qilgan yapon askari haqidagi hayratlanarli tarixiy voqea.`
+      };
+    }
+
+    // 4. PUNISHMENT / CRIME / DARK / LAW
+    if (t.match(/punish|prison|jail|torture|crime|illegal|execution|sentence|dark/i)) {
+      const script = `[00:00 - 00:05] HOOK: "You won't believe that these ancient, terrifying punishments are STILL completely legal in the modern world."
+[00:05 - 00:18] SCENE 1: "Public caning and judicial corporal punishment remain actively enforced in multiple countries for minor infractions."
+[00:18 - 00:30] SCENE 2: "Extreme sensory deprivation cells, known as White Torture, plunge inmates into total silence and white light, shattering sanity."
+[00:30 - 00:43] SCENE 3: "In remote sub-zero penal colonies, prisoners endure grueling physical labor under temperatures reaching minus 40 degrees."
+[00:43 - 00:55] OUTRO: "Should these medieval practices be banned worldwide? Drop your opinion below and subscribe for more eye-opening truths!"`;
+      const scenes: SceneItem[] = [
+        { id: 'sc1', title: '1. Ancient Punishments Hook', time: 0, tag: '⚖️ Dark Justice' },
+        { id: 'sc2', title: '2. Judicial Caning Sentence', time: 5, tag: '🚨 Modern Penalties' },
+        { id: 'sc3', title: '3. Sensory Deprivation White Room', time: 18, tag: '👁️ White Torture' },
+        { id: 'sc4', title: '4. Sub-Zero Penal Colonies', time: 30, tag: '❄️ Harsh Realities' },
+        { id: 'sc5', title: '5. Debate Question & CTA', time: 43, tag: '🔔 Subscribe & Debate' }
+      ];
+      return {
+        script,
+        scenes,
+        tags: ['punishments', 'dark history', 'prisons', 'law and crime', 'shocking facts', 'shorts'],
+        highCpmKeywords: ['True Crime & Law ($25.40 CPM)', 'Documentary ($21.80 CPM)', 'Global Facts ($18.90 CPM)'],
+        brief: `Hozirgi zamonda hamon qonuniy qo'llanib kelinayotgan eng daxshatli va qadimiy jazo usullari haqidagi tahliliy video.`
+      };
+    }
+
+    // 5. MONEY / WEALTH / FINANCE / BUSINESS
+    if (t.match(/money|rich|dollar|billion|wealth|business|profit|million|crypto|income/i)) {
+      const script = `[00:00 - 00:05] HOOK: "Stop chasing traditional income in 2026. Here is the undeniable truth about how modern wealth is built."
+[00:05 - 00:18] SCENE 1: "The top 1% never trade linear hours for dollars. They construct scalable digital assets that compound around the clock."
+[00:18 - 00:30] SCENE 2: "Step 1: Identify high-leverage workflows. Step 2: Automate distribution. The profit margins speak for themselves."
+[00:30 - 00:43] SCENE 3: "Those who adapt this shift gain massive financial sovereignty, while traditional workers get squeezed by inflation."
+[00:43 - 00:55] OUTRO: "Are you building leverage this year, or trading hours? Drop your thoughts below and subscribe for wealth blueprints!"`;
+      const scenes: SceneItem[] = [
+        { id: 'sc1', title: '1. Modern Wealth Shock Hook', time: 0, tag: '💰 Wealth Blueprint' },
+        { id: 'sc2', title: '2. The Linear Trap vs Leverage', time: 5, tag: '📈 Scalable Assets' },
+        { id: 'sc3', title: '3. The 2-Step Multiplier', time: 18, tag: '⚙️ High Leverage' },
+        { id: 'sc4', title: '4. Financial Sovereignty', time: 30, tag: '🏆 1% Strategy' },
+        { id: 'sc5', title: '5. Community Question & CTA', time: 43, tag: '🔔 Subscribe & Wealth' }
+      ];
+      return {
+        script,
+        scenes,
+        tags: ['wealth', 'finance 2026', 'make money online', 'investing', 'passive income', 'shorts'],
+        highCpmKeywords: ['Personal Finance ($34.20 CPM)', 'Wealth Building ($31.80 CPM)', 'Business Strategy ($28.50 CPM)'],
+        brief: `Zamonaviy boylik orttirish qoidalari, passiv daromad va moliyaviy erkinlikka erishish sirlari.`
+      };
+    }
+
+    // 6. DEFAULT / GENERAL MINDBLOWING STORY OR DISCOVERY
+    const script = `[00:00 - 00:05] HOOK: "Stop scrolling! Here is the shocking truth behind ${cleanTitle} that nobody tells you."
+[00:05 - 00:18] SCENE 1: "The origin of this mystery started with an unexpected breakthrough that stunned researchers worldwide."
+[00:18 - 00:30] SCENE 2: "When the evidence was first analyzed, the results contradicted everything experts believed for decades."
+[00:30 - 00:43] SCENE 3: "Today, this exact phenomenon continues to captivate millions of curious minds across the globe."
+[00:43 - 00:55] OUTRO: "Did you already know about this, or is this your first time hearing it? Tell us below and subscribe!"`;
+    const scenes: SceneItem[] = [
+      { id: 'sc1', title: `1. Hook: ${cleanTitle.slice(0, 24)}`, time: 0, tag: '🔥 Shocking Hook' },
+      { id: 'sc2', title: '2. The Unexpected Discovery', time: 5, tag: '⚡ Breakthrough' },
+      { id: 'sc3', title: '3. The Unbelievable Evidence', time: 18, tag: '📊 Direct Proof' },
+      { id: 'sc4', title: '4. Global Impact & Fascination', time: 30, tag: '🌍 Global Impact' },
+      { id: 'sc5', title: '5. Question & Subscribe CTA', time: 43, tag: '🔔 Subscribe CTA' }
+    ];
+    return {
+      script,
+      scenes,
+      tags: ['viral facts', 'unbelievable truths', 'curiosity', 'mindblowing', 'documentary', 'shorts'],
+      highCpmKeywords: ['Educational Entertainment ($21.40 CPM)', 'Viral Facts ($18.60 CPM)', 'Documentaries ($22.10 CPM)'],
+      brief: `"${cleanTitle}" mavzusidagi eng qiziqarli va hayratlanarli faktlarni ochib beruvchi viral video.`
+    };
+  }
+
   public refreshIdeasForChannel(workspaceId: string, channelAnalysis: any, clearOldDrafts: boolean = true): ContentItemRecord[] {
     if (clearOldDrafts) {
       this.clearDrafts(workspaceId);
     }
 
     const channelName = channelAnalysis.channelTitle || 'Viral Channel';
+    const channelNiche = channelAnalysis.niche || '';
     
     // 1. Extract genuine video topics from recent videos or top performing topics
     const genuineTopics: string[] = [
@@ -671,7 +819,7 @@ class ContentStoreService {
           title: `${cleanT} #Shorts`,
           hook: `Stop scrolling! You won't believe what happens in "${cleanT}". Watch every single second!`,
           viralScore: 99,
-          highCpmTag: channelAnalysis.niche || "Viral",
+          highCpmTag: channelNiche || "Viral",
           targetDuration: 55
         };
       });
@@ -683,21 +831,21 @@ class ContentStoreService {
           title: `${channelName}: The Shocking Truth Revealed #Shorts`,
           hook: `Stop scrolling! Here is the blueprint behind ${channelName}'s fastest-growing videos.`,
           viralScore: 99,
-          highCpmTag: channelAnalysis.niche || 'Viral',
+          highCpmTag: channelNiche || 'Viral',
           targetDuration: 55
         },
         {
           title: `How ${channelName} Dominates YouTube in 2026 #Shorts`,
           hook: `Want 10x more reach? This exact technique from ${channelName} guarantees massive retention.`,
           viralScore: 98,
-          highCpmTag: channelAnalysis.niche || 'Viral',
+          highCpmTag: channelNiche || 'Viral',
           targetDuration: 55
         },
         {
           title: `${channelName} Masterclass: Instant Viral Formula #Shorts`,
           hook: `Never create content the old way again. Here is the fast monetization framework.`,
           viralScore: 97,
-          highCpmTag: channelAnalysis.niche || 'Viral',
+          highCpmTag: channelNiche || 'Viral',
           targetDuration: 55
         }
       ];
@@ -706,9 +854,7 @@ class ContentStoreService {
     const created: ContentItemRecord[] = [];
     for (const bp of itemsToCreate) {
       const title = bp.title.includes('#Shorts') ? bp.title : `${bp.title} #Shorts`;
-      const itemScript = bp.hook
-        ? `[00:00 - 00:05] HOOK: "${bp.hook}"\n[00:05 - 00:20] SCENE 1: "The breakthrough that transformed this entire niche starts right here. Watch every second carefully."\n[00:20 - 00:35] SCENE 2: "Step 1: Automate the workflow. Step 2: Implement high-retention editing. The results speak for themselves."\n[00:35 - 00:50] SCENE 3: "Top creators are already banking on this exact formula. Will you adapt or get left behind?"\n[00:50 - 00:55] OUTRO: "Which part will you test first? Drop your thoughts below and subscribe for daily breakdowns!"`
-        : `[00:00 - 00:05] HOOK: "Stop scrolling! Here is the blueprint behind ${title.replace('#Shorts', '')}."\n[00:05 - 00:25] SCENE 1: "This exact strategy generated millions of impressions across top channels."\n[00:25 - 00:45] SCENE 2: "Apply this workflow today to skyrocket your channel growth and monetization."\n[00:45 - 00:55] OUTRO: "Subscribe now for daily high-value breakdowns!"`;
+      const adaptive = this.buildTopicAdaptiveBlueprint(title, channelNiche);
 
       const item = this.createItem({
         workspaceId,
@@ -718,11 +864,12 @@ class ContentStoreService {
         status: 'idea'
       });
 
-      const highCpmKeywords = channelAnalysis.monetizationRoadmap?.highCpmKeywords || ['Viral', 'Trends', 'HighRetention'];
       this.updateItem(item.id, {
-        script: itemScript,
-        highCpmKeywords,
-        tags: Array.from(new Set([...item.tags, ...highCpmKeywords])).slice(0, 12),
+        script: adaptive.script,
+        scenes: adaptive.scenes,
+        brief: adaptive.brief,
+        highCpmKeywords: adaptive.highCpmKeywords,
+        tags: adaptive.tags,
         videoUrl: ''
       });
       created.push(this.getById(item.id, workspaceId) || item);
@@ -845,51 +992,11 @@ In this video, we dissect the core mechanics, practical implementation, and futu
         videoUrl: ''
       };
     } else {
-      const scenes: SceneItem[] = [
-        { id: 'hook', title: `1. Explosive Hook: ${cleanTitle}`, time: 0, tag: '🚨 Alex Hook' },
-        { id: 'part1', title: '2. Muammo & Yechim', time: 10.5, tag: '⚡ Asosiy Yechim' },
-        { id: 'part2', title: '3. Demo & Saqlash Triggeri', time: 21.0, tag: '💾 Like & Save' },
-        { id: 'part3', title: '4. Natija & Ko\'rsatkichlar', time: 33.0, tag: '📈 10x Samaradorlik' },
-        { id: 'outro', title: '5. Obuna & Fikrlar (CTA)', time: 45.0, tag: '🔔 Obuna & Loop' }
-      ];
-
-      const script = `[0:00 - 0:04] HOOK (Fast camera zoom in & pulse graphic):
-"Stop what you're doing! If you haven't seen ${cleanTitle} yet, your entire workflow is obsolete."
-
-[0:05 - 0:17] SCENE 1 (The Core Problem):
-"Most creators and engineers waste 10 hours a week doing this manually. But with ${cleanTitle}, the entire pipeline runs autonomously."
-
-[0:18 - 0:31] SCENE 2 (The Secret Advantage & Like Trigger):
-"Here is how it works: it automates complex reasoning with zero latency. Hit like and save this video right now before it gets lost in your feed!"
-
-[0:32 - 0:44] SCENE 3 (Real-World Results):
-"Top 1% founders are using this exact blueprint to 10x their output with zero burnout."
-
-[0:45 - 0:56] OUTRO & SEAMLESS LOOP:
-"Are you testing this today? Comment below, subscribe to Neural Pulse AI for daily blueprints, and that is the exact reason why..."`;
-
-      const description = `Here is everything you need to know about ${cleanTitle} in 2026.
-Watch until the end for the exact blueprint.
-
-⏰ Timestamps:
-0:00 - Introduction & Hook
-0:05 - The Core Advantage
-0:18 - How It Works
-0:32 - Practical Results
-0:45 - Next Steps & Subscription
-
-#${cleanTitle.replace(/[^a-zA-Z0-9]/g, '')} #Shorts #Tech #AI #Innovation #NeuralPulseAI`;
-
-      const tags = [
-        cleanTitle.toLowerCase(),
-        'shorts',
-        'ai',
-        'tech',
-        'productivity',
-        'neural pulse ai',
-        'viral',
-        'trends 2026'
-      ];
+      const adaptive = this.buildTopicAdaptiveBlueprint(cleanTitle);
+      const scenes = adaptive.scenes;
+      const script = adaptive.script;
+      const description = `${cleanTitle} haqida to'liq va hayratlanarli ma'lumotlar.\n\n#Shorts #${cleanTitle.replace(/[^a-zA-Z0-9]/g, '')} #viral #facts`;
+      const tags = adaptive.tags;
 
       const titleVariants: TitleVariant[] = [
         {

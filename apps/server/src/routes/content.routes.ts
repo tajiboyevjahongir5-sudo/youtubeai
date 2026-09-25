@@ -9,6 +9,9 @@ import { contentStore } from '../services/content-store.service';
 import { videoRenderService } from '../services/video-render.service';
 import { videoInspectorService } from '../services/video-inspector.service';
 import { getWorkspaceSettings } from '../services/workspace-settings.service';
+import { generationRecoveryService } from '../services/generation-recovery.service';
+import { sceneRepairService } from '../services/scene-repair.service';
+import { videoProviderRegistry } from '../services/video-provider.service';
 
 const router = Router({ mergeParams: true });
 
@@ -340,6 +343,111 @@ router.get('/:contentId/ai-inspect', async (req: Request, res: Response, next: N
     res.json({ success: true, report });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Inspection failed' });
+  }
+});
+
+// Video Providers List (Seedance, MiniMax, Google Omni, Kling, Wan, Local FLUX)
+router.get('/video-providers', async (req: Request, res: Response) => {
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const providers = videoProviderRegistry.listAll(workspaceId);
+  res.json({ success: true, providers });
+});
+
+// Checkpoint Recovery & Resumption
+router.get('/:contentId/checkpoints', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const resumeInfo = generationRecoveryService.canResume(workspaceId, contentId);
+  res.json({ success: true, ...resumeInfo });
+});
+
+router.post('/:contentId/resume-generation', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const item = contentStore.getById(contentId, workspaceId);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Content item not found' });
+  }
+
+  const resumeInfo = generationRecoveryService.canResume(workspaceId, contentId);
+  console.log(`🔄 [Recovery] "${item.title}" [${contentId}] bosqichidan davom ettirilmoqda: ${resumeInfo.nextStage}`);
+
+  // Trigger video render (which uses checkpoints to skip completed stages)
+  const renderPromise = videoRenderService.renderVideo(item);
+
+  const proxyGuardPromise = new Promise<any>((resolve) => {
+    setTimeout(() => {
+      resolve({
+        success: true,
+        status: 'rendering',
+        resumedFrom: resumeInfo.nextStage,
+        completedStages: resumeInfo.completedStages,
+        message: `Video generatsiyasi davom ettirilmoqda (${resumeInfo.nextStage} bosqichi)...`,
+        videoUrl: `/media/videos/${item.id}.mp4`
+      });
+    }, 7000);
+  });
+
+  try {
+    const result = await Promise.race([renderPromise, proxyGuardPromise]);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Resume generation error:', error);
+    res.status(500).json({ error: error.message || 'Resume failed' });
+  }
+});
+
+// Scene Manifest & Scene Repair API
+router.get('/:contentId/scenes', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+  const manifest = sceneRepairService.getScenes(workspaceId, contentId);
+  res.json({ success: true, manifest });
+});
+
+router.post('/:contentId/scenes/:sceneIndex/regenerate', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const sceneIndex = parseInt(req.params.sceneIndex, 10);
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+
+  try {
+    const updatedScene = await sceneRepairService.regenerateScene(workspaceId, contentId, sceneIndex, {
+      prompt: req.body.prompt,
+      scriptText: req.body.scriptText,
+      provider: req.body.provider
+    });
+    res.json({ success: true, scene: updatedScene });
+  } catch (err: any) {
+    console.error('Regenerate scene error:', err);
+    res.status(500).json({ error: err.message || 'Sahna generatsiyasida xatolik' });
+  }
+});
+
+router.post('/:contentId/scenes/:sceneIndex/update', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const sceneIndex = parseInt(req.params.sceneIndex, 10);
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+
+  try {
+    const updatedScene = sceneRepairService.updateScene(workspaceId, contentId, sceneIndex, req.body);
+    res.json({ success: true, scene: updatedScene });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Yangilashda xatolik' });
+  }
+});
+
+router.post('/:contentId/scenes/rebuild', async (req: Request, res: Response) => {
+  const contentId = req.params.contentId;
+  const workspaceId = req.workspaceId || (req.query.workspaceId as string) || 'default';
+
+  try {
+    console.log(`⚡ [Scene Rebuild API] "${contentId}" qayta montaj qilinmoqda...`);
+    const result = await sceneRepairService.rebuildVideo(workspaceId, contentId);
+    res.json(result);
+  } catch (err: any) {
+    console.error('Rebuild video error:', err);
+    res.status(500).json({ error: err.message || 'Qayta montaj qilishda xatolik' });
   }
 });
 

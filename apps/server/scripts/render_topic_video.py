@@ -152,8 +152,8 @@ def get_text_width(draw: ImageDraw.ImageDraw, text: str, font) -> int:
 POWER_WORDS = {'2026', 'AI', 'FREE', 'SECRET', 'REVOLUTION', 'AUTOMATIC', 'ILLEGAL', 'PROFIT', 'CODE', 'AUTONOMOUS', 'MONEY', 'STOP', 'NEVER', 'TOOLS', 'TOOL', 'POWER', 'FAST', 'URGENT', 'NEW'}
 
 def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=None, 
-                       max_w=880, base_size=46, min_size=28, stroke_color=(0,0,0), stroke_w=4,
-                       x_center=None):
+                       max_w=880, base_size=48, min_size=30, stroke_color=(0,0,0), stroke_w=5,
+                       x_center=None, active_prog=-1.0):
     sanitized_lines = [sanitize_text(l) for l in lines]
     if colors is None:
         colors = [(255, 255, 255)] * len(sanitized_lines)
@@ -167,12 +167,24 @@ def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=N
         cur_size -= 2
         
     font = get_font(cur_size, bold=True)
-    line_h = cur_size + 16
+    line_h = cur_size + 18
     total_h = len(sanitized_lines) * line_h
     start_y = y_center - (total_h // 2)
     space_w = get_text_width(draw, " ", font)
     target_cx = (W // 2) if x_center is None else x_center
     
+    # Calculate word-level kinetic highlighting (inspired by short-video-maker & OpusClip)
+    all_words = []
+    for l_idx, line in enumerate(sanitized_lines):
+        for w_idx, w in enumerate(line.split()):
+            all_words.append((l_idx, w_idx, w))
+    
+    total_words_count = max(1, len(all_words))
+    active_word_global_idx = -1
+    if active_prog >= 0.0:
+        active_word_global_idx = min(total_words_count - 1, max(0, int(active_prog * total_words_count)))
+
+    global_w_idx = 0
     for i, line in enumerate(sanitized_lines):
         col = colors[i]
         words = line.split()
@@ -183,14 +195,33 @@ def draw_smart_caption(draw: ImageDraw.ImageDraw, lines, y_center: int, colors=N
         
         for word in words:
             w_clean = re.sub(r'[^a-zA-Z0-9]', '', word).upper()
-            word_col = (255, 225, 45) if (w_clean in POWER_WORDS and col == (255, 255, 255)) else col
+            is_active = (global_w_idx == active_word_global_idx)
+            is_past = (global_w_idx < active_word_global_idx)
+
+            if is_active:
+                # Active currently spoken word: Vibrant pop yellow with high contrast
+                word_col = (255, 235, 20)
+                cur_stroke_w = stroke_w + 2
+            elif is_past:
+                # Already spoken word: Crisp white
+                word_col = (255, 255, 255)
+                cur_stroke_w = stroke_w
+            else:
+                # Upcoming word: Subtle soft white/cyan
+                word_col = (210, 220, 235) if col == (255, 255, 255) else col
+                cur_stroke_w = stroke_w
+
+            if w_clean in POWER_WORDS and not is_active:
+                word_col = (255, 215, 0)
             
-            for dx in range(-stroke_w, stroke_w+1):
-                for dy in range(-stroke_w, stroke_w+1):
-                    if dx*dx + dy*dy <= stroke_w*stroke_w:
+            # Draw strong drop stroke for 100% legibility on any video background
+            for dx in range(-cur_stroke_w, cur_stroke_w+1):
+                for dy in range(-cur_stroke_w, cur_stroke_w+1):
+                    if dx*dx + dy*dy <= cur_stroke_w*cur_stroke_w:
                         draw.text((cur_x+dx, y+dy), word, font=font, fill=stroke_color)
             draw.text((cur_x, y), word, font=font, fill=word_col)
             cur_x += get_text_width(draw, word, font) + space_w
+            global_w_idx += 1
 
 def clean_script_for_tts(script: str) -> str:
     lines = []
@@ -488,7 +519,18 @@ def classify_topic_category(item_id: str, title: str, tags: list = None, keyword
     tags_str = ' '.join(tags) if isinstance(tags, list) else ''
     kw_str = ' '.join(str(k) for k in keywords) if isinstance(keywords, list) else ''
     text = f"{item_id} {title} {tags_str} {kw_str} {script[:500]}".lower()
-    if any(k in text for k in ['prompt', 'dev', 'developer', 'code', 'coding', 'typescript', 'python', 'github', 'git', 'fullstack', 'css', 'tailwind', 'vitest', 'drizzle', 'senior architect', 'junior']):
+
+    if any(k in text for k in ['animal', 'creature', 'deform', 'breed', 'dog', 'cat', 'mutat', 'wild', 'nature', 'beast', 'monster', 'species', 'biology', 'fish']):
+        return 'animals_wildlife'
+    elif any(k in text for k in ['universe', 'space', 'planet', 'star', 'galaxy', 'rare', 'rarest', 'cosmos', 'moon', 'astronomy', 'void']):
+        return 'space_cosmos'
+    elif any(k in text for k in ['war', 'ended', 'history', 'soldier', 'battle', 'message', 'army', 'ancient', 'empire', 'conquer', 'treaty', 'punish', 'prison', 'jail', 'crime']):
+        return 'history_mystery'
+    elif any(k in text for k in ['money', 'rich', 'dollar', 'billion', 'wealth', 'business', 'profit', 'million', 'crypto', 'income', 'invest']):
+        return 'wealth_finance'
+    elif any(k in text for k in ['animation', 'cartoon', 'animated', 'illustrat', 'character', 'good enough']):
+        return 'animation_cartoon'
+    elif any(k in text for k in ['prompt', 'dev', 'developer', 'code', 'coding', 'typescript', 'python', 'github', 'git', 'fullstack', 'css', 'tailwind', 'vitest', 'drizzle', 'senior architect', 'junior']):
         return 'coding_prompts'
     elif any(k in text for k in ['vs', 'deepseek', 'gemini', 'o3', 'gpt', 'claude', 'benchmark', 'model', 'reasoning', 'r1', 'llm', 'smarter', 'ai battle', 'duel']):
         return 'model_duel'
@@ -501,8 +543,48 @@ def classify_topic_category(item_id: str, title: str, tags: list = None, keyword
 def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list, high_cpm_keywords: list, save_dirs: list, script: str = "", tags: list = None) -> dict:
     topic_cat = classify_topic_category(item_id, title, tags, high_cpm_keywords, script)
     
-    # Category-tailored color palettes & identity
-    if topic_cat == 'coding_prompts':
+    # Category-tailored color palettes & identity (Niche-Aware)
+    if topic_cat == 'animals_wildlife':
+        pal_name = 'wild_amber'
+        primary = (255, 180, 40)
+        secondary = (50, 220, 100)
+        bg_top = (18, 24, 14)
+        bg_bot = (8, 12, 6)
+        accent = (255, 230, 80)
+        badge_prefix = "[ SHOCKING NATURE & SPECIES DISCOVERY ]"
+    elif topic_cat == 'space_cosmos':
+        pal_name = 'deep_cosmos'
+        primary = (120, 140, 255)
+        secondary = (0, 240, 255)
+        bg_top = (10, 10, 28)
+        bg_bot = (4, 4, 12)
+        accent = (255, 220, 60)
+        badge_prefix = "[ COSMIC DISCOVERY REPORT ]"
+    elif topic_cat == 'history_mystery':
+        pal_name = 'crimson_history'
+        primary = (255, 80, 60)
+        secondary = (220, 190, 120)
+        bg_top = (22, 14, 14)
+        bg_bot = (10, 6, 6)
+        accent = (255, 210, 70)
+        badge_prefix = "[ UNTOLD HISTORY ARCHIVE ]"
+    elif topic_cat == 'wealth_finance':
+        pal_name = 'gold_luxury'
+        primary = (255, 215, 0)
+        secondary = (0, 230, 140)
+        bg_top = (20, 20, 14)
+        bg_bot = (8, 8, 6)
+        accent = (255, 255, 255)
+        badge_prefix = "[ WEALTH & LEVERAGE BLUEPRINT ]"
+    elif topic_cat == 'animation_cartoon':
+        pal_name = 'vibrant_pop'
+        primary = (255, 120, 40)
+        secondary = (50, 200, 255)
+        bg_top = (24, 16, 28)
+        bg_bot = (10, 8, 14)
+        accent = (255, 240, 60)
+        badge_prefix = "[ VIRAL ANIMATED FACT ]"
+    elif topic_cat == 'coding_prompts':
         pal_name = 'matrix_emerald'
         primary = (0, 255, 140)
         secondary = (0, 220, 255)
@@ -541,7 +623,7 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
         bg_top = (8, 16, 32)
         bg_bot = (4, 8, 16)
         accent = (255, 200, 40)
-        badge_prefix = "! 2026 EXCLUSIVE AI REPORT !"
+        badge_prefix = "! EXCLUSIVE VIRAL REPORT !"
 
     font_hero = get_font(52, bold=True)
     font_sub = get_font(28, bold=False)
@@ -717,13 +799,41 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
                 card2_title = "ROUND 2: COST PER TOKEN"
                 card2_sub = "Open source local inference vs cloud pricing"
                 card2_metric = "95% Savings"
+            elif topic_cat == 'animals_wildlife':
+                card1_title = "ORIGIN & MUTATION"
+                card1_sub = "Extreme human selective breeding"
+                card1_metric = "Man-Made"
+                card2_title = "BIOLOGICAL IMPACT"
+                card2_sub = "Documented anatomical distortion"
+                card2_metric = "Verified"
+            elif topic_cat == 'space_cosmos':
+                card1_title = "ESTIMATED VALUE"
+                card1_sub = "Cost of pure Antimatter production"
+                card1_metric = "$62 Trillion/g"
+                card2_title = "COSMIC SCALE"
+                card2_sub = "Exoplanet diamond crystal mass"
+                card2_metric = "2x Earth"
+            elif topic_cat == 'history_mystery':
+                card1_title = "TIME ELAPSED"
+                card1_sub = "Isolated jungle guerrilla operations"
+                card1_metric = "30 Years"
+                card2_title = "FINAL SURRENDER"
+                card2_sub = "Relieved of duty by direct commander"
+                card2_metric = "1974 Record"
+            elif topic_cat == 'wealth_finance':
+                card1_title = "LEVERAGE ENGINE"
+                card1_sub = "Automated digital asset compounding"
+                card1_metric = "10x Margin"
+                card2_title = "NONLINEAR GROWTH"
+                card2_sub = "Capital velocity and scale efficiency"
+                card2_metric = "Top 1%"
             else:
-                card1_title = sanitize_text(str(high_cpm_keywords[0])).upper()[:24] if len(high_cpm_keywords) > 0 else "AUTONOMOUS PIPELINE"
-                card1_sub = "Performance: 10x Efficiency Multiplier"
-                card1_metric = "99.4%"
-                card2_title = sanitize_text(str(high_cpm_keywords[1])).upper()[:24] if len(high_cpm_keywords) > 1 else "ZERO LATENCY CLUSTER"
-                card2_sub = "Verification: Production Ready Systems"
-                card2_metric = "100%"
+                card1_title = sanitize_text(str(high_cpm_keywords[0])).upper()[:24] if len(high_cpm_keywords) > 0 else "KEY DISCOVERY"
+                card1_sub = "Significance: Verified by Research"
+                card1_metric = "Top 1%"
+                card2_title = sanitize_text(str(high_cpm_keywords[1])).upper()[:24] if len(high_cpm_keywords) > 1 else "GLOBAL IMPACT"
+                card2_sub = "Worldwide fascination and confirmed records"
+                card2_metric = "Verified"
 
             draw.rounded_rectangle([70, 420, W - 70, 620], radius=20, fill=(10, 18, 30, 235), outline=(*primary, 160), width=2)
             draw.text((105, 450), card1_title, font=font_title, fill=(255, 255, 255))
@@ -783,7 +893,7 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
             draw.ellipse([card_box[0] + 35, card_box[1] + 30, card_box[0] + 55, card_box[1] + 50], fill=(255, 70, 70))
             draw.ellipse([card_box[0] + 70, card_box[1] + 30, card_box[0] + 90, card_box[1] + 50], fill=(255, 200, 50))
             draw.ellipse([card_box[0] + 105, card_box[1] + 30, card_box[0] + 125, card_box[1] + 50], fill=(50, 220, 100))
-            draw.text((card_box[0] + 150, card_box[1] + 28), f"terminal://neuralpulse/{topic_cat}", font=font_mono, fill=(120, 180, 140))
+            draw.text((card_box[0] + 150, card_box[1] + 28), f"archive://dossier/{topic_cat}", font=font_mono, fill=(120, 180, 140))
             draw.line([(card_box[0], card_box[1] + 65), (card_box[2], card_box[1] + 65)], fill=(*accent, 80), width=1)
 
             if topic_cat == 'coding_prompts':
@@ -795,6 +905,16 @@ def generate_topic_procedural_scenes(item_id: str, title: str, scenes_data: list
                     ("[STATUS] Clean architecture deployed with zero memory leaks", (50, 255, 120)),
                     ("[DEPLOY] Cloud edge workers synchronized globally", (*accent, 255)),
                     (">>> 100% PRODUCTION VERIFIED <<<", (50, 255, 120))
+                ]
+            elif topic_cat in ['animals_wildlife', 'space_cosmos', 'history_mystery', 'wealth_finance', 'animation_cartoon']:
+                t_lines = [
+                    (f">> OFFICIAL ARCHIVE: \"{sanitize_text(title)[:28]}\"", (*primary, 255)),
+                    ("[VERIFIED] Primary historical & scientific records confirmed", (180, 190, 200)),
+                    ("[EVIDENCE] Documented anomaly validated by global research", (*secondary, 255)),
+                    ("[ANALYSIS] Extraordinary phenomenon categorized", (50, 255, 120)),
+                    ("[STATUS] High-retention viral insight documented", (50, 255, 120)),
+                    ("[COMMUNITY] Millions of viewers worldwide engaged", (*accent, 255)),
+                    (">>> 100% VERIFIED DISCOVERY <<<", (50, 255, 120))
                 ]
             else:
                 t_lines = [
@@ -1715,9 +1835,11 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 draw.text((155, 928), f"High-Retention Target: {clean_title[:32]}", font=font_brand, fill=(0, 255, 180))
 
         cur_sub = None
+        active_prog = -1.0
         for (c_st, c_et, lines, colors) in subtitles:
             if c_st <= t_sec < c_et:
                 cur_sub = (lines, colors)
+                active_prog = (t_sec - c_st) / max(0.01, c_et - c_st)
                 break
 
         if cur_sub:
@@ -1726,11 +1848,11 @@ def render_video(data: dict, output_mp4: str, voice_override: str = None, host_o
                 sub_y = int(H * 0.82)
                 sub_cx = int(W * 0.28)
                 max_cap_w = int(W * 0.48)
-                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w, x_center=sub_cx)
+                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w, x_center=sub_cx, active_prog=active_prog)
             else:
                 sub_y = int(H * 0.83) if (is_long or t_sec < sc6_start) else 1310
                 max_cap_w = int(W * 0.80) if is_long else 880
-                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w)
+                draw_smart_caption(draw, cur_sub[0], sub_y, colors=cur_sub[1], max_w=max_cap_w, active_prog=active_prog)
 
         if t_sec >= sc6_start:
             card_w = min(780, int(W * 0.44)) if is_long else 780

@@ -210,6 +210,131 @@ export const ContentDetailPage = () => {
     }
   };
 
+  // Lumen Superpowers: Scene Repair & Checkpoint Recovery
+  const [sceneManifest, setSceneManifest] = useState<any>(null);
+  const [checkpointsInfo, setCheckpointsInfo] = useState<any>(null);
+  const [videoProvidersList, setVideoProvidersList] = useState<any[]>([]);
+  const [selectedVideoProvider, setSelectedVideoProvider] = useState<string>('local_flux');
+  const [regeneratingSceneIdx, setRegeneratingSceneIdx] = useState<number | null>(null);
+  const [isRebuildingScenes, setIsRebuildingScenes] = useState(false);
+  const [isResumingPipeline, setIsResumingPipeline] = useState(false);
+  const [sceneEdits, setSceneEdits] = useState<Record<number, { prompt?: string; scriptText?: string }>>({});
+
+  const fetchScenesAndCheckpoints = async () => {
+    try {
+      const [scenesRes, cpRes, provRes] = await Promise.all([
+        fetch(`/api/workspaces/${workspaceId}/content/${contentId}/scenes`, { headers: { 'x-workspace-id': workspaceId } }),
+        fetch(`/api/workspaces/${workspaceId}/content/${contentId}/checkpoints`, { headers: { 'x-workspace-id': workspaceId } }),
+        fetch(`/api/workspaces/${workspaceId}/content/video-providers`, { headers: { 'x-workspace-id': workspaceId } })
+      ]);
+      if (scenesRes.ok) {
+        const sData = await scenesRes.json();
+        if (sData.success) setSceneManifest(sData.manifest);
+      }
+      if (cpRes.ok) {
+        const cData = await cpRes.json();
+        if (cData.success) setCheckpointsInfo(cData);
+      }
+      if (provRes.ok) {
+        const pData = await provRes.json();
+        if (pData.success) setVideoProvidersList(pData.providers || []);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchScenesAndCheckpoints();
+  }, [workspaceId, contentId]);
+
+  const handleRegenerateSingleScene = async (sceneIndex: number) => {
+    setRegeneratingSceneIdx(sceneIndex);
+    try {
+      const edit = sceneEdits[sceneIndex] || {};
+      const res = await fetch(`/api/workspaces/${workspaceId}/content/${contentId}/scenes/${sceneIndex}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify({
+          prompt: edit.prompt,
+          scriptText: edit.scriptText,
+          provider: selectedVideoProvider
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`🎨 ${sceneIndex + 1}-sahna kadri yangilandi!`);
+        fetchScenesAndCheckpoints();
+      } else {
+        setToast(`⚠️ Xatolik: ${data.error || "Qayta yaratib bo'lmadi"}`);
+      }
+    } catch (e: any) {
+      setToast(`⚠️ Tarmoq xatosi: ${e.message}`);
+    } finally {
+      setRegeneratingSceneIdx(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const handleUpdateSceneText = async (sceneIndex: number) => {
+    const edit = sceneEdits[sceneIndex];
+    if (!edit) return;
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/content/${contentId}/scenes/${sceneIndex}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+        body: JSON.stringify(edit)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`💾 ${sceneIndex + 1}-sahna ma'lumotlari saqlandi!`);
+        fetchScenesAndCheckpoints();
+      }
+    } catch (e) {}
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleRebuildVideoFromScenes = async () => {
+    setIsRebuildingScenes(true);
+    setStatus('generating');
+    startRenderPolling();
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/content/${contentId}/scenes/rebuild`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data.videoUrl) {
+        setCustomVideoUrl(data.videoUrl);
+      }
+      setToast("⚡ Butun video yangilangan sahnalar bilan montaj qilinmoqda...");
+    } catch (e: any) {
+      setToast(`⚠️ Montajda xatolik: ${e.message}`);
+    } finally {
+      setIsRebuildingScenes(false);
+      setTimeout(() => setToast(null), 3500);
+    }
+  };
+
+  const handleResumeFromCheckpoint = async () => {
+    setIsResumingPipeline(true);
+    setStatus('generating');
+    startRenderPolling();
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/content/${contentId}/resume-generation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`🔄 Pipeline davom ettirilmoqda: ${data.resumedFrom || 'bosqich'}`);
+      }
+    } catch (e: any) {
+      setToast(`⚠️ Tiklashda xatolik: ${e.message}`);
+    } finally {
+      setIsResumingPipeline(false);
+      setTimeout(() => setToast(null), 3500);
+    }
+  };
+
   // System 2: Content Duplication
   const [isDuplicating, setIsDuplicating] = useState(false);
 
@@ -2579,6 +2704,7 @@ export const ContentDetailPage = () => {
             { id: 'skript', label: 'Skript' },
             { id: 'audience_sim', label: '🧠 Auditoriya Simulyatori' },
             { id: 'broll', label: '🎞️ B-Roll Media' },
+            { id: 'scene_repair', label: '🛠️ Sahnalar & Scene Repair' },
             { id: 'karaoke', label: '🎬 Karaoke & Subtitrlar' },
             { id: 'audio_master', label: '⚡ Smart Ducking & SFX' },
             { id: 'ab_test', label: '📊 A/B Split & 24h Analitika' },
@@ -3486,6 +3612,307 @@ export const ContentDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+        </Tabs.Content>
+
+        {/* 🛠️ Sahnalarni Boshqarish & Qayta Yaratish (Scene Repair & Checkpoint Recovery) */}
+        <Tabs.Content value="scene_repair" className="space-y-6 animate-fade-in">
+          {/* Header & Quick Rebuild Action */}
+          <Card className="liquid-glass border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.12)]">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/25">
+                    <Layers size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      Sahnalar Boshqaruvi & Scene Repair Engine
+                      <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/40 font-bold uppercase">
+                        Lumen v2.10 Architecture
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Har bir sahnani alohida generatsiya qilish, FLUX vizual promptlarini sozlash va videoni noldan boshlamay qayta montaj qilish
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="primary"
+                    disabled={isRebuildingScenes}
+                    onClick={handleRebuildVideoFromScenes}
+                    className="yt-btn-red flex items-center gap-2 text-xs font-bold px-4 py-2"
+                  >
+                    <RefreshCw size={15} className={isRebuildingScenes ? 'animate-spin' : ''} />
+                    {isRebuildingScenes ? 'Montaj qilinmoqda...' : '⚡ Sahnalar Bilan Videoni Qayta Montaj Qilish'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* 🔄 Checkpoint Recovery Panel */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-white flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-400" />
+                    Generatsiya Bosqichlari & Checkpoint Tiklash (Lumen Checkpoint Manager)
+                  </span>
+                  {checkpointsInfo?.canResume && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isResumingPipeline}
+                      onClick={handleResumeFromCheckpoint}
+                      className="text-xs border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                    >
+                      <RefreshCw size={13} className={`mr-1.5 ${isResumingPipeline ? 'animate-spin' : ''}`} />
+                      {isResumingPipeline ? 'Tiklanmoqda...' : `${checkpointsInfo.nextStage} bosqichidan davom ettirish`}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1">
+                  {[
+                    { id: 'strategy', label: '1. Mavzu' },
+                    { id: 'script', label: '2. Ssenariy' },
+                    { id: 'scenes', label: '3. Sahnalar' },
+                    { id: 'visuals', label: '4. FLUX Kadrlar' },
+                    { id: 'narration', label: '5. Audio Ovoz' },
+                    { id: 'assembly', label: '6. FFmpeg Montaj' },
+                    { id: 'seo', label: '7. SEO / Teglar' }
+                  ].map(step => {
+                    const cp = checkpointsInfo?.stages?.[step.id];
+                    const isDone = cp?.status === 'completed';
+                    const isRunning = cp?.status === 'running';
+                    return (
+                      <div
+                        key={step.id}
+                        className={`p-2 rounded-lg border text-center transition-all ${
+                          isDone
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : isRunning
+                            ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-200 animate-pulse'
+                            : 'bg-white/[0.02] border-white/5 text-gray-400'
+                        }`}
+                      >
+                        <div className="text-[10px] font-mono font-medium">{step.label}</div>
+                        <div className="text-[9px] mt-0.5 font-bold">
+                          {isDone ? '[OK] Tayyor' : isRunning ? 'Jarayonda...' : 'Kutilmoqda'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 🎬 Video Generator Provayderi Tanlash */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-300 flex items-center justify-between">
+                  <span>Sun'iy Intellekt Video & Vizual Dvigateli (Multi-Model Registry):</span>
+                  <span className="text-[11px] text-cyan-400 font-mono">Tanlangan: {selectedVideoProvider}</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                  {[
+                    { id: 'local_flux', name: 'FLUX.1-schnell', badge: '100% Bepul', desc: 'Cheksiz & Tez' },
+                    { id: 'seedance', name: 'Seedance 2.5', badge: 'ByteDance', desc: 'Kinematik' },
+                    { id: 'minimax_h3', name: 'MiniMax H3', badge: 'Hailuo AI', desc: 'Harakatli 720p' },
+                    { id: 'google_omni', name: 'Google Veo 3.1', badge: 'Google Cloud', desc: 'Ultra Realizm' },
+                    { id: 'kling', name: 'Kling v3 Pro', badge: 'Kuaishou', desc: 'Fizika & Detal' },
+                    { id: 'wan', name: 'Alibaba Wan 2.7', badge: 'Wan AI', desc: '14B Model' }
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedVideoProvider(p.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        selectedVideoProvider === p.id
+                          ? 'bg-cyan-500/15 border-cyan-500 text-white shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                          : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-bold">
+                          {p.badge}
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-white truncate">{p.name}</div>
+                      <div className="text-[10px] text-gray-400 truncate">{p.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 5 ta Sahna Kartochkalari */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Film size={16} className="text-red-500" />
+                Videoni Tashkil Qiluvchi 5 ta Kadr & Sahnalar
+              </h4>
+              <span className="text-xs text-gray-400 font-mono">
+                Umumiy davomiylik: ~{sceneManifest?.totalDuration || (videoFormat === 'long_form' ? 615 : 55)}s
+              </span>
+            </div>
+
+            {(sceneManifest?.scenes || [
+              {
+                id: 's1',
+                position: 0,
+                label: '1-sahna: Diqqatni jalb qiluvchi Hook (0-3s)',
+                duration: 11,
+                prompt: `${videoTitle}, shocking opening hook, award-winning photography, cinematic dramatic lighting, 8k photorealistic`,
+                scriptText: scriptText.slice(0, 140),
+                assetPath: `/media/videos/scenes/${contentId}/scene_1.jpg`,
+                status: 'ready'
+              },
+              {
+                id: 's2',
+                position: 1,
+                label: '2-sahna: Asosiy muammo va intriga',
+                duration: 11,
+                prompt: `${videoTitle}, discovery and intriguing buildup, vivid storytelling composition, cinematic lighting`,
+                scriptText: scriptText.slice(140, 280),
+                assetPath: `/media/videos/scenes/${contentId}/scene_2.jpg`,
+                status: 'ready'
+              },
+              {
+                id: 's3',
+                position: 2,
+                label: '3-sahna: Hayratlanarli fakt va yechim',
+                duration: 11,
+                prompt: `${videoTitle}, unbelievable evidence and dramatic details, extreme scale and visual impact, 8k`,
+                scriptText: scriptText.slice(280, 420),
+                assetPath: `/media/videos/scenes/${contentId}/scene_3.jpg`,
+                status: 'ready'
+              },
+              {
+                id: 's4',
+                position: 3,
+                label: '4-sahna: Kulminatsiya va keskin burilish',
+                duration: 11,
+                prompt: `${videoTitle}, stunning revelation and climax, atmospheric volumetric lighting, hyperdetailed`,
+                scriptText: scriptText.slice(420, 560),
+                assetPath: `/media/videos/scenes/${contentId}/scene_4.jpg`,
+                status: 'ready'
+              },
+              {
+                id: 's5',
+                position: 4,
+                label: '5-sahna: Xulosa va obuna chaqirig\'i (CTA)',
+                duration: 11,
+                prompt: `${videoTitle}, epic unforgettable conclusion, wide cinematic perspective, award-winning 8k`,
+                scriptText: scriptText.slice(560, 700),
+                assetPath: `/media/videos/scenes/${contentId}/scene_5.jpg`,
+                status: 'ready'
+              }
+            ]).map((scene: any, idx: number) => {
+              const edit = sceneEdits[idx] || {};
+              const currentPrompt = edit.prompt !== undefined ? edit.prompt : scene.prompt;
+              const currentScript = edit.scriptText !== undefined ? edit.scriptText : scene.scriptText;
+              const isGenThis = regeneratingSceneIdx === idx;
+
+              return (
+                <Card key={scene.id || idx} className="liquid-glass border border-white/10 hover:border-cyan-500/30 transition-all">
+                  <CardContent className="p-5">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                      {/* Left: Kadr Vizual Miniaturasi */}
+                      <div className="lg:col-span-3 space-y-2">
+                        <div className="relative aspect-[9/16] max-h-[220px] rounded-xl overflow-hidden bg-black/60 border border-white/10 flex items-center justify-center group shadow-lg">
+                          <img
+                            src={scene.assetPath ? `${scene.assetPath}?v=${videoVersion}` : `/media/videos/scenes/${contentId}/scene_${idx + 1}.jpg?v=${videoVersion}`}
+                            alt={scene.label}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e: any) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/10">
+                            Sahna {idx + 1}
+                          </div>
+                          <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-red-600/80 backdrop-blur-md text-[10px] font-mono text-white">
+                            ~{scene.duration || 11}s
+                          </div>
+                          {isGenThis && (
+                            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 p-2">
+                              <RefreshCw size={24} className="text-cyan-400 animate-spin" />
+                              <span className="text-[10px] font-bold text-cyan-300 text-center">FLUX.1 yaratmoqda...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isGenThis}
+                          onClick={() => handleRegenerateSingleScene(idx)}
+                          className="w-full text-xs font-bold border-cyan-500/40 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 flex items-center justify-center gap-1.5"
+                        >
+                          <Sparkles size={13} className={isGenThis ? 'animate-spin' : ''} />
+                          {isGenThis ? 'Yaratilmoqda...' : '🎨 Ushbu Kadrni Qayta Yaratish'}
+                        </Button>
+                      </div>
+
+                      {/* Middle & Right: Ssenariy va Vizual Prompt Tahrirlash */}
+                      <div className="lg:col-span-9 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{scene.label}</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">
+                              Rev: {scene.revision || 1}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateSceneText(idx)}
+                            className="text-xs h-7 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20"
+                          >
+                            💾 Matnni Saqlash
+                          </Button>
+                        </div>
+
+                        {/* Ssenariy Matni */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center justify-between">
+                            <span>Ssenariy Diktor Matni (Ushbu sahna uchun):</span>
+                            <span className="text-gray-500 text-[10px]">EdgeTTS nutq sintezi</span>
+                          </label>
+                          <Textarea
+                            value={currentScript}
+                            onChange={(e) => setSceneEdits(prev => ({
+                              ...prev,
+                              [idx]: { ...(prev[idx] || {}), scriptText: e.target.value }
+                            }))}
+                            placeholder="Ushbu sahnada diktor aytadigan matn..."
+                            className="min-h-[64px] font-mono text-xs leading-relaxed bg-black/30 border-white/10"
+                          />
+                        </div>
+
+                        {/* FLUX Vizual Prompt */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                            <span>FLUX.1 Vizual Generatsiya Prompti:</span>
+                            <span className="text-gray-500 text-[10px]">Kinematik 8K render ko'rsatmasi</span>
+                          </label>
+                          <Textarea
+                            value={currentPrompt}
+                            onChange={(e) => setSceneEdits(prev => ({
+                              ...prev,
+                              [idx]: { ...(prev[idx] || {}), prompt: e.target.value }
+                            }))}
+                            placeholder="FLUX.1 neyron modeli uchun inglizcha fotorealistik prompt..."
+                            className="min-h-[64px] font-mono text-xs leading-relaxed bg-black/30 border-cyan-500/20 text-cyan-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </Tabs.Content>
 
         {/* 🎞️ Smart B-Roll Media Kutubxonasi & Footage Manager */}

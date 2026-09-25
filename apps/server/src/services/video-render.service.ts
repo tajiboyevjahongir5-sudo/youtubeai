@@ -8,6 +8,7 @@ import { googleFlowVeoService } from './google-flow-veo.service';
 import { pexelsBrollService } from './pexels-broll.service';
 import { freeAiService } from './free-ai.service';
 import { updateRenderProgress, completeRenderProgress } from './render-progress.service';
+import { generationRecoveryService } from './generation-recovery.service';
 
 export class VideoRenderService {
   public getScriptPath(): string {
@@ -145,23 +146,41 @@ export class VideoRenderService {
 
     console.log(`🎨 [SceneVisuals] Mavzuga mos 5 ta FLUX.1 vizuallari generatsiya qilinmoqda ("${item.title}")...`);
 
-    const cleanTitle = (item.title || 'Artificial Intelligence Breakthrough')
+    const cleanTitle = (item.title || 'Incredible Discovery')
       .replace(/#\w+/g, '')
       .replace(/[^\w\s-]/g, ' ')
       .trim();
 
+    const textToAnalyze = `${cleanTitle} ${(item.tags || []).join(' ')} ${(item.brief || '')}`.toLowerCase();
+
+    // Determine visual style according to niche (inspired by agnes-video-generator & MoneyPrinterTurbo)
+    let visualStyle = 'dramatic cinematic vertical shot, award-winning photography, volumetric atmospheric lighting, 8k photorealistic';
+    if (textToAnalyze.includes('animat') || textToAnalyze.includes('cartoon') || textToAnalyze.includes('comic') || textToAnalyze.includes('draw')) {
+      visualStyle = 'vibrant 2D animated illustration style, expressive character artwork, rich colors, stylized modern animation, 4k ultra-detailed';
+    } else if (textToAnalyze.includes('animal') || textToAnalyze.includes('creature') || textToAnalyze.includes('nature') || textToAnalyze.includes('deformed') || textToAnalyze.includes('wildlife') || textToAnalyze.includes('species')) {
+      visualStyle = 'National Geographic wildlife documentary photography, dramatic natural lighting, hyperrealistic macro detail, 8k ultra-hd';
+    } else if (textToAnalyze.includes('universe') || textToAnalyze.includes('space') || textToAnalyze.includes('planet') || textToAnalyze.includes('rarest') || textToAnalyze.includes('star') || textToAnalyze.includes('galaxy') || textToAnalyze.includes('cosmos') || textToAnalyze.includes('astronomy')) {
+      visualStyle = 'cinematic deep space astrophysics documentary, James Webb telescope realism, glowing cosmic dust, photorealistic universe, 8k';
+    } else if (textToAnalyze.includes('war') || textToAnalyze.includes('history') || textToAnalyze.includes('ancient') || textToAnalyze.includes('punishment') || textToAnalyze.includes('soldier') || textToAnalyze.includes('battle') || textToAnalyze.includes('message')) {
+      visualStyle = 'cinematic historical documentary photograph, moody evocative period lighting, authentic atmospheric realism, 8k cinematic masterpiece';
+    } else if (textToAnalyze.includes('money') || textToAnalyze.includes('rich') || textToAnalyze.includes('billion') || textToAnalyze.includes('wealth') || textToAnalyze.includes('finance') || textToAnalyze.includes('crypto')) {
+      visualStyle = 'cinematic luxury modern aesthetics, editorial lighting, sleek architectural background, 8k photorealistic';
+    } else if (textToAnalyze.includes('code') || textToAnalyze.includes('coding') || textToAnalyze.includes('developer') || textToAnalyze.includes('deepseek') || textToAnalyze.includes('software') || textToAnalyze.includes('cyber') || textToAnalyze.includes('ai')) {
+      visualStyle = 'futuristic cyberpunk neon lighting, volumetric atmosphere, glowing digital data streams, hyperrealistic 8k, octane render';
+    }
+
     const scenes = item.scenes || [];
     const scenePrompts = [
-      // Scene 1: Pattern interrupt hook
-      `${cleanTitle}, ${(scenes[0]?.title || 'dramatic high tech discovery hook')}, dynamic cinematic vertical shot, futuristic cyberpunk neon lighting, volumetric atmosphere, hyperrealistic 8k, octane render`,
-      // Scene 2: Core technological revelation
-      `${cleanTitle}, ${(scenes[1]?.title || 'deep tech breakthrough revelation')}, glowing neural network data flow, complex digital interface, cyan and gold cyber illumination, 8k photorealistic`,
-      // Scene 3: Deep benchmark / demonstration
-      `${cleanTitle}, ${(scenes[2]?.title || 'real world demonstration and benchmark')}, ultra modern developer workstation, futuristic telemetry and code analytics graphs, 8k photorealistic`,
-      // Scene 4: Scalable architecture / cluster
-      `${cleanTitle}, ${(scenes[3]?.title || 'massive production cluster and system architecture')}, futuristic datacenter server racks, glowing fiber optics data stream, 8k cinematic`,
-      // Scene 5: Outro / Community question
-      `${cleanTitle}, ${(scenes[4]?.title || 'future artificial intelligence community discussion')}, ultra high-tech glowing holographic display, futuristic studio ambiance, 8k photorealistic`
+      // Scene 1: Explosive visual hook
+      `${cleanTitle}, ${(scenes[0]?.title || 'shocking opening scene hook')}, intense focal point, ${visualStyle}`,
+      // Scene 2: Discovery and intriguing buildup
+      `${cleanTitle}, ${(scenes[1]?.title || 'deep mystery and origin discovery')}, vivid storytelling composition, ${visualStyle}`,
+      // Scene 3: Mindblowing centerpiece / peak fact
+      `${cleanTitle}, ${(scenes[2]?.title || 'unbelievable evidence and dramatic details')}, extreme scale and visual impact, ${visualStyle}`,
+      // Scene 4: Climax and extreme contrast
+      `${cleanTitle}, ${(scenes[3]?.title || 'stunning revelation and climax')}, atmospheric depth, ${visualStyle}`,
+      // Scene 5: Outro / memorable lasting frame
+      `${cleanTitle}, ${(scenes[4]?.title || 'epic unforgettable conclusion')}, grand wide cinematic perspective, ${visualStyle}`
     ];
 
     const generatePromises = scenePrompts.map(async (prompt, idx) => {
@@ -208,6 +227,10 @@ export class VideoRenderService {
 
     contentStore.updateItem(item.id, { status: 'generating' });
     updateRenderProgress(item.id, 10, '1/4: Mavzu va ssenariy tahlil qilinmoqda...', 1, 4, 'rendering');
+    generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'strategy', { title: item.title, niche: item.contentPillar }, 'completed');
+    generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'script', { title: item.title, script: item.script }, 'completed');
+    generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'scenes', { scenes: item.scenes }, 'completed');
+    generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'assembly', null, 'running');
     console.log(`🎬 Starting real video render for "${item.title}" [${item.id}]...`);
 
     // Create temp input json
@@ -349,6 +372,10 @@ export class VideoRenderService {
           console.log(`✅ [Real Video Render] Video muvaffaqiyatli tayyorlandi: ${outputPath}`);
 
           this.syncVideoOutputs(videoFileName, thumbFileName);
+
+          generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'assembly', { videoPath: outputPath, videoUrl }, 'completed');
+          generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'seo', { title: item.title, description: item.description, tags: item.tags }, 'completed');
+          generationRecoveryService.saveCheckpoint(item.workspaceId, item.id, 'thumbnail', { thumbnailPath: path.join(publicVideosDir, thumbFileName) }, 'completed');
 
           contentStore.updateItem(item.id, {
             videoUrl,
