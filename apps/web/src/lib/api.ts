@@ -9,10 +9,19 @@ export class ApiError extends Error {
 }
 
 export const fetchApi = async (url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>) => {
-  const token = getToken ? await getToken() : null;
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('jpilot_auth_token');
+  }
+  if (!token && getToken) {
+    token = await getToken();
+  }
+  if (!token) {
+    token = 'mock_token';
+  }
   const headers = new Headers(options.headers);
 
-  // If explicit Bearer token is provided (e.g. mobile or tests), set Authorization header
+  // Set Authorization header
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }

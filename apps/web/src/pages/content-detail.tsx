@@ -134,11 +134,8 @@ export const ContentDetailPage = () => {
     if (renderPollRef.current) clearInterval(renderPollRef.current);
     renderPollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/workspaces/${workspaceId}/smart-tools/render-progress/${contentId}`, {
-          headers: { 'x-workspace-id': workspaceId },
-        });
-        const data = await res.json();
-        if (data.success && data.status !== 'idle') {
+        const data = await fetchApi(`/workspaces/${workspaceId}/smart-tools/render-progress/${contentId}`);
+        if (data && data.success && data.status !== 'idle') {
           setRenderProgress(data);
           if (data.status === 'completed') {
             if (renderPollRef.current) clearInterval(renderPollRef.current);
@@ -167,9 +164,8 @@ export const ContentDetailPage = () => {
   const handleResetRender = async () => {
     try {
       if (renderPollRef.current) clearInterval(renderPollRef.current);
-      await fetch(`/api/workspaces/${workspaceId}/smart-tools/content/${contentId}/reset-render`, {
-        method: 'POST',
-        headers: { 'x-workspace-id': workspaceId }
+      await fetchApi(`/workspaces/${workspaceId}/smart-tools/content/${contentId}/reset-render`, {
+        method: 'POST'
       });
       setStatus('awaiting_generation');
       setRenderProgress(null);
